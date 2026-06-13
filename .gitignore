@@ -1,0 +1,17 @@
+# Android
+build/
+.gradle/
+local.properties
+.idea/
+*.iml
+captures/
+.cxx/
+
+# Generated
+/app/build/
+/app/.cxx/
+
+# Keystore
+*.jks
+*.keystore
+release/
