@@ -21,12 +21,10 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # 用纯 shell 装 Android SDK（最稳，不依赖第三方 action）
       - name: Install Android SDK
         run: |
           set -e
           export ANDROID_HOME=$RUNNER_TEMP/android-sdk
-          export ANDROID_SDK_ROOT=$ANDROID_HOME
           mkdir -p $ANDROID_HOME/cmdline-tools
           cd $ANDROID_HOME/cmdline-tools
           curl -sSLo cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
@@ -37,6 +35,7 @@ jobs:
           yes | sdkmanager --licenses >/dev/null
           sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -48,12 +47,26 @@ jobs:
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Make gradlew executable
-        run: chmod +x ./gradlew || true
+        run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tail -80
+      - name: Build Debug APK (verbose)
+        # 不截断 tail, 输出全保存到 log
+        run: |
+          set +e
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log | tail -200
+          echo "===exit=== exit=$?"
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      - name: Show full build log
+        if: always()
+        run: |
+          if [ -f /tmp/build.log ]; then
+            echo "==== /tmp/build.log (last 300 lines) ===="
+            tail -300 /tmp/build.log
+          fi
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -62,3 +75,11 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload full build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: /tmp/build.log
+          retention-days: 7
