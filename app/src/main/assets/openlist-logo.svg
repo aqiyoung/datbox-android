@@ -4,17 +4,13 @@
     <style>
       .cls-1 {
           --sky-400: #38bdf8;
-          @supports (color: oklch(0% 0 0)) {
-              --sky-400: oklch(74.6% 0.16 232.661);
-          }
-          fill: var(--sky-400);
+          
+          fill: #38BDF8;
       }
       .cls-2 {
           --teal-200: #99f6e4;
-          @supports (color: oklch(0% 0 0)) {
-              --teal-200: oklch(91% 0.096 180.426);
-          }
-          fill: var(--teal-200);
+          
+          fill: #99F6E4;
       }
     </style>
   </defs>
