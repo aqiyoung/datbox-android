@@ -63,7 +63,7 @@ jobs:
         id: tag
         run: |
           BASE_VERSION="${{ steps.version.outputs.version_name }}"
-          SEMVER=$(echo '$BASE_VERSION' | sed 's/+.*//')
+          SEMVER=$(echo "$BASE_VERSION" | sed 's/+.*//')
 
           # beta 分支 push → beta 版 (Pre-release)
           # main 分支 push 或 workflow_dispatch → 正式版 (Latest)
@@ -95,12 +95,6 @@ jobs:
           echo '${{ secrets.KEYSTORE_BASE64 }}' | base64 -d > app/openlist-release.jks
           cp app/openlist-release.jks openlist-release.jks
           ls -la openlist-release.jks app/openlist-release.jks
-
-      - name: Cleanup keystore
-        if: always()
-        run: |
-          rm -f openlist-release.jks app/openlist-release.jks
-          rm -f app/android/key.properties
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
