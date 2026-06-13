@@ -1,17 +1,3 @@
-# Android
-build/
-.gradle/
-local.properties
-.idea/
-*.iml
-captures/
-.cxx/
-
-# Generated
-/app/build/
-/app/.cxx/
-
-# Keystore
+# Keystore (CI 用 GitHub Secret 注入, 不进 git)
 *.jks
 *.keystore
-release/
