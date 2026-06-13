@@ -38,6 +38,10 @@ class RootViewModel @Inject constructor(
             _loggedIn.value = false
         }
     }
+
+    fun setLoggedIn() {
+        _loggedIn.value = true  // 老板 6/13 拍: 修复登录后不跳转的 bug
+    }
 }
 
 @Composable
@@ -60,7 +64,7 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
         }
         false -> NavHost(nav, startDestination = "login") {
             composable("login") {
-                LoginScreen(onLoginSuccess = { vm.loggedIn.value.let { _loggedIn2 -> /* 不工作 */ } })
+                LoginScreen(onLoginSuccess = { vm.setLoggedIn() })  // 老板 6/13 拍: 修复登录后不跳转
             }
         }
     }
