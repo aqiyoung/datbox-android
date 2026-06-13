@@ -1,13 +1,14 @@
 package com.threel.openlist.ui.screen
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,43 +17,43 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.threel.openlist.data.update.AppUpdateInfo
+import com.threel.openlist.data.update.AppUpdateManager
 import com.threel.openlist.util.AppConfig
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
-// 老板 6/13 拍: About 页面极简化 - 只留 in-app 渲染 changelog
-// 之前的 4 个按钮 (检查更新/服务器日志/GitHub仓库/网盘Web) 全部删掉
-// 检查更新 -> 启动时 AppUpdateLauncher 自动弹
-// 服务器日志 -> web 端看 (<your-server>/@manage/log)
-// GitHub/网盘 -> 用户不需要
+// 老板 6/13 拍: About 页面只留 2 个按钮 - '更新' + '仓库'
+// 之前的 服务器日志 / GitHub 仓库 / 网盘 Web / 检查更新 全部砍了
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    var updateChecking by remember { mutableStateOf(false) }
     var changelog by remember { mutableStateOf<ChangelogData?>(null) }
-    var loading by remember { mutableStateOf(true) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var changelogLoading by remember { mutableStateOf(true) }
+    var changelogError by remember { mutableStateOf<String?>(null) }
 
-    suspend fun reload() {
-        loading = true
-        error = null
-        try {
-            changelog = withContext(Dispatchers.IO) { fetchChangelog() }
-            loading = false
-        } catch (e: Exception) {
-            error = e.message ?: "未知错误"
-            loading = false
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val data = withContext(Dispatchers.IO) { fetchChangelog() }
+                changelog = data
+                changelogLoading = false
+            } catch (e: Exception) {
+                changelogError = e.message
+                changelogLoading = false
+            }
         }
     }
-
-    LaunchedEffect(Unit) { reload() }
 
     Scaffold(
         topBar = {
@@ -92,46 +93,101 @@ fun AboutScreen(onBack: () -> Unit) {
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // 标题 + 刷新
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "更新日志",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                if (loading) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                } else {
-                    IconButton(
-                        onClick = { scope.launch { reload() } },
-                        modifier = Modifier.size(28.dp),
+            // 老板 6/13 拍: 只留 2 个按钮
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // 1. 更新
+                OutlinedCard(
+                    onClick = {
+                        updateChecking = true
+                        scope.launch {
+                            try {
+                                val manager = EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    AppUpdateEntryPoint::class.java
+                                ).appUpdateManager()
+                                val info = withContext(Dispatchers.IO) { manager.checkForUpdate() }
+                                updateInfo = info
+                                if (info == null) {
+                                    Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    showUpdateDialog(context, info)
+                                }
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "检查失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                            updateChecking = false
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.Refresh, contentDescription = "刷新", modifier = Modifier.size(18.dp))
+                        if (updateChecking) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.Update, null, tint = MaterialTheme.colorScheme.primary)
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            if (updateChecking) "检查中..." else "更新",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                        )
+                    }
+                }
+                // 2. 仓库 (GitHub)
+                OutlinedCard(
+                    onClick = {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://github.com/aqiyoung/openlist-android")
+                        )
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Filled.OpenInBrowser, null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(8.dp))
+                        Text("仓库", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                     }
                 }
             }
 
-            // changelog 列表
+            Spacer(Modifier.height(20.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+            Spacer(Modifier.height(12.dp))
+
+            // 老板 6/13 拍: 顺便在底部 in-app 渲染 changelog (还是想看 changelog 的话)
+            Text(
+                "更新日志",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+
             when {
-                error != null -> Text(
-                    "加载失败: $error",
+                changelogLoading -> Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center,
+                ) { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
+                changelogError != null -> Text(
+                    "加载失败: $changelogError",
                     color = MaterialTheme.colorScheme.error,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(8.dp),
+                    fontSize = 11.sp,
                 )
-                changelog != null -> LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp),
-                ) {
-                    items(changelog!!.releases) { release -> ChangelogCard(release) }
+                changelog != null -> {
+                    changelog!!.releases.forEach { release -> ChangelogCard(release) }
                 }
             }
         }
@@ -141,34 +197,34 @@ fun AboutScreen(onBack: () -> Unit) {
 @Composable
 private fun ChangelogCard(release: ReleaseEntry) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         ),
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
+        Column(modifier = Modifier.padding(12.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
                     "v${release.version}",
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
                     release.date,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             release.changelog.forEach { line ->
                 Text(
                     "• $line",
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(vertical = 1.dp),
                 )
@@ -177,15 +233,47 @@ private fun ChangelogCard(release: ReleaseEntry) {
     }
 }
 
-// ============== changelog 数据模型 ==============
-@Serializable
+// ============== 共享: showUpdateDialog + 数据模型 ==============
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface AppUpdateEntryPoint {
+    fun appUpdateManager(): AppUpdateManager
+}
+
+private fun showUpdateDialog(context: android.content.Context, info: AppUpdateInfo) {
+    val title = "发现新版本 ${info.version}"
+    val message = buildString {
+        append("当前: ${AppConfig.fullVersionString(context)}\n")
+        append("最新: ${info.version} (build ${info.versionCode})\n")
+        if (info.force_update) append("\n⚠️ 强制更新\n")
+        append("\n是否前往下载？")
+    }
+    android.app.AlertDialog.Builder(context)
+        .setTitle(title)
+        .setMessage(message)
+        .setPositiveButton("下载") { dialog: android.content.DialogInterface?, which: Int ->
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(
+                        android.content.Intent.ACTION_VIEW,
+                        android.net.Uri.parse(info.apk_url)
+                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }
+        }
+        .setNegativeButton("稍后", null)
+        .setCancelable(!info.force_update)
+        .show()
+}
+
+@kotlinx.serialization.Serializable
 data class ChangelogData(
     val current: String = "",
     val min_supported: String = "",
     val releases: List<ReleaseEntry> = emptyList(),
 )
 
-@Serializable
+@kotlinx.serialization.Serializable
 data class ReleaseEntry(
     val version: String,
     val versionCode: Int = 0,
@@ -196,19 +284,19 @@ data class ReleaseEntry(
     val changelog: List<String> = emptyList(),
 )
 
-// ============== 拉 changelog (后台 URL) ==============
 private val changelogClient by lazy {
-    OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
+    okhttp3.OkHttpClient.Builder()
+        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 }
 
 private suspend fun fetchChangelog(): ChangelogData = withContext(Dispatchers.IO) {
-    val req = Request.Builder().url(AppConfig.CHANGELOG_URL).get().build()
+    val req = okhttp3.Request.Builder().url(AppConfig.CHANGELOG_URL).get().build()
     changelogClient.newCall(req).execute().use { resp ->
         if (!resp.isSuccessful) error("HTTP ${resp.code}")
         val body = resp.body?.string() ?: error("empty body")
-        Json { ignoreUnknownKeys = true }.decodeFromString(ChangelogData.serializer(), body)
+        kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(ChangelogData.serializer(), body)
     }
 }
