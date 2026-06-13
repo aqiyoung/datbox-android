@@ -43,14 +43,14 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', 'gradle.properties') }}
+          # 加 gradle-wrapper.properties 进 key (gradle 版本变了 cache key 也变)
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: ${{ runner.os }}-gradle-
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK (verbose)
-        # 不截断 tail, 输出全保存到 log
+      - name: Build Debug APK
         run: |
           set +e
           ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/build.log | tail -200
