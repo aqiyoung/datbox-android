@@ -4,6 +4,8 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -67,129 +69,144 @@ fun AboutScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        Column(
+        // 老板 6/13 拍: 整个页面可滑动 (顶部品牌 + 中间 2 按钮 + 底部 changelog 多可以滚)
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // 极简品牌 header
-            Spacer(Modifier.height(24.dp))
-            Text(
-                text = AppConfig.BRAND + "云盘",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = AppConfig.BRAND_SUBTITLE,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = AppConfig.fullVersionString(context),
-                fontSize = 11.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(20.dp))
+            item {
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    text = AppConfig.BRAND + "云盘",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = AppConfig.BRAND_SUBTITLE,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = AppConfig.fullVersionString(context),
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(20.dp))
+            }
 
             // 老板 6/13 拍: 只留 2 个按钮
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                // 1. 更新
-                OutlinedCard(
-                    onClick = {
-                        updateChecking = true
-                        scope.launch {
-                            try {
-                                val manager = EntryPointAccessors.fromApplication(
-                                    context.applicationContext,
-                                    AppUpdateEntryPoint::class.java
-                                ).appUpdateManager()
-                                val info = withContext(Dispatchers.IO) { manager.checkForUpdate() }
-                                updateInfo = info
-                                if (info == null) {
-                                    Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    showUpdateDialog(context, info)
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // 1. 更新
+                    OutlinedCard(
+                        onClick = {
+                            updateChecking = true
+                            scope.launch {
+                                try {
+                                    val manager = EntryPointAccessors.fromApplication(
+                                        context.applicationContext,
+                                        AppUpdateEntryPoint::class.java
+                                    ).appUpdateManager()
+                                    val info = withContext(Dispatchers.IO) { manager.checkForUpdate() }
+                                    updateInfo = info
+                                    if (info == null) {
+                                        Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showUpdateDialog(context, info)
+                                    }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "检查失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                 }
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "检查失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                                updateChecking = false
                             }
-                            updateChecking = false
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
-                        if (updateChecking) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Filled.Update, null, tint = MaterialTheme.colorScheme.primary)
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (updateChecking) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.Update, null, tint = MaterialTheme.colorScheme.primary)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                if (updateChecking) "检查中..." else "更新",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                            )
                         }
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (updateChecking) "检查中..." else "更新",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 14.sp,
-                        )
                     }
-                }
-                // 2. 仓库 (GitHub)
-                OutlinedCard(
-                    onClick = {
-                        val intent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://github.com/aqiyoung/openlist-android")
-                        )
-                        context.startActivity(intent)
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    // 2. 仓库 (GitHub)
+                    OutlinedCard(
+                        onClick = {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://github.com/aqiyoung/openlist-android")
+                            )
+                            context.startActivity(intent)
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
                     ) {
-                        Icon(Icons.Filled.OpenInBrowser, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Text("仓库", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Filled.OpenInBrowser, null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text("仓库", fontWeight = FontWeight.Medium, fontSize = 14.sp)
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-            Spacer(Modifier.height(12.dp))
+            item {
+                Spacer(Modifier.height(20.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                Spacer(Modifier.height(12.dp))
 
-            // 老板 6/13 拍: 顺便在底部 in-app 渲染 changelog (还是想看 changelog 的话)
-            Text(
-                "更新日志",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-
-            when {
-                changelogLoading -> Box(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
-                changelogError != null -> Text(
-                    "加载失败: $changelogError",
-                    color = MaterialTheme.colorScheme.error,
-                    fontSize = 11.sp,
+                // 老板 6/13 拍: 顺便在底部 in-app 渲染 changelog (还是想看 changelog 的话)
+                Text(
+                    "更新日志",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            // changelog 内容 (嵌在 LazyColumn 里 -> 自动跟随页面滚动)
+            when {
+                changelogLoading -> item {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
+                }
+                changelogError != null -> item {
+                    Text(
+                        "加载失败: $changelogError",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(8.dp),
+                    )
+                }
                 changelog != null -> {
-                    changelog!!.releases.forEach { release -> ChangelogCard(release) }
+                    items(changelog!!.releases) { release ->
+                        ChangelogCard(release)
+                    }
                 }
             }
+            item { Spacer(Modifier.height(24.dp)) }
         }
     }
 }
