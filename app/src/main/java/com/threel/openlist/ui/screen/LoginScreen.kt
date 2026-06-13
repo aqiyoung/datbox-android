@@ -45,8 +45,8 @@ fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
-        // 背景圆形 (天蓝色)
-        drawCircle(color = Color(0xFF38BDF8), radius = w.minimumValue / 2f)
+        // 背景圆形 (天蓝色) - 用 min(w, h) 防止 minimumValue 不存在
+        drawCircle(color = Color(0xFF38BDF8), radius = min(w, h) / 2f)
         // LB 蓝色斜杠
         val lbPath = androidx.compose.ui.graphics.Path().apply {
             moveTo(w * 0.18f, h * 0.78f)
