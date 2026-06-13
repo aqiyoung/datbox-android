@@ -10,25 +10,24 @@ plugins {
 android {
     signingConfigs {
         create("release") {
-            // CI 跑时从 SIGNING_KEYSTORE_FILE 等环境变量读 keystore
-            // 本地跑时 (没 env) 用 ~/.openclaw/.env 的 OPENLIST_KEYSTORE_FILE
-            val envFile = System.getenv("OPENCLAW_ENV_FILE") ?: "${System.getProperty("user.home")}/.openclaw/.env"
-            val props = java.util.Properties()
-            try {
-                java.io.FileReader(envFile).use { props.load(it) }
-            } catch (e: Exception) { /* env 不存在也没事 */ }
-            val keystorePath = System.getenv("OPENLIST_KEYSTORE_FILE")
-                ?: props.getProperty("OPENLIST_KEYSTORE_FILE")
-                ?: "openlist-release.jks"
-            val keystorePass = System.getenv("OPENLIST_KEYSTORE_PASS")
-                ?: props.getProperty("OPENLIST_KEYSTORE_PASS")
-                ?: "threelist_2026"
-            val keyAlias = System.getenv("OPENLIST_KEY_ALIAS")
-                ?: props.getProperty("OPENLIST_KEY_ALIAS")
-                ?: "openlist"
-            val keyPass = System.getenv("OPENLIST_KEY_PASS")
-                ?: props.getProperty("OPENLIST_KEY_PASS")
-                ?: keystorePass
+            // 读 ~/.openclaw/.env (简单 grep KEY=VALUE)
+            val envFile = File(System.getProperty("user.home"), ".openclaw/.env")
+            fun envGet(key: String, default: String): String {
+                System.getenv(key)?.let { return it }
+                if (envFile.exists()) {
+                    envFile.readLines().forEach { line ->
+                        val parts = line.split("=", limit = 2)
+                        if (parts.size == 2 && parts[0].trim() == key) {
+                            return parts[1].trim()
+                        }
+                    }
+                }
+                return default
+            }
+            val keystorePath = envGet("OPENLIST_KEYSTORE_FILE", "openlist-release.jks")
+            val keystorePass = envGet("OPENLIST_KEYSTORE_PASS", "threelist_2026")
+            val keyAlias = envGet("OPENLIST_KEY_ALIAS", "openlist")
+            val keyPass = envGet("OPENLIST_KEY_PASS", keystorePass)
             storeFile = file(keystorePath)
             storePassword = keystorePass
             this.keyAlias = keyAlias
