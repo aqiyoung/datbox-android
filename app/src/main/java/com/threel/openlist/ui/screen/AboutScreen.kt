@@ -9,8 +9,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Update
+import androidx.compose.ui.res.painterResource
+import com.threel.openlist.R
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -145,7 +148,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             )
                         }
                     }
-                    // 2. 仓库 (GitHub)
+                    // 2. 仓库 (GitHub) - 老板 6/14 拍: 加猫猫 logo
                     OutlinedCard(
                         onClick = {
                             val intent = Intent(
@@ -161,7 +164,13 @@ fun AboutScreen(onBack: () -> Unit) {
                             modifier = Modifier.padding(14.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Filled.OpenInBrowser, null, tint = MaterialTheme.colorScheme.primary)
+                            // 老板 6/14 拍: GitHub 官方 Octocat 猫猫 (drawable/ic_github_cat)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_github_cat),
+                                contentDescription = "GitHub",
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Unspecified,
+                            )
                             Spacer(Modifier.width(8.dp))
                             Text("仓库", fontWeight = FontWeight.Medium, fontSize = 14.sp)
                         }
@@ -265,6 +274,7 @@ private fun showUpdateDialog(context: android.content.Context, info: AppUpdateIn
         if (info.force_update) append("\n⚠️ 强制更新\n")
         append("\n是否前往下载？")
     }
+    // 老板 6/14 拍: 加 '复制链接' 按钮 (除了 下载, 还能复制纯链接)
     android.app.AlertDialog.Builder(context)
         .setTitle(title)
         .setMessage(message)
@@ -277,6 +287,13 @@ private fun showUpdateDialog(context: android.content.Context, info: AppUpdateIn
                     ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             }
+        }
+        .setNeutralButton("复制链接") { dialog: android.content.DialogInterface?, which: Int ->
+            // 老板 6/14 拍: 复制 APK 链接到剪贴板
+            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("APK 下载链接", info.apk_url)
+            clipboard.setPrimaryClip(clip)
+            android.widget.Toast.makeText(context, "链接已复制: ${info.apk_url}", android.widget.Toast.LENGTH_LONG).show()
         }
         .setNegativeButton("稍后", null)
         .setCancelable(!info.force_update)

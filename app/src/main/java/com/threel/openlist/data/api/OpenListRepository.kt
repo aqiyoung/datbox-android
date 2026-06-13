@@ -61,16 +61,20 @@ class OpenListRepository @Inject constructor(
 
     fun isLoggedIn(): Boolean = tokenStore.tokenSync().isNotEmpty()
 
-    /** 老板 6/13 v0.3.0: 下载文件 (OkHttp 直拉, 写到 Downloads 目录) */
+    /** 老板 6/13 v0.3.0: 下载文件 (OkHttp 直拉, 写到 Downloads 目录)
+     *
+     * OpenList 4.x bug: 客户端不能传 'Bearer ' 前缀! (中间件 cache key 不一致)
+     * 跟 Retrofit AuthInterceptor 一致 - 传 raw token 即可
+     */
     suspend fun download(remotePath: String, fileName: String): Result<File> = runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
-        // 路径用 /d/{path} 形式 + Authorization header
+        // 路径用 /d/{path} 形式 + Authorization header (raw token, 不加 'Bearer ')
         val encoded = remotePath.removePrefix("/")
         val url = "$serverUrl/d/$encoded"
         val req = Request.Builder()
             .url(url)
-            .header("Authorization", if (token.isNotEmpty()) "Bearer $token" else "")
+            .header("Authorization", token)
             .get()
             .build()
         val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
@@ -93,7 +97,13 @@ class OpenListRepository @Inject constructor(
         val mime = "application/octet-stream".toMediaType()
         val body = file.asRequestBody(mime)
         val part = MultipartBody.Part.createFormData("file", file.name, body)
-        val targetPath = if (remoteDir == "/") "/${file.name}" else "$remoteDir/${file.name}"
+        // 老板 6/14: 不能上传到根 / (storage 都在 /天翼云盘 下)
+        // 如果 remoteDir == "/", 提示用户先进 storage
+        val targetPath = if (remoteDir == "/") {
+            error("请先进 storage 目录再上传 (如 /天翼云盘)")
+        } else {
+            "$remoteDir/${file.name}"
+        }
         api.upload(path = targetPath, override = true, file = part)
     }
 
