@@ -21,13 +21,22 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
-        uses: reactivecircus/android-sdk-github-actions/setup@v1
-        with:
-          sdk-version: '34'
-          build-tools-version: '34.0.0'
-          platform-tools-version: '34.0.0'
-          modules: 'platforms;android-34,build-tools;34.0.0,platform-tools'
+      # 用纯 shell 装 Android SDK（最稳，不依赖第三方 action）
+      - name: Install Android SDK
+        run: |
+          set -e
+          export ANDROID_HOME=$RUNNER_TEMP/android-sdk
+          export ANDROID_SDK_ROOT=$ANDROID_HOME
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME/cmdline-tools
+          curl -sSLo cmdline.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdline.zip
+          mv cmdline-tools latest
+          rm cmdline.zip
+          export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools" >/dev/null
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
 
       - name: Cache Gradle
         uses: actions/cache@v4
