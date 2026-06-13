@@ -117,7 +117,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     ActionCard(
                         title = "检查更新",
-                        subtitle = if (updateInfo == null) "点击检查新版本" else "发现新版本 ${updateInfo?.versionName}，点击下载",
+                        subtitle = if (updateInfo == null) "点击检查新版本" else "发现新版本 ${updateInfo?.version}，点击下载",
                         icon = Icons.Filled.Update,
                         onClick = {
                             updateChecking = true
@@ -388,7 +388,7 @@ interface AppUpdateEntryPoint {
     fun appUpdateManager(): AppUpdateManager
 }
 
-/** 老板 6/13 拍: About 页面检查更新弹窗 */
+/** 老板 6/13 拍: About 页面检查更新弹窗 (用系统 AlertDialog) */
 private fun showUpdateDialog(context: android.content.Context, info: AppUpdateInfo) {
     val title = "发现新版本 ${info.version}"
     val message = buildString {
@@ -397,10 +397,10 @@ private fun showUpdateDialog(context: android.content.Context, info: AppUpdateIn
         if (info.force_update) append("\n⚠️ 强制更新\n")
         append("\n是否前往下载？")
     }
-    androidx.appcompat.app.AlertDialog.Builder(context)
+    android.app.AlertDialog.Builder(context)
         .setTitle(title)
         .setMessage(message)
-        .setPositiveButton("下载") { _, _ ->
+        .setPositiveButton("下载") { dialog: android.content.DialogInterface?, which: Int ->
             runCatching {
                 context.startActivity(
                     android.content.Intent(
