@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import com.threel.openlist.BuildConfig
 
 /**
  * App 全局配置 / 版本信息
