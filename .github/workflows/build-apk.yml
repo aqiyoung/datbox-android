@@ -54,6 +54,7 @@ jobs:
         run: |
           echo "${{ secrets.OPENLIST_KEYSTORE_BASE64 }}" | base64 -d > openlist-release.jks
           ls -la openlist-release.jks
+          cp openlist-release.jks app/openlist-release.jks
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
