@@ -69,6 +69,7 @@ class FileBrowserViewModel @Inject constructor(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileBrowserScreen(
     onLogout: () -> Unit,

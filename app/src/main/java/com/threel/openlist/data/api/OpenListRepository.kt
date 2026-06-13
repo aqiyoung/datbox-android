@@ -1,6 +1,5 @@
 package com.threel.openlist.data.api
 
-import com.threel.openlist.data.model.LoginRequest
 import com.threel.openlist.data.model.LoginResponse
 import com.threel.openlist.data.model.UserInfo
 import javax.inject.Inject
