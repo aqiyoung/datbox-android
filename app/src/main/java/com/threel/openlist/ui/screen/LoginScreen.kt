@@ -34,9 +34,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.data.api.TokenStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -86,9 +88,21 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val repo: OpenListRepository,
+    private val tokenStore: TokenStore,  // 老板 6/13: 记住账号密码
 ) : ViewModel() {
     private val _state = MutableStateFlow(LoginUiState())
     val state = _state.asStateFlow()
+
+    init {
+        // 老板 6/13 拍: 自动顶填上次账号密码 (记住页)
+        viewModelScope.launch {
+            val username = tokenStore.lastUsername.first()
+            val password = tokenStore.lastPassword.first()
+            if (username.isNotEmpty()) {
+                _state.value = _state.value.copy(username = username, password = password)
+            }
+        }
+    }
 
     fun onUsername(v: String) { _state.value = _state.value.copy(username = v) }
     fun onPassword(v: String) { _state.value = _state.value.copy(password = v) }
@@ -101,6 +115,11 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             repo.login(_state.value.username.trim(), _state.value.password)
                 .onSuccess {
+                    // 老板 6/13 拍: 登录成功 -> 记住账号密码
+                    tokenStore.saveLastCredentials(
+                        _state.value.username.trim(),
+                        _state.value.password
+                    )
                     _state.value = _state.value.copy(loading = false, success = true)
                 }
                 .onFailure { e ->

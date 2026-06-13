@@ -20,6 +20,8 @@ class TokenStore @Inject constructor(
 ) {
     private val TOKEN_KEY = stringPreferencesKey("jwt_token")
     private val SERVER_KEY = stringPreferencesKey("server_url")
+    private val USERNAME_KEY = stringPreferencesKey("last_username")  // 老板 6/13: 记住账号
+    private val PASSWORD_KEY = stringPreferencesKey("last_password")  // 老板 6/13: 记住密码
 
     val token: Flow<String> = ctx.dataStore.data.map { it[TOKEN_KEY] ?: "" }
 
@@ -41,6 +43,24 @@ class TokenStore @Inject constructor(
     }
 
     fun serverUrlSync(): String = runBlocking { serverUrl.first() }
+
+    /** 老板 6/13 拍: 记住账号 + 密码 (不要 token) */
+    val lastUsername: Flow<String> = ctx.dataStore.data.map { it[USERNAME_KEY] ?: "" }
+    val lastPassword: Flow<String> = ctx.dataStore.data.map { it[PASSWORD_KEY] ?: "" }
+
+    suspend fun saveLastCredentials(username: String, password: String) {
+        ctx.dataStore.edit {
+            it[USERNAME_KEY] = username
+            it[PASSWORD_KEY] = password
+        }
+    }
+
+    suspend fun clearLastCredentials() {
+        ctx.dataStore.edit {
+            it.remove(USERNAME_KEY)
+            it.remove(PASSWORD_KEY)
+        }
+    }
 
     companion object {
         // 老板 6/13 11:46 拍: 默认走 https://<your-server> (OpenList web)

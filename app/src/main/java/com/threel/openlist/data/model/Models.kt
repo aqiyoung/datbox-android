@@ -44,7 +44,7 @@ data class FsListData(
 data class FsItem(
     val name: String,
     val size: Long = 0,
-    val isDir: Boolean = false,
+    @SerialName("is_dir") val isDir: Boolean = false,
     val modified: String = "",
     val sign: String = "",  // 用于下载
     val thumb: String = "",
