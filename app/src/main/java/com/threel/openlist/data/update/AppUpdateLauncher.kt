@@ -9,24 +9,26 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.threel.openlist.R
 import com.threel.openlist.util.AppConfig
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.launch
 
 /**
  * 启动后弹窗检查更新 (Activity 启动后 0.5s 调用, 避免挡住启动)
+ *
+ * 简化: 用 EntryPointAccessors.fromApplication() 拿 AppUpdateManager
+ * (Hilt 2.51.1 推荐用法, 不用 EntryPoints.get)
  */
 object AppUpdateLauncher {
 
     fun maybeShow(context: Context, lifecycleOwner: LifecycleOwner) {
-        // 仅在 STARTED 之后才弹窗, 避免主屏黑屏
         lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 try {
-                    val mgr = (context.applicationContext as? android.app.Application)
-                        ?.let { (it as? dagger.hilt.android.HiltAndroidApp)?.let { _ -> } }
-                    // 通过 Hilt 拿 manager
-                    val manager = dagger.hilt.android.EntryPoints.get(
+                    val manager = EntryPointAccessors.fromApplication(
                         context.applicationContext,
                         AppUpdateEntryPoint::class.java
                     ).appUpdateManager()
@@ -64,9 +66,8 @@ object AppUpdateLauncher {
     }
 }
 
-/** Hilt Entry Point: 从 application context 拿 AppUpdateManager */
-@dagger.hilt.EntryPoint
-@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+@EntryPoint
+@InstallIn(SingletonComponent::class)
 interface AppUpdateEntryPoint {
     fun appUpdateManager(): AppUpdateManager
 }
