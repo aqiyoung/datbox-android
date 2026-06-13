@@ -1,8 +1,12 @@
 package com.threel.openlist.ui.screen
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -10,11 +14,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.Canvas
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,12 +39,47 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// 老板 6/13 拍: 用原版 OpenList logo (LB 蓝色斜杠 + RT 青色圆环) 替换 "OpenList" 文字
+@Composable
+fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
+    Canvas(modifier = Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        // 背景圆形 (天蓝色)
+        drawCircle(color = Color(0xFF38BDF8), radius = w.minimumValue / 2f)
+        // LB 蓝色斜杠
+        val lbPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(w * 0.18f, h * 0.78f)
+            lineTo(w * 0.42f, h * 0.32f)
+            lineTo(w * 0.52f, h * 0.38f)
+            lineTo(w * 0.28f, h * 0.84f)
+            close()
+        }
+        drawPath(path = lbPath, color = Color(0xFF0284C7))
+        // RT 青色圆环 (O 形, 镂空)
+        val oRadius = w * 0.22f
+        val oCenterX = w * 0.62f
+        val oCenterY = h * 0.50f
+        drawCircle(
+            color = Color(0xFF99F6E4),
+            radius = oRadius,
+            center = androidx.compose.ui.geometry.Offset(oCenterX, oCenterY)
+        )
+        drawCircle(
+            color = Color(0xFF38BDF8),
+            radius = oRadius * 0.62f,
+            center = androidx.compose.ui.geometry.Offset(oCenterX, oCenterY)
+        )
+    }
+}
+
 data class LoginUiState(
     val username: String = "",
     val password: String = "",
     val loading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false,
+    val passwordVisible: Boolean = false,  // 老板 6/13 拍: 加小眼睛切换密码可见
 )
 
 @HiltViewModel
@@ -42,6 +91,7 @@ class LoginViewModel @Inject constructor(
 
     fun onUsername(v: String) { _state.value = _state.value.copy(username = v) }
     fun onPassword(v: String) { _state.value = _state.value.copy(password = v) }
+    fun togglePasswordVisible() { _state.value = _state.value.copy(passwordVisible = !_state.value.passwordVisible) }
     fun clearError() { _state.value = _state.value.copy(error = null) }
 
     fun submit() {
@@ -92,14 +142,9 @@ fun LoginScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                "OpenList",
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontWeight = FontWeight.Medium,
-                ),
-                color = Color(0xFFC96442),
-            )
-            Spacer(Modifier.height(8.dp))
+            // 老板 6/13 拍: 用原版 OpenList logo 替换 "OpenList" 文字
+            OpenListLogo(size = 72.dp)
+            Spacer(Modifier.height(16.dp))
             Text(
                 "聚合你的云盘",
                 style = MaterialTheme.typography.bodyMedium,
@@ -128,7 +173,16 @@ fun LoginScreen(
                     onValueChange = vm::onPassword,
                     label = { Text("密码") },
                     singleLine = true,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = vm::togglePasswordVisible) {
+                            Icon(
+                                imageVector = if (state.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = if (state.passwordVisible) "隐藏密码" else "显示密码",
+                                tint = Color(0xFF87867F),
+                            )
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 )
 
@@ -168,7 +222,7 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
             Text(
-                "v0.1.0 · 三页札记",
+                "v0.2.1 · 三页札记",
                 style = MaterialTheme.typography.labelSmall,
                 color = Color(0xFF87867F),
             )
