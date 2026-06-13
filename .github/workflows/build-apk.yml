@@ -53,7 +53,8 @@ jobs:
         # 从 GitHub Secret (OPENLIST_KEYSTORE_BASE64) 还原 jks 文件
         run: |
           echo "${{ secrets.OPENLIST_KEYSTORE_BASE64 }}" | base64 -d > openlist-release.jks
-          ls -la openlist-release.jks
+          cp openlist-release.jks app/openlist-release.jks
+          ls -la openlist-release.jks app/openlist-release.jks
           cp openlist-release.jks app/openlist-release.jks
 
       - name: Make gradlew executable
