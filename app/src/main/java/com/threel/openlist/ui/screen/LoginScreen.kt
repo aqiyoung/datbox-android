@@ -1,5 +1,6 @@
 package com.threel.openlist.ui.screen
 
+import kotlin.math.min
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -45,7 +46,7 @@ fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
     Canvas(modifier = Modifier.size(size)) {
         val w = this.size.width
         val h = this.size.height
-        // 背景圆形 (天蓝色) - 用 min(w, h) 防止 minimumValue 不存在
+        // 背景圆形 (天蓝色) - 用 kotlin.math.min (import 了)
         drawCircle(color = Color(0xFF38BDF8), radius = min(w, h) / 2f)
         // LB 蓝色斜杠
         val lbPath = androidx.compose.ui.graphics.Path().apply {
