@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
+import com.threel.openlist.data.update.AppUpdateLauncher
 import com.threel.openlist.ui.OpenListNavGraph
 import com.threel.openlist.ui.theme.OpenListTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -27,5 +28,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        // 启动后 500ms 检查更新, 避免主屏黑屏
+        window.decorView.postDelayed({
+            AppUpdateLauncher.maybeShow(this, this)
+        }, 500)
     }
 }
