@@ -24,10 +24,11 @@ android {
                 }
                 return default
             }
-            val keystorePath = envGet("OPENLIST_KEYSTORE_FILE", "openlist-release.jks")
-            val keystorePass = envGet("OPENLIST_KEYSTORE_PASS", "threelist_2026")
-            val keyAlias = envGet("OPENLIST_KEY_ALIAS", "openlist")
-            val keyPass = envGet("OPENLIST_KEY_PASS", keystorePass)
+            // Synapse 风格 Secret 名: KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
+            val keystorePath = envGet("KEYSTORE_FILE", "openlist-release.jks")
+            val keystorePass = envGet("KEYSTORE_PASSWORD", "threelist_2026")
+            val keyAlias = envGet("KEY_ALIAS", "openlist")
+            val keyPass = envGet("KEY_PASSWORD", keystorePass)
             storeFile = file(keystorePath)
             storePassword = keystorePass
             this.keyAlias = keyAlias
@@ -39,34 +40,23 @@ android {
     compileSdk = 34
 
     defaultConfig {
+        // Synapse 套路: 单一 applicationId, 不加 .beta / .debug suffix
+        // 老板手机只装一个包, 后续版本能覆盖装
         applicationId = "com.threel.openlist"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 4
+        versionCode = 5
         versionName = "0.2.0"
     }
 
     buildTypes {
-        debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
-            isMinifyEnabled = false
-            // debug 用 <your-server> (有 nginx 限速)
-        }
-        create("beta") {
-            applicationIdSuffix = ".beta"
-            versionNameSuffix = "-beta"
-            isMinifyEnabled = false
-            isDebuggable = true
-            // beta 用 <your-server> 但跳过签名 (老板手机直装)
-        }
+        // Synapse 套路: 只 build release, 不跑 debug
+        // 老板手机用正式 release 包, 调试用 .apk sideload
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
         }
-        // debug 不用 release 签名 (用 Android 默认 debug.keystore)
-        // beta buildType 默认 isJniDebuggable, 也不需要 release 签
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
