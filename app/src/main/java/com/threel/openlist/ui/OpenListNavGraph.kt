@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.LoginScreen
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,7 +49,13 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
         null -> { /* 启动检查中 */ }
         true -> NavHost(nav, startDestination = "files") {
             composable("files") {
-                FileBrowserScreen(onLogout = { vm.logout() })
+                FileBrowserScreen(
+                    onLogout = { vm.logout() },
+                    onAbout = { nav.navigate("about") }
+                )
+            }
+            composable("about") {
+                AboutScreen(onBack = { nav.popBackStack() })
             }
         }
         false -> NavHost(nav, startDestination = "login") {

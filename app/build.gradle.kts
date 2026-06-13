@@ -15,15 +15,28 @@ android {
         applicationId = "com.threel.openlist"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 2
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.1.1"
     }
 
     buildTypes {
-        release {
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
             isMinifyEnabled = false
+            // debug 用 <your-server> (有 nginx 限速)
+        }
+        create("beta") {
+            applicationIdSuffix = ".beta"
+            versionNameSuffix = "-beta"
+            isMinifyEnabled = false
+            isDebuggable = true
+            // beta 用 <your-server> 但跳过签名 (老板手机直装)
+        }
+        release {
+            isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // 暂不签名，等老板拍
+            // release 签名: 后续加老板 keystore
         }
     }
     compileOptions {

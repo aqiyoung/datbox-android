@@ -73,6 +73,7 @@ class FileBrowserViewModel @Inject constructor(
 @Composable
 fun FileBrowserScreen(
     onLogout: () -> Unit,
+    onAbout: () -> Unit = {},
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -83,7 +84,7 @@ fun FileBrowserScreen(
                 title = {
                     Column {
                         Text(
-                            "OpenList",
+                            "三页云盘",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Medium,
                         )
@@ -99,6 +100,9 @@ fun FileBrowserScreen(
                 actions = {
                     IconButton(onClick = { vm.load(state.path) }) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
+                    }
+                    IconButton(onClick = onAbout) {
+                        Icon(Icons.Outlined.Info, contentDescription = "关于")
                     }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.Outlined.Logout, contentDescription = "退出")
