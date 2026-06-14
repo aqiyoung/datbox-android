@@ -1,5 +1,16 @@
 # 三页云盘 (OpenList) - 版本迭代记录
 
+## v0.3.4 (build 14) - 2026-06-14
+### 🐛 修复 (老板 6/14 反馈: 上传下载报错)
+- **下载 401 根因**: `/d/<path>` 路由只查 `?sign=` 不看 Authorization。改用先 `POST /api/fs/get` 拿 sign，再 `/d/<path>?sign=xxx` 跳 302。
+- **上传 400 'storage not found' 根因**: `FsForm` 源码是读 `File-Path` header，不读 query。改用 `PUT /api/fs/form` + `File-Path: <完整路径>` + `As-Task: true` + `Overwrite: true`。
+- 干掉 `OpenListApi.upload` (Retrofit 幻觉端点)，上传改 OkHttp 直发。
+
+### 💧 UI 升级: 液态玻璃弹窗
+- 长按文件从 `AlertDialog.Builder` (灰底老气) 改为 Material 3 `Dialog` + `Surface` 半透明白 (alpha 0.85) + 24dp 圆角 + 12dp 阴影。
+- 下载/分享两项独立行：圆角小背景 + icon 圆 + 标题 + 副标题三段式。
+- 取消按钮独立一行（玻璃感分层）。
+
 ## v0.1.1-beta (build 3) - 2026-06-13
 ### 🆕 新增
 - **APP 名称变更**：`OpenList` → `三页云盘`（中文优先 + 老板家品牌）

@@ -61,22 +61,38 @@ class OpenListRepository @Inject constructor(
 
     fun isLoggedIn(): Boolean = tokenStore.tokenSync().isNotEmpty()
 
-    /** 老板 6/13 v0.3.0: 下载文件 (OkHttp 直拉, 写到 Downloads 目录)
+    /** 老板 6/14 修: 下载文件 (OkHttp 直拉, 写到 Downloads 目录)
      *
-     * OpenList 4.x bug: 客户端不能传 'Bearer ' 前缀! (中间件 cache key 不一致)
-     * 跟 Retrofit AuthInterceptor 一致 - 传 raw token 即可
+     * OpenList 4.x 真实流程:
+     *   1) POST /api/fs/get 拿 sign 字段 (HMAC, fs/get 返 data.sign)
+     *   2) GET /d/<path>?sign=<sign>  → 302 跳到 storage 真链 → 下载
+     *
+     * 之前 v0.3.3 用 Authorization: <token> 直接打 /d/<path> 永远是 401:
+     *   路由 g.GET("/d/*path", signCheck, ...) 在 auth 前面,没 sign 直接 401
+     *   token 在 /d/ 路由完全不检查 (只查 sign)
      */
     suspend fun download(remotePath: String, fileName: String): Result<File> = runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
-        // 路径用 /d/{path} 形式 + Authorization header (raw token, 不加 'Bearer ')
-        val encoded = remotePath.removePrefix("/")
-        val url = "$serverUrl/d/$encoded"
-        val req = Request.Builder()
-            .url(url)
+
+        // 1) 拿 sign (fs/get 需要 path 在 body)
+        val getReq = Request.Builder()
+            .url("$serverUrl/api/fs/get")
             .header("Authorization", token)
-            .get()
+            .post("""{"path":"$remotePath"}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
+        val sign = client.newCall(getReq).execute().use { resp ->
+            if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
+            val body = resp.body?.string() ?: error("fs/get empty body")
+            // 简单正则拿 sign (避引入 Json parser 到这里)
+            val match = Regex(""""sign"\s*:\s*"([^"]+)"""").find(body)
+                ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
+            match.groupValues[1]
+        }
+
+        // 2) 用 sign 下载 (sign 在 query, 不要 Authorization)
+        val url = "$serverUrl/d$remotePath?sign=$sign"
+        val req = Request.Builder().url(url).get().build()
         val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
             android.os.Environment.DIRECTORY_DOWNLOADS
         )
@@ -92,19 +108,56 @@ class OpenListRepository @Inject constructor(
         outFile
     }
 
-    /** 老板 6/13 v0.3.0: 上传文件 (Retrofit multipart) */
+    /** 老板 6/14 修: 上传文件 (OkHttp 直发 multipart)
+     *
+     * OpenList 4.x 真实流程:
+     *   PUT /api/fs/form
+     *     - Authorization: <token>          (跟其他 API 一致)
+     *     - File-Path: <完整含文件名>         (path 在 header, 不用 query!)
+     *     - As-Task: true                    (走异步任务, 避免 'storage not found' 偶发)
+     *     - Overwrite: true                  (可覆盖)
+     *     - body: multipart "file" 字段
+     *
+     * 之前 v0.3.3 用 Retrofit @Query("path") 和 @Query("override") 永远是 400 'storage not found':
+     *   FsForm 源码第一行: path := c.GetHeader("File-Path")
+     *   它根本不读 query, 只读 header
+     */
     suspend fun upload(remoteDir: String, file: File): Result<FsUploadResponse> = runCatching {
-        val mime = "application/octet-stream".toMediaType()
-        val body = file.asRequestBody(mime)
-        val part = MultipartBody.Part.createFormData("file", file.name, body)
-        // 老板 6/14: 不能上传到根 / (storage 都在 /天翼云盘 下)
-        // 如果 remoteDir == "/", 提示用户先进 storage
-        val targetPath = if (remoteDir == "/") {
+        val token = tokenStore.tokenSync()
+        val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
+
+        // 老板 6/14 拍: 不能上传到根 / (storage 都在 /天翼云盘 下)
+        if (remoteDir == "/") {
             error("请先进 storage 目录再上传 (如 /天翼云盘)")
-        } else {
-            "$remoteDir/${file.name}"
         }
-        api.upload(path = targetPath, override = true, file = part)
+        val targetPath = "$remoteDir/${file.name}"
+
+        // multipart body (OkHttp 直发, 不走 Retrofit)
+        val mime = "application/octet-stream".toMediaType()
+        val requestBody = file.asRequestBody(mime)
+        val multipart = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", file.name, requestBody)
+            .build()
+
+        val req = Request.Builder()
+            .url("$serverUrl/api/fs/form")
+            .header("Authorization", token)
+            .header("File-Path", targetPath)
+            .header("As-Task", "true")
+            .header("Overwrite", "true")
+            .put(multipart)
+            .build()
+        val respBody = client.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
+            resp.body?.string() ?: error("empty body")
+        }
+        // 简单解析 code + message (避引入 parser)
+        val codeMatch = Regex(""""code"\s*:\s*(\d+)""").find(respBody)
+        val code = codeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
+        val msgMatch = Regex(""""message"\s*:\s*"([^"]+)"""").find(respBody)
+        val message = msgMatch?.groupValues?.get(1) ?: ""
+        FsUploadResponse(code = code, message = message)
     }
 
     /** 老板 6/13 v0.3.0: 公开分享链接 - 直接拼 URL (OpenList 短链) */

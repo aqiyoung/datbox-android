@@ -161,6 +161,12 @@ fun FileBrowserScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // 老板 6/14: 液态玻璃弹窗 - 长按文件后设置该项
+    var menuItem by remember { mutableStateOf<FsItem?>(null) }
+    val menuRemotePath = menuItem?.let { item ->
+        if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+    }
+
     // 老板 6/13 v0.3.0: 文件选择器 (上传)
     val pickFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -281,25 +287,33 @@ fun FileBrowserScreen(
                             },
                             onLongClick = if (!item.isDir) {
                                 {
-                                    val remotePath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
-                                    showFileMenu(
-                                        context = context,
-                                        onDownload = { vm.downloadFile(remotePath, item.name) },
-                                        onShare = {
-                                            val url = vm.buildShareUrl(remotePath)
-                                            val intent = Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(Intent.EXTRA_TEXT, url)
-                                            }
-                                            context.startActivity(Intent.createChooser(intent, "分享 $item.name"))
-                                        },
-                                    )
+                                    menuItem = item  // 老板 6/14: 设进 state 弹液态玻璃弹窗
                                 }
                             } else null,
                         )
                     }
                 }
             }
+        }
+
+        // 老板 6/14: 液态玻璃弹窗
+        val pending = menuItem
+        if (pending != null && menuRemotePath != null) {
+            GlassActionDialog(
+                fileName = pending.name,
+                onDownload = {
+                    vm.downloadFile(menuRemotePath, pending.name)
+                },
+                onShare = {
+                    val url = vm.buildShareUrl(menuRemotePath)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_TEXT, url)
+                    }
+                    context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
+                },
+                onDismiss = { menuItem = null },
+            )
         }
     }
 }
@@ -363,23 +377,148 @@ private fun CenterMessage(msg: String) = Box(Modifier.fillMaxSize(), contentAlig
     Text(msg, color = Color(0xFF87867F))
 }
 
-/** 老板 6/13 v0.3.0: 文件长按菜单 (下载/分享) - 用 system AlertDialog */
-private fun showFileMenu(
-    context: android.content.Context,
+/** 老板 6/14: 液态玻璃弹窗 (Material 3 AlertDialog + 半透明白)
+ *
+ * 风格参考:
+ * - 标题/文件名为次要色
+ * - 主操作（下载/分享）每项独立卡片 + 大 icon + 文字
+ * - 取消按钮独立一行
+ * - 圆角 20dp + containerColor 半透明白 (0.85)
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassActionDialog(
+    fileName: String,
     onDownload: () -> Unit,
     onShare: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    val items = arrayOf("下载到本地", "分享链接")
-    android.app.AlertDialog.Builder(context)
-        .setTitle("文件操作")
-        .setItems(items) { dialog: android.content.DialogInterface?, which: Int ->
-            when (which) {
-                0 -> onDownload()
-                1 -> onShare()
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White.copy(alpha = 0.85f),  // 液态玻璃: 半透明白
+            tonalElevation = 6.dp,
+            shadowElevation = 12.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(vertical = 20.dp, horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                // 标题
+                Text(
+                    text = "文件操作",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color(0xFF87867F),
+                    modifier = Modifier.padding(start = 4.dp, top = 0.dp, bottom = 4.dp),
+                )
+                Text(
+                    text = fileName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color(0xFF2A2925),
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
+                )
+
+                // 老板 6/14: 下载按钮 (主操作 - 暖色 accent)
+                GlassActionItem(
+                    icon = Icons.Outlined.Download,
+                    iconTint = Color(0xFFC96442),
+                    label = "下载到本地",
+                    subLabel = "保存到下载目录",
+                    onClick = { onDownload(); onDismiss() },
+                )
+                // 分享链接
+                GlassActionItem(
+                    icon = Icons.Outlined.Share,
+                    iconTint = Color(0xFFC96442),
+                    label = "分享链接",
+                    subLabel = "复制 / 发送短链",
+                    onClick = { onShare(); onDismiss() },
+                )
+
+                // 老板 6/14: 取消独立一行 (液态玻璃感)
+                Spacer(Modifier.height(4.dp))
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { onDismiss() },
+                    color = Color(0xFFF5F4ED).copy(alpha = 0.6f),
+                ) {
+                    Text(
+                        "取消",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFF2A2925),
+                        fontWeight = FontWeight.Medium,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 14.dp),
+                    )
+                }
             }
         }
-        .setNegativeButton("取消", null)
-        .show()
+    }
+}
+
+/** 弹窗里的一个操作行 (大 icon + 标题 + 副标题) */
+@Composable
+private fun GlassActionItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    label: String,
+    subLabel: String,
+    onClick: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        color = Color(0xFFFAF9F5).copy(alpha = 0.7f),  // 每行: 略亮一点的玻璃
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // icon 背景小圆
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconTint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF2A2925),
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
+                    subLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF87867F),
+                )
+            }
+        }
+    }
 }
 
 private val sizeFmt = DecimalFormat("#,##0.#")

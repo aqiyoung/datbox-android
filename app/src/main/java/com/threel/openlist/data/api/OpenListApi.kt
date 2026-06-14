@@ -4,16 +4,10 @@ import com.threel.openlist.data.model.FsGetResponse
 import com.threel.openlist.data.model.FsListResponse
 import com.threel.openlist.data.model.LoginResponse
 import com.threel.openlist.data.model.UserInfo
-import okhttp3.MultipartBody
-import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Part
 import retrofit2.http.Path
-import retrofit2.http.Query
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -67,16 +61,10 @@ interface OpenListApi {
     @POST("api/fs/get")
     suspend fun get(@Body req: FsListRequest): FsGetResponse
 
-    /** 下载用（不是 Retrofit @Streaming，是后端直接返的 URL，前端用 OkHttp 下载） */
+    /** 下载用 (后端返 short url, 客户端用 OkHttp 下载) - 详见 OpenListRepository.download */
     @GET("d/{path}")
     suspend fun downloadUrl(@Path("path", encoded = true) path: String): String
 
-    /** 老板 6/13 v0.3.0: 表单上传 (multipart/form-data) */
-    @Multipart
-    @PUT("api/fs/form")
-    suspend fun upload(
-        @Query("path") path: String,
-        @Query("override") override: Boolean = true,
-        @Part file: MultipartBody.Part,
-    ): FsUploadResponse
+    // 老板 6/14: 上传改用 OkHttp 直发 (File-Path header), 不走 Retrofit
+    // 详见 OpenListRepository.upload
 }
