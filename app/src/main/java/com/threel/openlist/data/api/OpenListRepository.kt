@@ -85,7 +85,7 @@ class OpenListRepository @Inject constructor(
             if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
             val body = resp.body?.string() ?: error("fs/get empty body")
             // 简单正则拿 sign (避引入 Json parser 到这里)
-            val match = Regex(""""sign"\s*:\s*"([^"]+)"""").find(body)
+            val match = Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)
                 ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
             match.groupValues[1]
         }
@@ -152,11 +152,10 @@ class OpenListRepository @Inject constructor(
             if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
             resp.body?.string() ?: error("empty body")
         }
-        // 简单解析 code + message (避引入 parser)
-        val codeMatch = Regex(""""code"\s*:\s*(\d+)""").find(respBody)
+        // 老板 6/14: 改普通字符串 + 转义, 避免 raw string `"""` 被 KSP 词法分析误解析 (188:1 Unclosed comment)
+        val codeMatch = Regex("\"code\"\\s*:\\s*(\\d+)").find(respBody)
         val code = codeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
-        val msgMatch = Regex(""""message"\s*:\s*"([^"]+)"""").find(respBody)
-        val message = msgMatch?.groupValues?.get(1) ?: ""
+        val message = Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(respBody)?.groupValues?.get(1) ?: ""
         FsUploadResponse(code = code, message = message)
     }
 
@@ -179,7 +178,7 @@ class OpenListRepository @Inject constructor(
         val sign = client.newCall(getReq).execute().use { resp ->
             if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
             val body = resp.body?.string() ?: error("fs/get empty body")
-            Regex(""""sign"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1)
+            Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)?.groupValues?.get(1)
                 ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
         }
         return "$serverUrl/d$remotePath?sign=$sign"
