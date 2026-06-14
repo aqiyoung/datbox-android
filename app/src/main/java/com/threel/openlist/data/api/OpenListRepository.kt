@@ -161,11 +161,11 @@ class OpenListRepository @Inject constructor(
 
     /** 老板 6/14 修: 公开分享链接 (需先调 fs/get 拿 sign)
      *
-     * 之前 v0.3.0-v0.3.6 拼 "$serverUrl/d$remotePath" 永久 401:
-     *   /d/* 路由只查 ?sign=, 不查 Authorization
+     * 之前 v0.3.0-v0.3.6 拼 serverUrl/d/remotePath 永久 401:
+     *   /d/xxx 路由只查 ?sign=, 不查 Authorization
      *   没 sign 客户端打开就 401 (老板 10:32:41 反馈)
      *
-     * 正确流程: fs/get 拿 sign, 拼 /d/<path>?sign=<hmac>
+     * 正确流程: fs/get 拿 sign, 拼 /d/xxx?sign=hmac
      */
     suspend fun buildShareUrl(remotePath: String): String {
         val token = tokenStore.tokenSync()
