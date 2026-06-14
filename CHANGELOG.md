@@ -1,5 +1,26 @@
 
 
+
+## v0.3.32 (build 42) - 2026-06-14 22:05
+### 🎨 换用 Google Material Icons 官方矢量图标 (老板 6/14 21:55 拍: '用谷歌的')
+- **之前 v0.3.31**: 自绘 14 个 Canvas 图形 (596 行) - 老板吐槽'丑'
+- **现在 v0.3.32**: Material Icons.Filled 官方矢量图标 (Google 官方, 2000+)
+  - 项目本来就引了 `material-icons-extended`, 0 个新依赖
+  - 14 个图标全部用 Google 官方: Folder, Archive, Apps (替换 Android), Image, Movie,
+    MusicNote, PictureAsPdf, Code, TextSnippet, Description, GridView, Slideshow, SaveAlt
+- **颜色策略**:
+  - 之前 v0.3.31: 14 种颜色彩虹 (太花)
+  - 之前 v0.3.0-30: 8 种颜色冷暖混搭 (不成体系)
+  - **现在 v0.3.32: 2 种品牌色**:
+    - 陶土红 #D97757 (12 类: 压缩包/应用/图片/视频/音频/PDF/代码/Word/Excel/PPT/默认)
+    - NearBlack #141413 (2 类: 目录 + 文本/MD, 跟液态玻璃原色一致)
+  - 老板要的'彩色' = 跟单调黑/灰对比, 不是 14 种彩虹
+- **删除**:
+  - FileTypeIcon.kt (-596 行)
+  - fileTypeFor() 函数
+  - 老的 outlined.{Archive,Code,Description,Image,Movie,MusicNote} import
+- **保留**: image vector/tint pattern (跟 v0.3.0 一样, 用 Icon composable)
+
 ## v0.3.31 (build 41) - 2026-06-14 21:42
 ### 🎨 重设计文件类型图标 (老板 6/14 21:38 拍: '应用程序还用的安卓默认绿色机器人, 重新设计')
 - **之前**: 全部用 Material Icons.Outlined (Folder, Android, Image, Movie, etc.) + 8 种颜色

@@ -14,6 +14,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.TextSnippet
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -34,14 +46,6 @@ import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassFab
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.component.LiquidGlassTopBar
-import com.threel.openlist.ui.component.FileTypeIcon
-import com.threel.openlist.ui.component.fileTypeFor
-import androidx.compose.material.icons.outlined.Archive
-import androidx.compose.material.icons.outlined.Code
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Movie
-import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.FolderZip
@@ -332,9 +336,12 @@ fun FileBrowserScreen(
                             }  // 老板 6/14: 点三个点弹玻璃弹窗
                         } else null
                         // 老板 6/14 拍: 根据扩展名识别文件类型, 用对应图标 + 颜色
-                        val fileIcon = fileTypeFor(item.name, item.isDir)
+                        // v0.3.32 老板 6/14 21:55 拍: '用谷歌的' (Google Material Icons)
+                        // 之前 v0.3.31 自绘 14 个图形 (丑陋) -> 改用 material-icons-extended
+                        // 的官方矢量图标 + 品牌色 (陶土红 / NearBlack)
+                        val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
                         FileRow(
-                            icon = { FileTypeIcon(fileType = fileIcon) },
+                            icon = { Icon(fileIcon, null, tint = fileColor) },
                             name = item.name,
                             size = if (item.isDir) "" else humanSize(item.size),
                             modified = item.modified.take(10),
@@ -603,4 +610,65 @@ private fun humanSize(b: Long): String = when {
     b < 1024 * 1024 -> "${sizeFmt.format(b / 1024.0)} KB"
     b < 1024L * 1024 * 1024 -> "${sizeFmt.format(b / 1024.0 / 1024)} MB"
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
+}
+
+/**
+ * v0.3.32 老板 6/14 21:55 拍: '用谷歌的'
+ * 
+ * 之前 v0.3.31: 自绘 14 个 Canvas 图形 (596 行) - 老板吐槽"丑"
+ * 之前 v0.3.0-30: Material Icons.Outlined + 8 种颜色 (冷暖混搭)
+ * 现在: Material Icons.Filled (Google 官方矢量图标) + 品牌色统一 (陶土红 + NearBlack)
+ * 
+ * 颜色策略:
+ * - 目录 + 文本/MD: NearBlack #141413 (跟液态玻璃原色一致, 老板 6/14 16:35 拍)
+ * - 其他 12 类: 品牌陶土红 #D97757 (统一一种色, 跟液态玻璃 accent 一致)
+ *   不再用 14 种彩虹色, 老板要的"彩色"= 跟单调黑对比, 跟 v0.3.31 多色对比都是进步
+ * 
+ * 项目本来就引了 material-icons-extended, 2000+ 图标
+ */
+private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> = when {
+    isDir -> Icons.Outlined.Folder to Color(0xFF141413)
+    else -> {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        when (ext) {
+            // 压缩包
+            "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst", "iso" ->
+                Icons.Filled.Archive to Color(0xFFD97757)
+            // 应用程序 (APK / EXE / DMG / DEB / RPM / JAR / BIN / RUN / APP)
+            "apk", "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1",
+            "dmg", "deb", "rpm", "app", "pkg", "jar", "bin", "run" ->
+                Icons.Filled.Apps to Color(0xFFD97757)  // 用 Apps 不用 Android, 跟老板吐槽对应
+            // 图片
+            "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
+                Icons.Filled.Image to Color(0xFFD97757)
+            // 视频
+            "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
+                Icons.Filled.Movie to Color(0xFFD97757)
+            // 音频
+            "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
+                Icons.Filled.MusicNote to Color(0xFFD97757)
+            // PDF
+            "pdf" -> Icons.Filled.PictureAsPdf to Color(0xFFD97757)
+            // 代码
+            "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs",
+            "c", "cpp", "cc", "cxx", "h", "hpp", "json", "xml", "yaml", "yml",
+            "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php",
+            "html", "htm", "css", "scss", "sass", "less", "sql" ->
+                Icons.Filled.Code to Color(0xFFD97757)
+            // 文本 / Markdown (跟 NearBlack 区别, 显眼)
+            "txt", "md", "markdown", "log", "rst", "tex" ->
+                Icons.Filled.TextSnippet to Color(0xFF141413)
+            // Word
+            "doc", "docx", "rtf", "odt" ->
+                Icons.Filled.Description to Color(0xFFD97757)
+            // Excel / CSV
+            "xls", "xlsx", "ods", "csv" ->
+                Icons.Filled.GridView to Color(0xFFD97757)
+            // PowerPoint
+            "ppt", "pptx", "odp", "key" ->
+                Icons.Filled.Slideshow to Color(0xFFD97757)
+            // 默认: 未知文件
+            else -> Icons.Filled.SaveAlt to Color(0xFFD97757)
+        }
+    }
 }
