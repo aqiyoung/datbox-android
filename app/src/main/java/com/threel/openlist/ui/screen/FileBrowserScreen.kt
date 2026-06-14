@@ -263,11 +263,14 @@ fun FileBrowserScreen(
                                 modified = "",
                                 onClick = { vm.load(vm.goUp()) },
                                 onLongClick = null,
+                                onMenuClick = null,
                             )
                         }
                     }
                     items(state.items) { item ->
-                        var menuVisible by remember { mutableStateOf(false) }
+                        val onMenu = if (!item.isDir) {
+                            { menuItem = item }  // 老板 6/14: 点三个点弹玻璃弹窗
+                        } else null
                         FileRow(
                             icon = {
                                 Icon(
@@ -285,11 +288,8 @@ fun FileBrowserScreen(
                                     vm.load(next)
                                 }
                             },
-                            onLongClick = if (!item.isDir) {
-                                {
-                                    menuItem = item  // 老板 6/14: 设进 state 弹液态玻璃弹窗
-                                }
-                            } else null,
+                            onLongClick = null,  // 老板 6/14: 取消长按, 用三个点弹
+                            onMenuClick = onMenu,
                         )
                     }
                 }
@@ -327,6 +327,7 @@ private fun FileRow(
     modified: String,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
+    onMenuClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -355,14 +356,19 @@ private fun FileRow(
                 )
             }
         }
-        if (onLongClick != null) {
-            // 给文件加"菜单"小图标 (暗示有更多操作)
-            Icon(
-                Icons.Outlined.MoreVert,
-                contentDescription = "更多",
-                tint = Color(0xFF87867F),
-                modifier = Modifier.size(18.dp),
-            )
+        if (onMenuClick != null) {
+            // 老板 6/14: 点三个点弹玻璃弹窗 (按钮独立点击区, 不触发行的 onClick)
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.size(32.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.MoreVert,
+                    contentDescription = "更多",
+                    tint = Color(0xFF87867F),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }
