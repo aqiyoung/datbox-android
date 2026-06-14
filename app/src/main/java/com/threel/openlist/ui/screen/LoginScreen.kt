@@ -123,6 +123,8 @@ class LoginViewModel @Inject constructor(
                     _state.value = _state.value.copy(loading = false, success = true)
                 }
                 .onFailure { e ->
+                    // 老板 6/14: 登录失败清掉 lastPassword 避免错的旧密码反复触发 server 限流 (5 次错锁 5 min)
+                    tokenStore.clearLastCredentials()
                     _state.value = _state.value.copy(
                         loading = false,
                         error = e.message ?: "登录失败"
