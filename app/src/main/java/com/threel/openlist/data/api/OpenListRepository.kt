@@ -10,6 +10,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -71,8 +73,9 @@ class OpenListRepository @Inject constructor(
      *   路由 g.GET /d/star/path 加 signCheck 中间件, auth 前面
      *   没 sign 直接 401; token 在 /d/ 路由完全不检查 (只查 sign)
      */
-    suspend fun download(remotePath: String, fileName: String): Result<File> = runCatching {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "download START: $remotePath")
+    suspend fun download(remotePath: String, fileName: String): Result<File> = withContext(Dispatchers.IO) {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "download START (IO): $remotePath")
+        runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
 
@@ -127,8 +130,9 @@ class OpenListRepository @Inject constructor(
      *   FsForm 源码第一行: path := c.GetHeader("File-Path")
      *   它根本不读 query, 只读 header
      */
-    suspend fun upload(remoteDir: String, file: File): Result<FsUploadResponse> = runCatching {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "upload START: ${file.absolutePath} (${file.length()}B) -> $remoteDir")
+    suspend fun upload(remoteDir: String, file: File): Result<FsUploadResponse> = withContext(Dispatchers.IO) {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "upload START (IO): ${file.absolutePath} -> $remoteDir")
+        runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
 
@@ -179,8 +183,8 @@ class OpenListRepository @Inject constructor(
      *
      * 正确流程: fs/get 拿 sign, 拼 /d/xxx?sign=hmac
      */
-    suspend fun buildShareUrl(remotePath: String): String {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShareUrl START: $remotePath")
+    suspend fun buildShareUrl(remotePath: String): String = withContext(Dispatchers.IO) {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShareUrl START (IO): $remotePath")
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
         val getReq = Request.Builder()
