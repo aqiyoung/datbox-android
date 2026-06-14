@@ -13,7 +13,11 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.draw.clip
 import com.threel.openlist.R
+import com.threel.openlist.ui.component.LiquidGlassTopBar
+import com.threel.openlist.ui.component.LiquidGlassCard
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,8 +67,9 @@ fun AboutScreen(onBack: () -> Unit) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("关于") },
+            LiquidGlassTopBar(
+                title = "关于",
+                leadingIcon = Icons.Filled.Info,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
@@ -83,31 +88,50 @@ fun AboutScreen(onBack: () -> Unit) {
         ) {
             item {
                 Spacer(Modifier.height(24.dp))
-                Text(
-                    text = AppConfig.BRAND + "云盘",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = AppConfig.BRAND_SUBTITLE,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = AppConfig.fullVersionString(context),
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
-                // 老板 6/14 拍: 标注 "基于官方 OpenList 开发"
-                Text(
-                    text = AppConfig.UPSTREAM_NOTE,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(20.dp))
+                // 老板 6/14 拍: v0.3.14 About 顶部大号 LiquidGlassCard (装 LOGO + 版本 + 标注)
+                LiquidGlassCard(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    cornerRadius = 24.dp,
+                    contentPadding = 24.dp,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        // LOGO 图 (白底 SVG, 36dp 圆角)
+                        Image(
+                            painter = painterResource(id = R.drawable.openlist_logo_official),
+                            contentDescription = "OpenList Logo",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            text = AppConfig.BRAND + "云盘",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = AppConfig.BRAND_SUBTITLE,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = AppConfig.fullVersionString(context),
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        // 老板 6/14 拍: 标注 "基于官方 OpenList 开发"
+                        Text(
+                            text = AppConfig.UPSTREAM_NOTE,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
             }
 
             // 老板 6/13 拍: 只留 2 个按钮

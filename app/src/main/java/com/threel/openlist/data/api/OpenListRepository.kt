@@ -98,9 +98,10 @@ class OpenListRepository @Inject constructor(
         // 2) 用 sign 下载 (sign 在 query, 不要 Authorization)
         val url = "$serverUrl/d$remotePath?sign=$sign"
         val req = Request.Builder().url(url).get().build()
-        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
-            android.os.Environment.DIRECTORY_DOWNLOADS
-        )
+        // 老板 6/14 13:21 修: Android 11+ scoped storage 不让直接写公共 Download 目录 (EACCES Permission denied)
+        // 改写 app 私有目录 getExternalFilesDir(DIRECTORY_DOWNLOADS) (不需 WRITE_EXTERNAL_STORAGE 权限)
+        val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+            ?: java.io.File(context.filesDir, "Downloads").also { it.mkdirs() }
         if (!downloadsDir.exists()) downloadsDir.mkdirs()
         val outFile = File(downloadsDir, fileName)
         com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d path: ${req.url.encodedPath} sign=${sign.take(20)}...")

@@ -1,9 +1,15 @@
 package com.threel.openlist.ui
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,12 +31,10 @@ import javax.inject.Inject
 class RootViewModel @Inject constructor(
     private val repo: OpenListRepository,
 ) : ViewModel() {
-    private val _loggedIn = MutableStateFlow<Boolean?>(null)  // null=unknown
+    private val _loggedIn = MutableStateFlow<Boolean?>(null)
     val loggedIn = _loggedIn.asStateFlow()
 
     init {
-        // 老板 6/14 11:56 反馈: 装 v0.3.10 后说 '失败' 但 log 收不到
-        // 加启动 log 看是否 APP 启动了
         TelemetryLog.i("NavGraph", "OpenListNavGraph init, isLoggedIn check...")
         viewModelScope.launch {
             val isLogin = repo.isLoggedIn()
@@ -40,15 +44,11 @@ class RootViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch {
-            // 清 token
-            // 这里简化：调 TokenStore.clear()
-            _loggedIn.value = false
-        }
+        viewModelScope.launch { _loggedIn.value = false }
     }
 
     fun setLoggedIn() {
-        _loggedIn.value = true  // 老板 6/13 拍: 修复登录后不跳转的 bug
+        _loggedIn.value = true
     }
 }
 
@@ -58,7 +58,12 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
     val loggedIn by vm.loggedIn.collectAsState()
 
     when (loggedIn) {
-        null -> { /* 启动检查中 */ }
+        null -> {
+            // 启动检查中 - 居中 Loading
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+            }
+        }
         true -> NavHost(nav, startDestination = "files") {
             composable("files") {
                 FileBrowserScreen(
@@ -67,12 +72,19 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                 )
             }
             composable("about") {
+                // 老板 6/14 拍: 加手势返回 / 系统返回键支持
+                // AboutScreen onBack 是按钮回调, BackHandler 走系统返回手势
+                BackHandler(enabled = true) {
+                    if (!nav.popBackStack()) {
+                        // 栈底了, 让系统默认处理 (退出)
+                    }
+                }
                 AboutScreen(onBack = { nav.popBackStack() })
             }
         }
         false -> NavHost(nav, startDestination = "login") {
             composable("login") {
-                LoginScreen(onLoginSuccess = { vm.setLoggedIn() })  // 老板 6/13 拍: 修复登录后不跳转
+                LoginScreen(onLoginSuccess = { vm.setLoggedIn() })
             }
         }
     }

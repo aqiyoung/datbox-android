@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
+import com.threel.openlist.ui.component.LiquidGlassFab
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -199,28 +200,13 @@ fun LoginScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
-                Button(
+                // 老板 6/14 拍: v0.3.14 登录按钮换 LiquidGlassFab (玻璃 + Terracotta 描边 + 圆角 20dp)
+                LiquidGlassFab(
+                    text = if (state.loading) "登录中..." else "登 录",
+                    icon = if (state.loading) Icons.Filled.Refresh else Icons.Filled.Login,
+                    expanded = true,
                     onClick = vm::submit,
-                    enabled = !state.loading && state.username.isNotBlank() && state.password.isNotBlank(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFC96442),
-                        contentColor = Color(0xFFFAF9F5),
-                    ),
-                ) {
-                    if (state.loading) {
-                        CircularProgressIndicator(
-                            color = Color(0xFFFAF9F5),
-                            strokeWidth = 2.dp,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    } else {
-                        Text("登 录", fontSize = 16.sp)
-                    }
-                }
+                )
             }
 
             Spacer(Modifier.height(24.dp))

@@ -214,23 +214,9 @@ fun FileBrowserScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            "三页云盘",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            state.path,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color(0xFF87867F),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                },
+            LiquidGlassTopBar(
+                title = "三页云盘 · ${state.path}",
+                leadingIcon = Icons.Outlined.Folder,
                 actions = {
                     IconButton(onClick = { vm.load(state.path) }) {
                         Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
@@ -242,20 +228,14 @@ fun FileBrowserScreen(
                         Icon(Icons.Outlined.Logout, contentDescription = "退出")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFAF9F5).copy(alpha = 0.7f),
-                ),
             )
         },
         floatingActionButton = {
-            // 老板 6/13 v0.3.0: 上传 FAB
-            ExtendedFloatingActionButton(
-                onClick = { pickFileLauncher.launch("*/*") },
-                containerColor = Color(0xFFC96442),
-                contentColor = Color.White,
+            LiquidGlassFab(
+                text = if (action.busy) "处理中..." else "上传",
+                icon = Icons.Filled.Add,
                 expanded = !action.busy,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(if (action.busy) "处理中..." else "上传") },
+                onClick = { pickFileLauncher.launch("*/*") },
             )
         },
         containerColor = Color(0xFFF5F4ED),
@@ -266,8 +246,12 @@ fun FileBrowserScreen(
         ) {
             when {
                 state.loading -> CenterLoading()
-                state.error != null -> CenterMessage(state.error!!)
-                state.items.isEmpty() -> CenterMessage("空目录")
+                state.error != null -> CenterMessage(state.error!!, "刷新")
+                state.items.isEmpty() -> CenterMessage(
+                    msg = if (state.path == "/") "还没有挂载任何网盘" else "空目录",
+                    actionLabel = if (state.path != "/") "返回上一层" else null,
+                    onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
+                )
                 else -> LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -354,59 +338,67 @@ private fun FileRow(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
     onMenuClick: (() -> Unit)? = null,
+    selected: Boolean = false,  // 老板 6/14 拍: v0.3.14 选中态液态
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.5f))
-            .let {
-                if (onLongClick != null) {
-                    it.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-                } else {
-                    it.clickable(onClick = onClick)
+    // v0.3.14: 老板拍用 LiquidGlassRow 圆角 16dp + 轻 BorderCream + 选中态 alpha 0.95
+    com.threel.openlist.ui.component.LiquidGlassRow(
+        cornerRadius = 16.dp,
+        selected = selected,
+        onClick = onClick,
+        leading = icon,
+        title = name,
+        subtitle = if (modified.isNotEmpty() || size.isNotEmpty())
+            listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · ")
+        else null,
+        trailing = if (onMenuClick != null) {
+            {
+                IconButton(
+                    onClick = onMenuClick,
+                    modifier = Modifier.size(32.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.MoreVert,
+                        contentDescription = "更多",
+                        tint = Color(0xFF87867F),
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
             }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        icon()
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (modified.isNotEmpty() || size.isNotEmpty()) {
-                Text(
-                    listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF87867F),
-                )
-            }
-        }
-        if (onMenuClick != null) {
-            // 老板 6/14: 点三个点弹玻璃弹窗 (按钮独立点击区, 不触发行的 onClick)
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(32.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.MoreVert,
-                    contentDescription = "更多",
-                    tint = Color(0xFF87867F),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
-    }
+        } else null,
+    )
 }
 
 @Composable
 private fun CenterLoading() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    CircularProgressIndicator(color = Color(0xFFC96442))
+    com.threel.openlist.ui.component.LiquidGlassCard(cornerRadius = 24.dp, contentPadding = 32.dp) {
+        CircularProgressIndicator(color = Color(0xFFC96442))
+    }
 }
 
 @Composable
-private fun CenterMessage(msg: String) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    Text(msg, color = Color(0xFF87867F))
+private fun CenterMessage(
+    msg: String,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    com.threel.openlist.ui.component.LiquidGlassCard(
+        modifier = Modifier.padding(32.dp).widthIn(max = 320.dp),
+        cornerRadius = 24.dp,
+        contentPadding = 24.dp,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(msg, color = Color(0xFF141413), style = MaterialTheme.typography.bodyLarge)
+            if (actionLabel != null && onAction != null) {
+                Spacer(Modifier.height(12.dp))
+                com.threel.openlist.ui.component.LiquidGlassFab(
+                    text = actionLabel,
+                    icon = Icons.Outlined.ArrowBack,
+                    expanded = true,
+                    onClick = onAction,
+                )
+            }
+        }
+    }
 }
 
 /** 老板 6/14: 液态玻璃弹窗 (Material 3 AlertDialog + 半透明白)
