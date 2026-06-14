@@ -117,8 +117,8 @@ class FileBrowserViewModel @Inject constructor(
 
     /** 老板 6/13 v0.3.0: 上传文件 */
     fun uploadFile(localFile: File) {
-        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "uploadFile: ${localFile.absolutePath} (${localFile.length()}B) -> $targetDir")
         val targetDir = _state.value.path
+        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "uploadFile: ${localFile.absolutePath} (${localFile.length()}B) -> $targetDir")
         _action.value = FileActionState(busy = true, message = "上传 ${localFile.name} 中...")
         viewModelScope.launch {
             repo.upload(targetDir, localFile)
