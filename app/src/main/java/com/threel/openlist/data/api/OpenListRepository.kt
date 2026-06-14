@@ -65,11 +65,11 @@ class OpenListRepository @Inject constructor(
      *
      * OpenList 4.x 真实流程:
      *   1) POST /api/fs/get 拿 sign 字段 (HMAC, fs/get 返 data.sign)
-     *   2) GET /d/[path]?sign=[hmac]  → 302 跳到 storage 真链 → 下载
+     *   2) GET /d/xxx?sign=hmac 跳 302 到 storage 真链
      *
-     * 之前 v0.3.3 用 Authorization: [token] 直接打 /d/[path] 永远是 401:
-     *   路由 g.GET("/d/*path", signCheck, ...) 在 auth 前面,没 sign 直接 401
-     *   token 在 /d/ 路由完全不检查 (只查 sign)
+     * 之前 v0.3.3 用 Authorization token 直接打 /d/xxx 永远是 401:
+     *   路由 g.GET /d/star/path 加 signCheck 中间件, auth 前面
+     *   没 sign 直接 401; token 在 /d/ 路由完全不检查 (只查 sign)
      */
     suspend fun download(remotePath: String, fileName: String): Result<File> = runCatching {
         val token = tokenStore.tokenSync()
@@ -112,11 +112,11 @@ class OpenListRepository @Inject constructor(
      *
      * OpenList 4.x 真实流程:
      *   PUT /api/fs/form
-     *     - Authorization: [token]          (跟其他 API 一致)
-     *     - File-Path: <完整含文件名>         (path 在 header, 不用 query!)
-     *     - As-Task: true                    (走异步任务, 避免 'storage not found' 偶发)
-     *     - Overwrite: true                  (可覆盖)
-     *     - body: multipart "file" 字段
+     *     - Authorization token            (跟其他 API 一致)
+     *     - File-Path 完整含文件名           (path 在 header, 不用 query!)
+     *     - As-Task true                    (走异步任务)
+     *     - Overwrite true                  (可覆盖)
+     *     - body multipart file 字段
      *
      * 之前 v0.3.3 用 Retrofit @Query("path") 和 @Query("override") 永远是 400 'storage not found':
      *   FsForm 源码第一行: path := c.GetHeader("File-Path")
