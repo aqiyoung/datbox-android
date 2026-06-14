@@ -45,8 +45,8 @@ android {
         applicationId = "com.threel.openlist"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 19
-        versionName = "0.3.9"
+        versionCode = 20
+        versionName = "0.3.10"
     }
 
     buildTypes {

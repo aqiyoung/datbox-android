@@ -92,10 +92,12 @@ class FileBrowserViewModel @Inject constructor(
 
     /** 老板 6/13 v0.3.0: 下载文件 */
     fun downloadFile(remotePath: String, fileName: String) {
+        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "downloadFile: path=$remotePath name=$fileName")
         _action.value = FileActionState(busy = true, message = "下载 $fileName 中...")
         viewModelScope.launch {
             repo.download(remotePath, fileName)
                 .onSuccess { file ->
+                    com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "downloadFile OK: ${file.absolutePath} (${file.length()}B)")
                     _action.value = FileActionState(
                         busy = false,
                         message = "已下载到 ${file.absolutePath}",
@@ -103,6 +105,7 @@ class FileBrowserViewModel @Inject constructor(
                     )
                 }
                 .onFailure { e ->
+                    com.threel.openlist.util.TelemetryLog.e("FileBrowserVM", "downloadFile FAIL: $remotePath", e)
                     _action.value = FileActionState(
                         busy = false,
                         message = "下载失败: ${e.message}",
@@ -114,18 +117,21 @@ class FileBrowserViewModel @Inject constructor(
 
     /** 老板 6/13 v0.3.0: 上传文件 */
     fun uploadFile(localFile: File) {
+        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "uploadFile: ${localFile.absolutePath} (${localFile.length()}B) -> $targetDir")
         val targetDir = _state.value.path
         _action.value = FileActionState(busy = true, message = "上传 ${localFile.name} 中...")
         viewModelScope.launch {
             repo.upload(targetDir, localFile)
                 .onSuccess { resp ->
                     if (resp.code == 200) {
+                        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "uploadFile OK: ${localFile.name}")
                         _action.value = FileActionState(
                             busy = false,
                             message = "${localFile.name} 上传成功",
                         )
                         load(targetDir)  // 刷新列表
                     } else {
+                        com.threel.openlist.util.TelemetryLog.w("FileBrowserVM", "uploadFile FAIL code=${resp.code}: ${resp.message}")
                         _action.value = FileActionState(
                             busy = false,
                             message = "上传失败: ${resp.message}",
@@ -134,6 +140,7 @@ class FileBrowserViewModel @Inject constructor(
                     }
                 }
                 .onFailure { e ->
+                    com.threel.openlist.util.TelemetryLog.e("FileBrowserVM", "uploadFile FAIL: $targetDir/${localFile.name}", e)
                     _action.value = FileActionState(
                         busy = false,
                         message = "上传失败: ${e.message}",
@@ -144,7 +151,17 @@ class FileBrowserViewModel @Inject constructor(
     }
 
     /** 老板 6/13 v0.3.0 + 6/14 修: 分享链接 (需先调 fs/get 拿 sign) */
-    suspend fun buildShareUrl(remotePath: String): String = repo.buildShareUrl(remotePath)
+    suspend fun buildShareUrl(remotePath: String): String {
+        com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "buildShareUrl: $remotePath")
+        return try {
+            val url = repo.buildShareUrl(remotePath)
+            com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "buildShareUrl OK: ${url.take(80)}...")
+            url
+        } catch (e: Throwable) {
+            com.threel.openlist.util.TelemetryLog.e("FileBrowserVM", "buildShareUrl FAIL: $remotePath", e)
+            throw e
+        }
+    }
 
     fun clearMessage() { _action.value = FileActionState() }
 }
@@ -172,6 +189,7 @@ fun FileBrowserScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
+        com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user picked file: $uri")
         // 把 content:// URI 复制到 cacheFile (Retrofit 上传需要 File)
         scope.launch {
             val tempFile = withContext(Dispatchers.IO) {
@@ -269,7 +287,10 @@ fun FileBrowserScreen(
                     }
                     items(state.items) { item ->
                         val onMenu = if (!item.isDir) {
-                            { menuItem = item }  // 老板 6/14: 点三个点弹玻璃弹窗
+                            {
+                                com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user tapped 3-dot menu on file: ${item.name}")
+                                menuItem = item
+                            }  // 老板 6/14: 点三个点弹玻璃弹窗
                         } else null
                         FileRow(
                             icon = {
@@ -302,9 +323,11 @@ fun FileBrowserScreen(
             GlassActionDialog(
                 fileName = pending.name,
                 onDownload = {
+                    com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user clicked DOWNLOAD: ${pending.name}")
                     vm.downloadFile(menuRemotePath, pending.name)
                 },
                 onShare = {
+                    com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user clicked SHARE: ${pending.name}")
                     // 老板 6/14 修: buildShareUrl 是 suspend, 需 scope.launch
                     scope.launch {
                         val url = vm.buildShareUrl(menuRemotePath)

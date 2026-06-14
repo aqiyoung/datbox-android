@@ -72,6 +72,7 @@ class OpenListRepository @Inject constructor(
      *   没 sign 直接 401; token 在 /d/ 路由完全不检查 (只查 sign)
      */
     suspend fun download(remotePath: String, fileName: String): Result<File> = runCatching {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "download START: $remotePath")
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
 
@@ -82,6 +83,7 @@ class OpenListRepository @Inject constructor(
             .post("""{"path":"$remotePath"}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
             .build()
         val sign = client.newCall(getReq).execute().use { resp ->
+            com.threel.openlist.util.TelemetryLog.i("Repo", "fs/get resp code=${resp.code}")
             if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
             val body = resp.body?.string() ?: error("fs/get empty body")
             // 简单正则拿 sign (避引入 Json parser 到这里)
@@ -98,13 +100,16 @@ class OpenListRepository @Inject constructor(
         )
         if (!downloadsDir.exists()) downloadsDir.mkdirs()
         val outFile = File(downloadsDir, fileName)
+        com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d path: ${req.url.encodedPath} sign=${sign.take(20)}...")
         client.newCall(req).execute().use { resp ->
+            com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d resp code=${resp.code} size=${resp.body?.contentLength()}")
             if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
             val body = resp.body ?: error("empty body")
             outFile.outputStream().use { out ->
                 body.byteStream().use { input -> input.copyTo(out) }
             }
         }
+        com.threel.openlist.util.TelemetryLog.i("Repo", "download DONE: $fileName ${outFile.length()}B -> ${outFile.absolutePath}")
         outFile
     }
 
@@ -123,11 +128,13 @@ class OpenListRepository @Inject constructor(
      *   它根本不读 query, 只读 header
      */
     suspend fun upload(remoteDir: String, file: File): Result<FsUploadResponse> = runCatching {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "upload START: ${file.absolutePath} (${file.length()}B) -> $remoteDir")
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
 
         // 老板 6/14 拍: 不能上传到根 / (storage 都在 /天翼云盘 下)
         if (remoteDir == "/") {
+            com.threel.openlist.util.TelemetryLog.w("Repo", "upload rejected: remoteDir=/")
             error("请先进 storage 目录再上传 (如 /天翼云盘)")
         }
         val targetPath = "$remoteDir/${file.name}"
@@ -149,6 +156,7 @@ class OpenListRepository @Inject constructor(
             .put(multipart)
             .build()
         val respBody = client.newCall(req).execute().use { resp ->
+            com.threel.openlist.util.TelemetryLog.i("Repo", "PUT /api/fs/form resp code=${resp.code}")
             if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
             resp.body?.string() ?: error("empty body")
         }
@@ -168,6 +176,7 @@ class OpenListRepository @Inject constructor(
      * 正确流程: fs/get 拿 sign, 拼 /d/xxx?sign=hmac
      */
     suspend fun buildShareUrl(remotePath: String): String {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShareUrl START: $remotePath")
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
         val getReq = Request.Builder()
