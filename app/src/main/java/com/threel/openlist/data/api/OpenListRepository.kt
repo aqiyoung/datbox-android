@@ -65,9 +65,9 @@ class OpenListRepository @Inject constructor(
      *
      * OpenList 4.x 真实流程:
      *   1) POST /api/fs/get 拿 sign 字段 (HMAC, fs/get 返 data.sign)
-     *   2) GET /d/<path>?sign=<sign>  → 302 跳到 storage 真链 → 下载
+     *   2) GET /d/[path]?sign=[hmac]  → 302 跳到 storage 真链 → 下载
      *
-     * 之前 v0.3.3 用 Authorization: <token> 直接打 /d/<path> 永远是 401:
+     * 之前 v0.3.3 用 Authorization: [token] 直接打 /d/[path] 永远是 401:
      *   路由 g.GET("/d/*path", signCheck, ...) 在 auth 前面,没 sign 直接 401
      *   token 在 /d/ 路由完全不检查 (只查 sign)
      */
@@ -112,7 +112,7 @@ class OpenListRepository @Inject constructor(
      *
      * OpenList 4.x 真实流程:
      *   PUT /api/fs/form
-     *     - Authorization: <token>          (跟其他 API 一致)
+     *     - Authorization: [token]          (跟其他 API 一致)
      *     - File-Path: <完整含文件名>         (path 在 header, 不用 query!)
      *     - As-Task: true                    (走异步任务, 避免 'storage not found' 偶发)
      *     - Overwrite: true                  (可覆盖)
