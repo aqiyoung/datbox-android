@@ -182,11 +182,16 @@ fun LiquidGlassRow(
 }
 
 /**
- * 玻璃 TopAppBar (iOS 26 真液态玻璃, v0.3.23 加 blur + 光泽)
+ * 玻璃 TopAppBar (iOS 26 真液态玻璃, v0.3.25 修复文字糊)
  *
- * 老板 6/14 17:35 拍: '一眼看上去就是那种液态玻璃的'
- * v0.3.22 还是只加渐变, 不加 blur, 不像玻璃
- * v0.3.23 加 blur(20dp) + 顶部 1px 光泽
+ * v0.3.25 老板 18:40 拍: 状态栏不沉浸, 液态玻璃假糊, 日志没了
+ * 真因: v0.3.23 blur(20dp) + 白玻璃在状态栏下面, 因为没开 edge-to-edge
+ *      (上一次改错了), 状态栏区域画的是白底, blur 模糊的是白底, 看起来就是"白盖子"
+ * 修复:
+ * 1) 恢复 enableEdgeToEdge() (MainActivity), 状态栏透明, TopAppBar 模糊真实画布
+ * 2) 标题 + icon 加 text shadow (Compose Shadow) — 黑色 0.30 alpha, 偏移 0,1, 模糊 4
+ * 3) 模糊半径 20dp → 12dp (太大会把内容洗成一片, 12dp 是 iOS 26 苹果默认)
+ * 4) 玻璃 alpha 略降 (0.80/0.60 → 0.55/0.40), 让底下内容更可见
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -200,19 +205,32 @@ fun LiquidGlassTopBar(
         bottomStart = 20.dp,
         bottomEnd = 20.dp,
     )
+    // v0.3.25 文字阴影: 黑色 0.30 alpha, 偏移 (0, 1), 模糊 4
+    val titleTextStyle = androidx.compose.ui.text.TextStyle(
+        color = Color(0xFF141413),
+        fontSize = 18.sp,
+        fontWeight = FontWeight.SemiBold,
+        shadow = androidx.compose.ui.graphics.Shadow(
+            color = Color.Black.copy(alpha = 0.30f),
+            offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+            blurRadius = 4f,
+        ),
+    )
+    val iconTint = Color(0xFF141413).copy(alpha = 0.95f)
     Box(modifier = Modifier.fillMaxWidth()) {
         // 外层玻璃背景: blur + 渐变 + 边 + 光泽
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(topBarShape)
-                // 背景模糊 20dp (顶部 bar, 比 card 更明显)
-                .blur(20.dp)
+                // v0.3.25 模糊半径 20dp → 12dp (iOS 26 同款)
+                .blur(12.dp)
                 .background(
                     Brush.verticalGradient(
+                        // v0.3.25 alpha 0.80/0.60 → 0.55/0.40 (让下面内容可见)
                         colors = listOf(
-                            Color(0xFFFAF9F5).copy(alpha = 0.80f),
-                            Color(0xFFFAF9F5).copy(alpha = 0.60f),
+                            Color(0xFFFAF9F5).copy(alpha = 0.55f),
+                            Color(0xFFFAF9F5).copy(alpha = 0.40f),
                         )
                     )
                 )
@@ -241,7 +259,7 @@ fun LiquidGlassTopBar(
                     shape = topBarShape,
                 )
         )
-        // 内层: TopAppBar 本身 (透明背景, 标题图标清晰)
+        // 内层: TopAppBar 本身 (透明背景, 标题图标清晰 + 阴影)
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -250,7 +268,7 @@ fun LiquidGlassTopBar(
                             imageVector = leadingIcon,
                             contentDescription = null,
                             // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
-                            tint = Color(0xFF141413),
+                            tint = iconTint,
                             modifier = Modifier.size(24.dp),
                         )
                         Spacer(Modifier.width(8.dp))
@@ -259,17 +277,22 @@ fun LiquidGlassTopBar(
                         text = title,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
+                        style = titleTextStyle,
                     )
                 }
             },
-            navigationIcon = navigationIcon ?: {},
+            navigationIcon = {
+                if (navigationIcon != null) {
+                    navigationIcon()
+                }
+            },
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
                 // 透明, 让外层 Box 渐变显示出来
                 containerColor = Color.Transparent,
                 titleContentColor = Color(0xFF141413),
-                navigationIconContentColor = Color(0xFF141413),
-                actionIconContentColor = Color(0xFF141413),
+                navigationIconContentColor = iconTint,
+                actionIconContentColor = iconTint,
             ),
         )
     }

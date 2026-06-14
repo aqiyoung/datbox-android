@@ -1,3 +1,15 @@
+## v0.3.25 (build 35) - 2026-06-14 19:00
+### 🐛 修复状态栏不沉浸 + 液态玻璃文字糊 (老板 6/14 18:40 拍)
+- **Revert 21c3b3b** (恢复 `enableEdgeToEdge()`):
+  - 状态栏 / 导航栏恢复透明, 沉浸式回来
+  - 液态玻璃 TopBar 模糊真实画布 (不是模糊白底)
+- **LiquidGlassTopBar 液态玻璃文字糊修复**:
+  - 标题加 `TextStyle.shadow`: 黑色 0.30 alpha, 偏移 (0,1), 模糊 4dp — iOS 26 同款
+  - icon tint alpha 0.95 + NearBlack #141413
+  - 模糊半径 20dp → 12dp (iOS 26 默认)
+  - 玻璃渐变 alpha 0.80/0.60 → 0.55/0.40 (让下面内容更可见)
+- 状态栏图标深色/浅色切换保留 a1d2779 的 SideEffect + WindowCompat 方案
+
 ## v0.3.14 (build 24) - 2026-06-14 13:30
 ### ✨ 液态玻璃 UI 全面升级 (老板 6/14 拍: "全做 在加上手势返回")
 - **LiquidGlass.kt 增强 (3 个新组件)**:
