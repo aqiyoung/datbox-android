@@ -86,12 +86,29 @@ class FileBrowserViewModel @Inject constructor(
 
     init { load("/") }
 
+    /**
+     * 老板 6/14 16:42 拍: 屏蔽根目录不显示的目录
+     *
+     * 默认: 空 (不隐藏任何)
+     * 例: 要隐藏 "天翼云盘" + "飞牛备份", 改 ["天翼云盘", "飞牛备份"]
+     *
+     * 匹配: 精确名字 (不区分大小写) — 根目录下直系子目录匹配上就不渲染
+     */
+    private val hiddenRootDirs: Set<String> = setOf(
+        "天翼云盘",
+        "飞牛备份",
+    )
+
     fun load(path: String) {
         _state.value = _state.value.copy(loading = true, path = path, error = null)
         viewModelScope.launch {
             repo.list(path)
                 .onSuccess { items ->
-                    _state.value = _state.value.copy(items = items, loading = false)
+                    // 老板 6/14 16:42: 根目录下过滤 hiddenRootDirs
+                    val visible = if (path == "/") {
+                        items.filter { it.name !in hiddenRootDirs }
+                    } else items
+                    _state.value = _state.value.copy(items = visible, loading = false)
                 }
                 .onFailure { e ->
                     _state.value = _state.value.copy(
