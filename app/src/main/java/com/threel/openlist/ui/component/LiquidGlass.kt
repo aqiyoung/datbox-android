@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 
 /**
  * 液态玻璃组件库 (iOS 26 风格, v0.3.14 增强版)
@@ -177,41 +179,101 @@ fun LiquidGlassTopBar(
     )
 }
 
-/** 玻璃 FAB */
+/**
+ * 玻璃圆 FAB (老板 6/14 15:25 拍: "圆形的加号设计一下, 不需要文字")
+ *
+ * 设计: 56dp 圆 + 加号 icon + Terracotta 渐变 + 1px BorderCream
+ */
 @Composable
 fun LiquidGlassFab(
-    text: String,
     icon: ImageVector,
-    expanded: Boolean = true,
     onClick: () -> Unit,
+    size: Dp = 56.dp,
+    enabled: Boolean = true,
 ) {
-    val shape = RoundedCornerShape(20.dp)
-    Row(
+    val shape = androidx.compose.foundation.shape.CircleShape
+    Box(
         modifier = Modifier
-            .defaultMinSize(minHeight = 56.dp)
+            .size(size)
             .clip(shape)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFC96442).copy(alpha = 0.95f),
-                        Color(0xFF8A3A20).copy(alpha = 0.95f),
+                        Color(0xFFC96442).copy(alpha = if (enabled) 0.95f else 0.5f),
+                        Color(0xFF8A3A20).copy(alpha = if (enabled) 0.95f else 0.5f),
                     )
                 )
             )
-            .border(1.dp, Color(0xFFC96442).copy(alpha = 0.6f), shape)
+            .border(1.dp, Color(0xFFFAF9F5).copy(alpha = 0.4f), shape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
+                enabled = enabled,
                 onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = Color.White,
+            modifier = Modifier.size(28.dp),
+        )
+    }
+}
+
+/**
+ * 玻璃登录/主操作按钮 (老板 6/14 15:25 拍: 重新设计, 不像"灯笼框")
+ *
+ * 修正:
+ * - 圆角 12dp (不是 20dp 灯笼, 也不是 0dp 死板矩形)
+ * - 渐变更素雅: Terracotta 0.85 -> 0.7 (v0.3.15 0.95+0.95 太艳)
+ * - 细 1px BorderCream (v0.3.15 Terracotta 1.6 太黑)
+ * - 高度 48dp (v0.3.15 56dp 太像灯笼) + 内容居中
+ * - 文字 15sp medium 白色 (v0.3.15 文字 16sp + 文字大写 "登 录" 中间空格)
+ * - 全面使用 fillMaxWidth
+ */
+@Composable
+fun LiquidGlassPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    icon: ImageVector? = null,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clip(shape)
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFC96442).copy(alpha = if (enabled) 0.85f else 0.4f),
+                        Color(0xFFA04F30).copy(alpha = if (enabled) 0.85f else 0.4f),
+                    )
+                )
             )
-            .padding(horizontal = if (expanded) 20.dp else 16.dp, vertical = 12.dp),
+            .border(0.5.dp, Color(0xFFFAF9F5).copy(alpha = 0.5f), shape)
+            .clickable(
+                interactionSource = MutableInteractionSource(),
+                indication = null,
+                enabled = enabled,
+                onClick = onClick,
+            ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
     ) {
-        Icon(icon, contentDescription = null, tint = Color.White)
-        if (expanded) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text(text, color = Color.White, style = MaterialTheme.typography.labelLarge)
         }
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 15.sp,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+        )
     }
 }

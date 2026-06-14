@@ -249,12 +249,19 @@ fun FileBrowserScreen(
             )
         },
         floatingActionButton = {
-            LiquidGlassFab(
-                text = if (action.busy) "处理中..." else "上传",
-                icon = Icons.Filled.Add,
-                expanded = !action.busy,
-                onClick = { pickFileLauncher.launch("*/*") },
-            )
+            // 老板 6/14 15:25 拍: 圆形加号, 不需要文字
+            if (action.busy) {
+                LiquidGlassFab(
+                    icon = Icons.Filled.Refresh,
+                    enabled = false,
+                    onClick = {},
+                )
+            } else {
+                LiquidGlassFab(
+                    icon = Icons.Filled.Add,
+                    onClick = { pickFileLauncher.launch("*/*") },
+                )
+            }
         },
         containerColor = Color(0xFFF5F4ED),
     ) { padding ->
@@ -404,11 +411,11 @@ private fun CenterMessage(
             Text(msg, color = Color(0xFF141413), style = MaterialTheme.typography.bodyLarge)
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(12.dp))
-                com.threel.openlist.ui.component.LiquidGlassFab(
+                // 老板 6/14 15:25 拍: 按钮用新 LiquidGlassPrimaryButton (不再"灯笼框")
+                com.threel.openlist.ui.component.LiquidGlassPrimaryButton(
                     text = actionLabel,
-                    icon = Icons.Outlined.ArrowBack,
-                    expanded = true,
                     onClick = onAction,
+                    icon = Icons.Outlined.ArrowBack,
                 )
             }
         }

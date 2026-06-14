@@ -38,7 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
-import com.threel.openlist.ui.component.LiquidGlassFab
+import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -202,11 +202,12 @@ fun LoginScreen(
                 }
 
                 Spacer(Modifier.height(24.dp))
-                // 老板 6/14 拍: v0.3.14 登录按钮换 LiquidGlassFab (玻璃 + Terracotta 描边 + 圆角 20dp)
-                LiquidGlassFab(
-                    text = if (state.loading) "登录中..." else "登 录",
+                // 老板 6/14 15:25 拍: 重新设计, 不要"灯笼框" (v0.3.15 圆角 20dp 太像灯笼)
+                // v0.3.16: 用 LiquidGlassPrimaryButton (12dp 圆角 + 48dp 高度 + 素雅渐变)
+                LiquidGlassPrimaryButton(
+                    text = if (state.loading) "登录中..." else "登录",
                     icon = if (state.loading) Icons.Filled.Refresh else Icons.Filled.Login,
-                    expanded = true,
+                    enabled = !state.loading && state.username.isNotBlank() && state.password.isNotBlank(),
                     onClick = vm::submit,
                 )
             }
