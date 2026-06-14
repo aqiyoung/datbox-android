@@ -100,6 +100,13 @@ fun AboutScreen(onBack: () -> Unit) {
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(Modifier.height(4.dp))
+                // 老板 6/14 拍: 标注 "基于官方 OpenList 开发"
+                Text(
+                    text = AppConfig.UPSTREAM_NOTE,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(20.dp))
             }
 

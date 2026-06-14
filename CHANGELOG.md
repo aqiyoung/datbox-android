@@ -1,5 +1,11 @@
 # 三页云盘 (OpenList) - 版本迭代记录
 
+## v0.3.7 (build 17) - 2026-06-14
+### 🎨 UI 升级 (老板 6/14 拍: 换官方 logo + 标注)
+- **APP 图标换 OpenList 官方 logo**: 重跑 cairosvg 渲染脚本 (v5), sky-400 蓝底 + 几何 “O” 线条 + 22% 圆角。5 个 mipmap 尺寸 + round launcher 全部刷新
+- **About 页面加“基于官方 OpenList 开发”标注**: 在版本号下面一行, 12sp + onSurfaceVariant 色, 点跟随点官网仓库 (AppConfig.UPSTREAM_REPO)
+- **AppConfig 常量加 UPSTREAM_NAME / UPSTREAM_REPO / UPSTREAM_NOTE**
+
 ## v0.3.6 (build 16) - 2026-06-14
 ### 🐛 防护 (老板 6/14 反馈: '上传下载还是失败')
 - **根因不是代码而是 server 限流**: OpenList 默认 5 次错密码锁 5 分钟, 老板手机在 v0.3.4 5 次错锁 5 分钟 → v0.3.5 重装后老密码也错 → 续锁。******** 是对的 (我 10:09 curl login 200 success), 错密码是装的别的 APK

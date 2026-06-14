@@ -20,6 +20,10 @@ object AppConfig {
     const val BRAND = "三页"
     const val BRAND_EN = "三页云盘"
     const val BRAND_SUBTITLE = "三页 · 云盘聚合"
+    // 老板 6/14 拍: 在 About 页面标注 "基于官方 OpenList 开发" + 给上游仓库加链接
+    const val UPSTREAM_NAME = "OpenList"
+    const val UPSTREAM_REPO = "https://github.com/OpenListTeam/OpenList"
+    const val UPSTREAM_NOTE = "基于官方 OpenList 开发"
     const val CHANGELOG_URL = "https://<your-server>/api/openlist-android/changelog.json"
     const val UPDATE_CHECK_URL = "https://<your-server>/api/openlist-android/latest.json"
 
