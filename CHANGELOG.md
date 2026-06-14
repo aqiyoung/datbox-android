@@ -1,3 +1,19 @@
+## v0.3.28 (build 38) - 2026-06-14 19:50
+### 🗑️ 移除 About 页底部'更新日志'区块 (老板 6/14 19:38 拍: '把下面那个更新日志移除吧, 不要了')
+- **AboutScreen 精简**:
+  - 删: 底部 '更新日志' 标题 + 分割线
+  - 删: changelogLoading/changelogError/changelog 三个 state + LaunchedEffect
+  - 删: ChangelogCard composable
+  - 删: ChangelogData / ReleaseEntry data class (解析用)
+  - 删: changelogClient (OkHttp)
+  - 删: fetchChangelog() 挂起函数
+  - 删: 'androidx.compose.foundation.lazy.items' import
+  - 文件: 367 行 -> 250 行 (-117 行)
+- **保留**:
+  - AppConfig.CHANGELOG_URL 常量 (不删, 以后可能复用)
+  - changelog.json server API (<your-server> 上还在, 不动)
+  - AppUpdateInfo 里的 changelog_url 字段 (数据模型, 后续可能用)
+
 ## v0.3.27 (build 37) - 2026-06-14 19:40
 ### 🎨 字体换 MiSans (老板 6/14 19:35 拍: '什么字体？看着刺眼, 用 misans 吧')
 - **Type.kt 重写**:

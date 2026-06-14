@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -50,22 +49,6 @@ fun AboutScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
     var updateChecking by remember { mutableStateOf(false) }
-    var changelog by remember { mutableStateOf<ChangelogData?>(null) }
-    var changelogLoading by remember { mutableStateOf(true) }
-    var changelogError by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        scope.launch {
-            try {
-                val data = withContext(Dispatchers.IO) { fetchChangelog() }
-                changelog = data
-                changelogLoading = false
-            } catch (e: Exception) {
-                changelogError = e.message
-                changelogLoading = false
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -80,7 +63,7 @@ fun AboutScreen(onBack: () -> Unit) {
             )
         }
     ) { padding ->
-        // 老板 6/13 拍: 整个页面可滑动 (顶部品牌 + 中间 2 按钮 + 底部 changelog 多可以滚)
+        // 老板 6/13 拍: 整个页面可滑动 (顶部品牌 + 中间 2 按钮)
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -216,79 +199,9 @@ fun AboutScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(20.dp))
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
                 Spacer(Modifier.height(12.dp))
-
-                // 老板 6/13 拍: 顺便在底部 in-app 渲染 changelog (还是想看 changelog 的话)
-                Text(
-                    "更新日志",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(8.dp))
             }
 
-            // changelog 内容 (嵌在 LazyColumn 里 -> 自动跟随页面滚动)
-            when {
-                changelogLoading -> item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        contentAlignment = Alignment.Center,
-                    ) { CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp) }
-                }
-                changelogError != null -> item {
-                    Text(
-                        "加载失败: $changelogError",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(8.dp),
-                    )
-                }
-                changelog != null -> {
-                    items(changelog!!.releases) { release ->
-                        ChangelogCard(release)
-                    }
-                }
-            }
             item { Spacer(Modifier.height(24.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun ChangelogCard(release: ReleaseEntry) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-        ),
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    "v${release.version}",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    release.date,
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.height(4.dp))
-            release.changelog.forEach { line ->
-                Text(
-                    "• $line",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(vertical = 1.dp),
-                )
-            }
         }
     }
 }
@@ -334,37 +247,3 @@ private fun showUpdateDialog(context: android.content.Context, info: AppUpdateIn
         .show()
 }
 
-@kotlinx.serialization.Serializable
-data class ChangelogData(
-    val current: String = "",
-    val min_supported: String = "",
-    val releases: List<ReleaseEntry> = emptyList(),
-)
-
-@kotlinx.serialization.Serializable
-data class ReleaseEntry(
-    val version: String,
-    val versionCode: Int = 0,
-    val date: String = "",
-    val type: String = "release",
-    val applicationId: String = "",
-    val apk_url: String = "",
-    val changelog: List<String> = emptyList(),
-)
-
-private val changelogClient by lazy {
-    okhttp3.OkHttpClient.Builder()
-        .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
-        .build()
-}
-
-private suspend fun fetchChangelog(): ChangelogData = withContext(Dispatchers.IO) {
-    val req = okhttp3.Request.Builder().url(AppConfig.CHANGELOG_URL).get().build()
-    changelogClient.newCall(req).execute().use { resp ->
-        if (!resp.isSuccessful) error("HTTP ${resp.code}")
-        val body = resp.body?.string() ?: error("empty body")
-        kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(ChangelogData.serializer(), body)
-    }
-}
