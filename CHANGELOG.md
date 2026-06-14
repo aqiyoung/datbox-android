@@ -1,3 +1,12 @@
+## v0.3.26 (build 36) - 2026-06-14 19:30
+### 🐛 修复文件夹列表文字模糊 (老板 6/14 19:20 拍)
+- **LiquidGlassRow 拆双层 Box**:
+  - 老板报: '网盘里面的文件夹, 名称都看不清'
+  - 根因: v0.3.23 加的 `.blur(12.dp)` 写在外层 Box, Modifier 链是 clip → background → **blur** → border → clickable, blur 会把后续渲染也模糊了, **内层 Row 文字图标全部被模糊**
+  - 修法: 拆双层 Box (跟 LiquidGlassCard 一样), 外层只做背景 (blur 12→6dp), 内层装内容 (清晰)
+  - 文字加 TextStyle.shadow 黑色 0.25 alpha 偏移 0,1 模糊 3 (跟 iOS 26 液态玻璃同款)
+- 状态栏沉浸 + 液态玻璃 TopBar 不动 (v0.3.25 已经修对)
+
 ## v0.3.25 (build 35) - 2026-06-14 19:00
 ### 🐛 修复状态栏不沉浸 + 液态玻璃文字糊 (老板 6/14 18:40 拍)
 - **Revert 21c3b3b** (恢复 `enableEdgeToEdge()`):

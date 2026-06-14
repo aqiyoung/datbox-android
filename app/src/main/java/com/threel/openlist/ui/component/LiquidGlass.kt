@@ -38,6 +38,24 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
 /**
+ * 液态玻璃文字统一阴影 (v0.3.26 老板 19:20 拍: 文件名看不清)
+ *
+ * 白玻璃盖下去, Material 默认近黑文字 (OnSurface #141413) 盖上白底
+ * 对比度不够, 看起来发灰, 甚至跟背景融在一起。加阴影增加层次
+ * 跟 iOS 26 Liquid Glass 文字处理一致
+ */
+private fun liquidGlassTextStyle(
+    base: androidx.compose.ui.text.TextStyle,
+    shadowAlpha: Float = 0.25f,
+) = base.copy(
+    shadow = androidx.compose.ui.graphics.Shadow(
+        color = Color.Black.copy(alpha = shadowAlpha),
+        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+        blurRadius = 3f,
+    ),
+)
+
+/**
  * 液态玻璃组件库 (iOS 26 风格, v0.3.14 增强版)
  *
  * 视觉要素 (自下而上 4 层):
@@ -108,7 +126,7 @@ fun LiquidGlassCard(
     }
 }
 
-/** 玻璃行 (列表 item, v0.3.23 加 blur + 光泽) */
+/** 玻璃行 (列表 item, v0.3.26 修文字模糊 bug) */
 @Composable
 fun LiquidGlassRow(
     modifier: Modifier = Modifier,
@@ -124,29 +142,36 @@ fun LiquidGlassRow(
     val shape = RoundedCornerShape(cornerRadius)
     // 老板 6/14 17:35 拍: 增加不透明度
     val baseAlpha = if (selected) 0.92f else 0.72f
+    // v0.3.26 修: 拆双层 Box, 外层背景 (blur + 渐变 + 边), 内层内容 (清晰)
+    // 之前 v0.3.23 单 Box + .blur(12.dp) 会把内层 Row 文字也模糊了 (老板 19:20 拍: 文件名看不清)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            // 外层背景: blur + 渐变 + 边
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = baseAlpha),
-                        Color.White.copy(alpha = baseAlpha * 0.75f),
-                    )
-                )
-            )
-            // 背景模糊 (12dp, 比 Card 略小, 因为 row 多)
-            .blur(12.dp)
-            .border(0.5.dp, Color.White.copy(alpha = 0.65f), shape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
                 onClick = onClick,
             ),
     ) {
-        // 内层内容 (清晰)
+        // 外层: 玻璃背景 (模糊 + 渐变 + 边)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(shape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = baseAlpha),
+                            Color.White.copy(alpha = baseAlpha * 0.75f),
+                        )
+                    )
+                )
+                // v0.3.26 模糊半径 12dp → 6dp (外层 Box, 模糊背景, 不影响内层文字)
+                .blur(6.dp)
+                .border(0.5.dp, Color.White.copy(alpha = 0.65f), shape)
+        )
+        // 内层: 内容 (清晰, 不被 blur 影响)
         Row(
             modifier = Modifier.padding(contentPadding),
             verticalAlignment = Alignment.CenterVertically,
@@ -158,7 +183,7 @@ fun LiquidGlassRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = liquidGlassTextStyle(MaterialTheme.typography.bodyLarge),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -166,8 +191,10 @@ fun LiquidGlassRow(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF87867F),
+                        style = liquidGlassTextStyle(
+                            MaterialTheme.typography.bodySmall,
+                            shadowAlpha = 0.20f,
+                        ).copy(color = Color(0xFF87867F)),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
