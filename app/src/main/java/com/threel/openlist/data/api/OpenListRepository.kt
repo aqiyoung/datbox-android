@@ -198,6 +198,6 @@ class OpenListRepository @Inject constructor(
             Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)?.groupValues?.get(1)
                 ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
         }
-        return "$serverUrl/d$remotePath?sign=$sign"
+        "$serverUrl/d$remotePath?sign=$sign"
     }
 }
