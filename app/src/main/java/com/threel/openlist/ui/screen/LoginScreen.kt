@@ -42,38 +42,14 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// 老板 6/13 拍: 用原版 OpenList logo (LB 蓝色斜杠 + RT 青色圆环) 替换 "OpenList" 文字
+// 老板 6/14 拍: 用 res.oplist.org 官方 SVG 渲染的 PNG, 跟 APP 图标 (mipmap) 一致
 @Composable
 fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
-    Canvas(modifier = Modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        // 背景圆形 (天蓝色) - 用 kotlin.math.min (import 了)
-        drawCircle(color = Color(0xFF38BDF8), radius = min(w, h) / 2f)
-        // LB 蓝色斜杠
-        val lbPath = androidx.compose.ui.graphics.Path().apply {
-            moveTo(w * 0.18f, h * 0.78f)
-            lineTo(w * 0.42f, h * 0.32f)
-            lineTo(w * 0.52f, h * 0.38f)
-            lineTo(w * 0.28f, h * 0.84f)
-            close()
-        }
-        drawPath(path = lbPath, color = Color(0xFF0284C7))
-        // RT 青色圆环 (O 形, 镂空)
-        val oRadius = w * 0.22f
-        val oCenterX = w * 0.62f
-        val oCenterY = h * 0.50f
-        drawCircle(
-            color = Color(0xFF99F6E4),
-            radius = oRadius,
-            center = androidx.compose.ui.geometry.Offset(oCenterX, oCenterY)
-        )
-        drawCircle(
-            color = Color(0xFF38BDF8),
-            radius = oRadius * 0.62f,
-            center = androidx.compose.ui.geometry.Offset(oCenterX, oCenterY)
-        )
-    }
+    Image(
+        painter = androidx.compose.ui.res.painterResource(id = com.threel.openlist.R.drawable.openlist_logo_official),
+        contentDescription = "OpenList Logo",
+        modifier = Modifier.size(size),
+    )
 }
 
 data class LoginUiState(

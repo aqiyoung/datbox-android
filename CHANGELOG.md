@@ -1,5 +1,14 @@
 # 三页云盘 (OpenList) - 版本迭代记录
 
+## v0.3.8 (build 18) - 2026-06-14
+### 🎨 修正 LOGO (老板 6/14 10:31 反馈: '它不是白色底吗? 咱这个你自己弄的那差一笔')
+- **mipmap 图标改白底**: 重跑 generate_v6.py, sky-400 蓝线条 + teal-200 浅蓝绿 + **白底** (跟 OpenList 官方 web favicon 完全一致)
+  - 之前 v5/v7 是蓝底 (#38BDF8) + 蓝线条 = 蓝上画蓝, 对比度差、跟官方不一致
+  - 现在是 白底 + 蓝/浅蓝绿线条, 跟 https://res.oplist.org/logo/logo.svg 展示一致
+- **登录页面 OpenListLogo 换官方 SVG 渲染图**: 之前是 Canvas 手画 (蓝圆 + 深蓝斜杠 + 青色环), 跟 mipmap 不一致; 现在用 drawable/openlist_logo_official.png (512×512 白底 SVG 渲染)
+- **drawable/openlist_logo_official.png**: 官方 SVG cairosvg 渲染 + 白底, 作为 LoginScreen 的 Image painterResource
+- **assets/icons/openlist_icon_v5_*.png 清除**: v5 产物过气, 只保留 v6
+
 ## v0.3.7 (build 17) - 2026-06-14
 ### 🎨 UI 升级 (老板 6/14 拍: 换官方 logo + 标注)
 - **APP 图标换 OpenList 官方 logo**: 重跑 cairosvg 渲染脚本 (v5), sky-400 蓝底 + 几何 “O” 线条 + 22% 圆角。5 个 mipmap 尺寸 + round launcher 全部刷新
