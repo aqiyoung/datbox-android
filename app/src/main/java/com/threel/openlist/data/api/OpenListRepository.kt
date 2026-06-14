@@ -147,10 +147,14 @@ class OpenListRepository @Inject constructor(
             .addFormDataPart("file", file.name, requestBody)
             .build()
 
+        // 老板 6/14 12:20 修: HTTP header 严格 ISO-8859-1, 中文路径 (如 /本地存储/图片) 拋 IllegalArgumentException
+        // 修法: File-Path 头走 URL 百分号编码 (RFC 3986 unreserved), server 端 c.GetHeader 后会 URL-decode
+        val encodedPath = java.net.URLEncoder.encode(targetPath, "UTF-8")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "upload File-Path encoded: $encodedPath")
         val req = Request.Builder()
             .url("$serverUrl/api/fs/form")
             .header("Authorization", token)
-            .header("File-Path", targetPath)
+            .header("File-Path", encodedPath)
             .header("As-Task", "true")
             .header("Overwrite", "true")
             .put(multipart)
