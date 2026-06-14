@@ -1,4 +1,38 @@
 
+
+## v0.3.31 (build 41) - 2026-06-14 21:42
+### 🎨 重设计文件类型图标 (老板 6/14 21:38 拍: '应用程序还用的安卓默认绿色机器人, 重新设计')
+- **之前**: 全部用 Material Icons.Outlined (Folder, Android, Image, Movie, etc.) + 8 种颜色
+  - ⚠️ APK 文件用的 `Icons.Outlined.Android` (Android 默认机器人) 跟其他图标混在一起单调
+  - 颜色冷暖混搭 (蓝/红/粉/紫/绿), 不成体系
+- **现在**: 全自绘 Canvas 彩色图标, 14 种文件类型, 14 种品牌暖色调
+  - **Warm Spectrum 调色板** (全暖色 30-60° 色相, 跟陶土红品牌主色协调):
+    - 陶土红 #D97757 (主品牌 / Android APP)
+    - 暖深蓝 #1E3A5F (iOS APP)
+    - 焦糖棕 #8B5E3C (EXE / Disk)
+    - 赭石 #B8702C (压缩包)
+    - 暖橙 #C97B4A (图片)
+    - 暖红 #B54848 (视频)
+    - 暖玫红 #A65D7A (音频)
+    - 朱红 #C44A36 (PDF / PPT)
+    - 暖橄榄 #7A8F5E (代码)
+    - 暖橄榄绿 #5B8F5B (Excel)
+    - 暖深蓝 #4A6B8A (Word)
+    - 暖灰 #87867F (Text)
+    - 暖米灰 #A89B8C (Default)
+- **新组件**: `FileTypeIcon.kt` (510 行, 14 个 DrawScope 自绘图形)
+  - 圆角 12dp 底色 + 白色简化图形 (Apple-style 扁平图标)
+  - 14 种图形: 文件夹, Android 机器人, Apple 剪影, 终端, 拉链, 山+太阳, play 三角, 音符, PDF 折角, </>, 段落线, W, 表格, 播放方块, 圆盘
+  - 不引第三方包 (AGENTS.md 铁律), 纯 Compose Canvas
+- **重分类**:
+  - APK -> ANDROID_APP (陶土红, 突出品牌)
+  - app/dmg/pkg -> IOS_APP (暖深蓝, Apple 风格)
+  - exe/msi/bat/cmd/sh/bash/zsh/fish/ps1/deb/rpm/jar/bin/run -> EXECUTABLE (焦糖棕, 终端)
+  - iso -> DISK (焦糖棕, 圆盘)
+  - 其余 11 类按文件类型对应颜色
+- **删除**: 旧 fileIconFor 函数 (-64 行), 旧 ImageVector/Color import
+- **品牌一致**: 全部用品牌温度一致的暖色调, 跟液态玻璃 UI (米白 #F5F4ED + 陶土红 #D97757) 协调
+
 ## v0.3.30 (build 40) - 2026-06-14 20:55
 ### 🐛 修复分享链接 500 错误 (子 agent 6/14 20:36 报告, 老板 6/14 20:53 拍修)
 - **根因**: OpenList 4.x `/api/share/create` 的 `files[]` 字段语义是"作为子资源进入",
