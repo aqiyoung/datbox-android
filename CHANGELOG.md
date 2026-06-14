@@ -1,5 +1,11 @@
 # 三页云盘 (OpenList) - 版本迭代记录
 
+## v0.3.9 (build 19) - 2026-06-14
+### 🐛 修 2 个 UX/逻辑 (老板 6/14 10:45 反馈)
+- **登录页面 LOGO 加圆角 + 跟背景融合**: `Modifier.clip(RoundedCornerShape(size * 0.22f))` + `ContentScale.Crop` - 不再四方四正, 跟桌面图标一致
+- **修分享链接 401 真根因**: `buildShareUrl` 之前返 `https://.../d<path>` (没 sign, 永远 401)。10:32:41 老板手机 /d/天翼云盘/Windows 401 是点击分享后, 粘到浏览器跳 401。改成跟 download 一样先 `POST /api/fs/get` 拿 sign 再拼 `?sign=`
+- 之前 v0.3.0-v0.3.8 老板所有 '上传下载还是不对' 里包含分享这一路 (只是老板描述不准, 实际是分享链接点开跳 401)
+
 ## v0.3.8 (build 18) - 2026-06-14
 ### 🎨 修正 LOGO (老板 6/14 10:31 反馈: '它不是白色底吗? 咱这个你自己弄的那差一笔')
 - **mipmap 图标改白底**: 重跑 generate_v6.py, sky-400 蓝线条 + teal-200 浅蓝绿 + **白底** (跟 OpenList 官方 web favicon 完全一致)

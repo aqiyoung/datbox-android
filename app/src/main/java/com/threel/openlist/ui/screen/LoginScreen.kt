@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -42,13 +43,17 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// 老板 6/14 拍: 用 res.oplist.org 官方 SVG 渲染的 PNG, 跟 APP 图标 (mipmap) 一致
+// 老板 6/14 拍: 跟 APP 图标 mipmap 一致 - 白底 + 22% 圆角 + 跟背景融合
 @Composable
 fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
+    val cornerPct = 0.22f
     Image(
         painter = androidx.compose.ui.res.painterResource(id = com.threel.openlist.R.drawable.openlist_logo_official),
         contentDescription = "OpenList Logo",
-        modifier = Modifier.size(size),
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(size * cornerPct))
     )
 }
 

@@ -143,8 +143,8 @@ class FileBrowserViewModel @Inject constructor(
         }
     }
 
-    /** 老板 6/13 v0.3.0: 分享链接 */
-    fun buildShareUrl(remotePath: String): String = repo.buildShareUrl(remotePath)
+    /** 老板 6/13 v0.3.0 + 6/14 修: 分享链接 (需先调 fs/get 拿 sign) */
+    suspend fun buildShareUrl(remotePath: String): String = repo.buildShareUrl(remotePath)
 
     fun clearMessage() { _action.value = FileActionState() }
 }
@@ -305,12 +305,15 @@ fun FileBrowserScreen(
                     vm.downloadFile(menuRemotePath, pending.name)
                 },
                 onShare = {
-                    val url = vm.buildShareUrl(menuRemotePath)
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(Intent.EXTRA_TEXT, url)
+                    // 老板 6/14 修: buildShareUrl 是 suspend, 需 scope.launch
+                    scope.launch {
+                        val url = vm.buildShareUrl(menuRemotePath)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, url)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
                     }
-                    context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
                 },
                 onDismiss = { menuItem = null },
             )

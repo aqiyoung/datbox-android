@@ -160,9 +160,28 @@ class OpenListRepository @Inject constructor(
         FsUploadResponse(code = code, message = message)
     }
 
-    /** 老板 6/13 v0.3.0: 公开分享链接 - 直接拼 URL (OpenList 短链) */
-    fun buildShareUrl(remotePath: String): String {
+    /** 老板 6/14 修: 公开分享链接 (需先调 fs/get 拿 sign)
+     *
+     * 之前 v0.3.0-v0.3.6 拼 "$serverUrl/d$remotePath" 永久 401:
+     *   /d/* 路由只查 ?sign=, 不查 Authorization
+     *   没 sign 客户端打开就 401 (老板 10:32:41 反馈)
+     *
+     * 正确流程: fs/get 拿 sign, 拼 /d/<path>?sign=<hmac>
+     */
+    suspend fun buildShareUrl(remotePath: String): String {
+        val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
-        return "$serverUrl/d$remotePath"
+        val getReq = Request.Builder()
+            .url("$serverUrl/api/fs/get")
+            .header("Authorization", token)
+            .post("""{"path":"$remotePath"}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .build()
+        val sign = client.newCall(getReq).execute().use { resp ->
+            if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
+            val body = resp.body?.string() ?: error("fs/get empty body")
+            Regex(""""sign"\s*:\s*"([^"]+)"""").find(body)?.groupValues?.get(1)
+                ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
+        }
+        return "$serverUrl/d$remotePath?sign=$sign"
     }
 }
