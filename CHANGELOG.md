@@ -1,3 +1,15 @@
+
+## v0.3.30 (build 40) - 2026-06-14 20:55
+### 🐛 修复分享链接 500 错误 (子 agent 6/14 20:36 报告, 老板 6/14 20:53 拍修)
+- **根因**: OpenList 4.x `/api/share/create` 的 `files[]` 字段语义是"作为子资源进入",
+  单文件 share 时, OpenList 会拼 `/sd/<id>/<filename>` -> `/<files[0]>/<filename>` 路径
+  当 files[0] 是 file 不是 dir 时, 服务端 stat 报 `not a directory` 500
+- **修法** (2 行改动): 分享父目录而不是文件本身
+  - 之前: `files: ["/本地存储/hello.txt"]` -> /sd/<id>/hello.txt 拼成 /本地存储/hello.txt/hello.txt (500)
+  - 现在: `files: ["/本地存储"]` -> /sd/<id>/hello.txt 拼成 /本地存储/hello.txt (200)
+- **验证**: 手工 curl `/sd/<id>/hello.txt` -> 200, 19B, Content-Disposition: attachment
+- **隐私**: URL 中只显示 `share_id` + 文件名, 不显示父目录, 短链隐私目标保持
+
 ## v0.3.29 (build 39) - 2026-06-14 20:10
 ### 🔒 分享链接隐藏中间目录 (老板 6/14 20:00 拍: '不能暴露我们的目录啊')
 - **之前**: 分享链接露完整路径

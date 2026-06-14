@@ -208,7 +208,13 @@ class OpenListRepository @Inject constructor(
         com.threel.openlist.util.TelemetryLog.i("Repo", "buildShortShareUrl START: $remotePath")
         val token = tokenStore.tokenSync()
         val fileName = remotePath.substringAfterLast('/')
-        val body = """{"files":["$remotePath"],"expires":"2099-12-31T23:59:59Z","password":""}"""
+        // v0.3.30 修: OpenList 4.x /api/share/create 的 files[] 实际是 "作为子资源进入"
+        // 坑: 单文件 share 里, OpenList 会把 files[0] 当成 dir 拼 /sd/<id>/<filename>
+        //     拼出来是 "/本地存储/hello.txt/hello.txt" 路径, 服务端 stat 报 not a directory 500
+        // 修法: 分享父目录而不是文件本身, URL 仍拼 /sd/<id>/<filename> (parent 是 dir 才是合法路径)
+        var parentPath = remotePath.substringBeforeLast('/')
+        if (parentPath.isEmpty()) parentPath = "/"
+        val body = """{"files":["$parentPath"],"expires":"2099-12-31T23:59:59Z","password":""}"""
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val req = Request.Builder()
             .url("${com.threel.openlist.util.AppConfig.PUBLIC_BASE_URL}/api/share/create")
