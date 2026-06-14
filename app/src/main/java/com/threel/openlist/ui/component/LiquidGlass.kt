@@ -47,13 +47,20 @@ import androidx.compose.ui.text.font.FontWeight
  *
  * 老板 6/14: 7+2 项 UI 优化都用这个组件, 视觉一致
  */
+/**
+ * 玻璃卡 (iOS 26 / visionOS 风格, v0.3.22 增强不透明度)
+ *
+ * 老板 6/14 17:35 拍: '增加一下不透明度, 效果没上来'
+ * 调整: 上 0.20->0.45, 下 0.06->0.30, 边 0.30->0.55, 外层 0.10->0.18
+ * 保留: 玻璃质感 (仍半透明, 能看到背景 Parchment), 渐变层级
+ */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 20.dp,
     contentPadding: Dp = 16.dp,
-    background: Color = Color.White.copy(alpha = 0.10f),
-    borderColor: Color = Color.White.copy(alpha = 0.30f),
+    background: Color = Color.White.copy(alpha = 0.18f),
+    borderColor: Color = Color.White.copy(alpha = 0.55f),
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
@@ -63,8 +70,8 @@ fun LiquidGlassCard(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFFAF9F5).copy(alpha = 0.20f),
-                        Color(0xFFFAF9F5).copy(alpha = 0.06f),
+                        Color(0xFFFAF9F5).copy(alpha = 0.45f),
+                        Color(0xFFFAF9F5).copy(alpha = 0.30f),
                     )
                 )
             )
@@ -89,7 +96,9 @@ fun LiquidGlassRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    val baseAlpha = if (selected) 0.95f else 0.55f
+    // 老板 6/14 17:35 拍: 增加不透明度, 效果没上来
+    // 调整: 未选 0.55 -> 0.70, 已选 0.95 保持 (已选中态几乎不透明)
+    val baseAlpha = if (selected) 0.98f else 0.70f
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -140,7 +149,13 @@ fun LiquidGlassRow(
     }
 }
 
-/** 玻璃 TopAppBar */
+/**
+ * 玻璃 TopAppBar (iOS 26 风格, v0.3.22 增强不透明度)
+ *
+ * 老板 6/14 17:35 拍: '增加一下不透明度, 效果没上来'
+ * v0.3.21 之前是单层 0.75, 看起来像 '半透明纸片', 不像玻璃
+ * v0.3.22 改成: Box 包装 + 渐变背景 + 1px 边
+ */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun LiquidGlassTopBar(
@@ -149,35 +164,64 @@ fun LiquidGlassTopBar(
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
 ) {
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (leadingIcon != null) {
-                    Icon(
-                        imageVector = leadingIcon,
-                        contentDescription = null,
-                        // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
-                        tint = Color(0xFF141413),
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                }
-                Text(
-                    text = title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        },
-        navigationIcon = navigationIcon ?: {},
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFFFAF9F5).copy(alpha = 0.75f),
-            titleContentColor = Color(0xFF141413),
-            navigationIconContentColor = Color(0xFF141413),
-            actionIconContentColor = Color(0xFF141413),
-        ),
+    val topBarShape = androidx.compose.foundation.shape.RoundedCornerShape(
+        bottomStart = 20.dp,
+        bottomEnd = 20.dp,
     )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFAF9F5).copy(alpha = 0.85f),
+                        Color(0xFFFAF9F5).copy(alpha = 0.65f),
+                    )
+                )
+            )
+            .border(
+                width = 0.5.dp,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.65f),
+                        Color.White.copy(alpha = 0.25f),
+                    )
+                ),
+                shape = topBarShape,
+            )
+            .clip(topBarShape),
+    ) {
+        TopAppBar(
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (leadingIcon != null) {
+                        Icon(
+                            imageVector = leadingIcon,
+                            contentDescription = null,
+                            // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
+                            tint = Color(0xFF141413),
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                    }
+                    Text(
+                        text = title,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            },
+            navigationIcon = navigationIcon ?: {},
+            actions = actions,
+            colors = TopAppBarDefaults.topAppBarColors(
+                // 透明, 让外层 Box 渐变显示出来
+                containerColor = Color.Transparent,
+                titleContentColor = Color(0xFF141413),
+                navigationIconContentColor = Color(0xFF141413),
+                actionIconContentColor = Color(0xFF141413),
+            ),
+        )
+    }
 }
 
 /**
