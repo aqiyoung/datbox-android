@@ -186,21 +186,44 @@ class OpenListRepository @Inject constructor(
      *
      * 正确流程: fs/get 拿 sign, 拼 /d/xxx?sign=hmac
      */
-    suspend fun buildShareUrl(remotePath: String): String = withContext(Dispatchers.IO) {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShareUrl START (IO): $remotePath")
+    /**
+     * 创建短链分享链接 (v0.3.29 老板 6/14 20:00 拍: 隐藏中间目录)
+     *
+     * 之前 v0.3.0-v0.3.6 拼 serverUrl/d/remotePath 永久 401:
+     *   /d/xxx 路由只查 ?sign=, 不查 Authorization
+     *   没 sign 客户端打开就 401 (老板 10:32:41 反馈)
+     *
+     * 之前 v0.3.0-v0.3.28 拼 /d/完整路径?sign=xxx 露原目录结构:
+     *   例: https://<your-server>/d/天翼云盘/电影/动作片/蝙蝠侠.mkv?sign=xxx
+     *   拿链接的人能看完整目录树
+     *
+     * v0.3.29 修法: OpenList 4.x 官方短链 /sd/<id>/<filename>
+     *   链接: https://<your-server>/sd/<share_id>/蝙蝠侠.mkv
+     *   拿到链接的人只看到 ID + 文件名, 不知道原路径
+     *   限同一个文件可以匿名下载 (限原本权限的 'anyone_with_link')
+     *
+     * 实现: POST /api/share/create -> 拿 share_id -> 拼 PUBLIC_BASE_URL/sd/<id>/<name>
+     */
+    suspend fun buildShortShareUrl(remotePath: String): String = withContext(Dispatchers.IO) {
+        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShortShareUrl START: $remotePath")
         val token = tokenStore.tokenSync()
-        val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
-        val getReq = Request.Builder()
-            .url("$serverUrl/api/fs/get")
+        val fileName = remotePath.substringAfterLast('/')
+        val body = """{"files":["$remotePath"],"expires":"2099-12-31T23:59:59Z","password":""}"""
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val req = Request.Builder()
+            .url("${com.threel.openlist.util.AppConfig.PUBLIC_BASE_URL}/api/share/create")
             .header("Authorization", token)
-            .post("""{"path":"$remotePath"}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(body)
             .build()
-        val sign = client.newCall(getReq).execute().use { resp ->
-            if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
-            val body = resp.body?.string() ?: error("fs/get empty body")
-            Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)?.groupValues?.get(1)
-                ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
+        val shareId = client.newCall(req).execute().use { resp ->
+            val responseBody = resp.body?.string() ?: error("share/create empty body")
+            if (!resp.isSuccessful) error("share/create HTTP ${resp.code}: ${responseBody.take(200)}")
+            // 提取 "id" 字段 (手工 regex, 跟项目其它 API 一致)
+            Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(responseBody)?.groupValues?.get(1)
+                ?: error("share/create 响应里没 id 字段: ${responseBody.take(200)}")
         }
-        "$serverUrl/d$remotePath?sign=$sign"
+        // 中文文件名 URL encode (OpenList 服务端也接受 raw, 但浏览器分享出去可能被截断)
+        val encodedName = java.net.URLEncoder.encode(fileName, "UTF-8")
+        "${com.threel.openlist.util.AppConfig.PUBLIC_BASE_URL}/sd/$shareId/$encodedName"
     }
 }

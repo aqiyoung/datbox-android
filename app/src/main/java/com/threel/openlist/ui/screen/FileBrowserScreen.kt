@@ -192,11 +192,14 @@ class FileBrowserViewModel @Inject constructor(
         }
     }
 
-    /** 老板 6/13 v0.3.0 + 6/14 修: 分享链接 (需先调 fs/get 拿 sign) */
+    /**
+     * v0.3.29 老板 6/14 20:00 拍: 隐藏中间目录
+     * 改用 OpenList 4.x 官方短链 /sd/<id>/<filename> (不露原路径)
+     */
     suspend fun buildShareUrl(remotePath: String): String {
         com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "buildShareUrl: $remotePath")
         return try {
-            val url = repo.buildShareUrl(remotePath)
+            val url = repo.buildShortShareUrl(remotePath)
             com.threel.openlist.util.TelemetryLog.i("FileBrowserVM", "buildShareUrl OK: ${url.take(80)}...")
             url
         } catch (e: Throwable) {

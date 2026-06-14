@@ -1,3 +1,22 @@
+## v0.3.29 (build 39) - 2026-06-14 20:10
+### 🔒 分享链接隐藏中间目录 (老板 6/14 20:00 拍: '不能暴露我们的目录啊')
+- **之前**: 分享链接露完整路径
+  - 例: https://<your-server>/d/天翼云盘/电影/动作片/蝙蝠侠.mkv?sign=xxx
+  - 问题: 拿到链接的人能看到整个目录树, 隐私泄露
+- **现在**: OpenList 4.x 官方短链 /sd/<id>/<filename>
+  - 例: https://<your-server>/sd/EXhJt9KX/蝙蝠侠.mkv
+  - 拿链接的人只看到 ID + 文件名, 不知道原路径
+- **代码改动**:
+  - AppConfig 加 PUBLIC_BASE_URL = "https://<your-server>" (必须用公网域名, 不用 serverUrl 内网)
+  - OpenListRepository.buildShareUrl -> buildShortShareUrl
+  - 实现: POST /api/share/create 拿 share_id -> 拼 /sd/<id>/<name> (URL encode)
+  - ViewModel FileBrowserScreen.buildShareUrl 调 repo.buildShortShareUrl
+- **限制**:
+  - share 永久有效 (expires 2099-12-31)
+  - 无密码 (pwd="")
+  - 多文件 share 也可以 (/api/share/create 接受 files 数组), 但目前 UI 一次只分享一个
+- **验证**: 手工 curl  https://<your-server>/sd/E6xL1bJ2/hello.txt -> 200, 19B (老板 6/14 19:57 测过)
+
 ## v0.3.28 (build 38) - 2026-06-14 19:50
 ### 🗑️ 移除 About 页底部'更新日志'区块 (老板 6/14 19:38 拍: '把下面那个更新日志移除吧, 不要了')
 - **AboutScreen 精简**:
