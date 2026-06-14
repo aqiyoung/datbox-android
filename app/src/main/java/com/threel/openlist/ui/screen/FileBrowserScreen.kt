@@ -285,7 +285,8 @@ fun FileBrowserScreen(
                     if (state.path != "/") {
                         item {
                             FileRow(
-                                icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFFC96442)) },
+                                // 老板 6/14 16:35 拍: 不用橙色, 改 NearBlack (液态玻璃原色)
+                                icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
                                 name = "..",
                                 size = "",
                                 modified = "",
@@ -393,7 +394,8 @@ private fun FileRow(
 @Composable
 private fun CenterLoading() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     com.threel.openlist.ui.component.LiquidGlassCard(cornerRadius = 24.dp, contentPadding = 32.dp) {
-        CircularProgressIndicator(color = Color(0xFFC96442))
+        // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
+        CircularProgressIndicator(color = Color(0xFF141413))
     }
 }
 
@@ -470,10 +472,10 @@ private fun GlassActionDialog(
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                 )
 
-                // 老板 6/14: 下载按钮 (主操作 - 暖色 accent)
+                // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
                 GlassActionItem(
                     icon = Icons.Outlined.Download,
-                    iconTint = Color(0xFFC96442),
+                    iconTint = Color(0xFF141413),
                     label = "下载到本地",
                     subLabel = "保存到下载目录",
                     onClick = { onDownload(); onDismiss() },
@@ -481,7 +483,7 @@ private fun GlassActionDialog(
                 // 分享链接
                 GlassActionItem(
                     icon = Icons.Outlined.Share,
-                    iconTint = Color(0xFFC96442),
+                    iconTint = Color(0xFF141413),
                     label = "分享链接",
                     subLabel = "复制 / 发送短链",
                     onClick = { onShare(); onDismiss() },
@@ -593,7 +595,7 @@ private fun humanSize(b: Long): String = when {
  * | 演示 | ppt/pptx | Slideshow | 藏青 #4A6B8A |
  */
 private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> = when {
-    isDir -> Icons.Outlined.Folder to Color(0xFFC96442)  // 文件夹 始终 Terracotta
+    isDir -> Icons.Outlined.Folder to Color(0xFF141413)  // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack (液态玻璃原色)
     else -> {
         val ext = name.substringAfterLast('.', "").lowercase()
         when (ext) {

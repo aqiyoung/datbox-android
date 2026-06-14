@@ -10,11 +10,12 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+// 老板 6/14 16:35 拍: "橙色丑不拉几, 改成透明白色, 液态玻璃风格"
 private val LightColors = lightColorScheme(
-    primary = Terracotta,
+    primary = NearBlack,            // 老板拍: 黑色 (液态玻璃原色), 不用 Terracotta
     onPrimary = WarmIvory,
-    primaryContainer = Terracotta.copy(alpha = 0.1f),
-    onPrimaryContainer = TerracottaDeep,
+    primaryContainer = NearBlack.copy(alpha = 0.08f),
+    onPrimaryContainer = NearBlack,
     secondary = OliveGray,
     background = Parchment,
     onBackground = NearBlack,
@@ -25,10 +26,11 @@ private val LightColors = lightColorScheme(
     outline = BorderWarm,
 )
 
+// 老板拍: 夜间模式也用液态玻璃 (黑底白玻璃)
 private val DarkColors = darkColorScheme(
-    primary = TerracottaDark,
+    primary = WarmIvory,
     onPrimary = NearBlack,
-    primaryContainer = TerracottaDeep,
+    primaryContainer = WarmIvory.copy(alpha = 0.12f),
     onPrimaryContainer = WarmIvory,
     secondary = WarmSilver,
     background = NearBlack,

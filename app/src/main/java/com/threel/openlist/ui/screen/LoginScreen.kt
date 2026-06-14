@@ -133,10 +133,11 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
+                // 老板 6/14 16:35 拍: 橙色丑不拉几, 改成白玻璃
                 Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFFC96442).copy(alpha = 0.18f),
-                        Color(0xFFF5F4ED),
+                        Color.White.copy(alpha = 0.35f),  // 中心白亮
+                        Color(0xFFF5F4ED),                  // 边缘 Parchment
                     )
                 )
             )
@@ -196,7 +197,7 @@ fun LoginScreen(
                     Spacer(Modifier.height(12.dp))
                     Text(
                         state.error!!,
-                        color = Color(0xFF8A3A20),
+                        color = Color(0xFFB33A3A),  // 老板拍: 错误用警示红, 不用 Terracotta
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }

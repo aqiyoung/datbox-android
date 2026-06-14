@@ -156,7 +156,8 @@ fun LiquidGlassTopBar(
                     Icon(
                         imageVector = leadingIcon,
                         contentDescription = null,
-                        tint = Color(0xFFC96442),
+                        // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
+                        tint = Color(0xFF141413),
                         modifier = Modifier.size(24.dp),
                     )
                     Spacer(Modifier.width(8.dp))
