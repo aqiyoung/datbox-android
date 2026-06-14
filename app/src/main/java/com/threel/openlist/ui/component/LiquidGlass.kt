@@ -38,20 +38,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 
 /**
- * 液态玻璃文字统一阴影 (v0.3.26 老板 19:20 拍: 文件名看不清)
+ * 液态玻璃文字统一阴影 (v0.3.27 老板 19:35 拍: 刺眼)
  *
  * 白玻璃盖下去, Material 默认近黑文字 (OnSurface #141413) 盖上白底
  * 对比度不够, 看起来发灰, 甚至跟背景融在一起。加阴影增加层次
- * 跟 iOS 26 Liquid Glass 文字处理一致
+ * v0.3.27 减弱: alpha 0.25 -> 0.12, blurRadius 3 -> 1.5 (iOS 26 液态玻璃同款 + 老板要求)
+ * 之前 alpha 太高在 OLED 上加双层黑色看着扎眼
  */
 private fun liquidGlassTextStyle(
     base: androidx.compose.ui.text.TextStyle,
-    shadowAlpha: Float = 0.25f,
+    shadowAlpha: Float = 0.12f,
 ) = base.copy(
     shadow = androidx.compose.ui.graphics.Shadow(
         color = Color.Black.copy(alpha = shadowAlpha),
         offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-        blurRadius = 3f,
+        blurRadius = 1.5f,
     ),
 )
 
@@ -193,7 +194,7 @@ fun LiquidGlassRow(
                         text = subtitle,
                         style = liquidGlassTextStyle(
                             MaterialTheme.typography.bodySmall,
-                            shadowAlpha = 0.20f,
+                            shadowAlpha = 0.08f,
                         ).copy(color = Color(0xFF87867F)),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -232,15 +233,18 @@ fun LiquidGlassTopBar(
         bottomStart = 20.dp,
         bottomEnd = 20.dp,
     )
-    // v0.3.25 文字阴影: 黑色 0.30 alpha, 偏移 (0, 1), 模糊 4
+    // v0.3.27 老板 19:35 拍: '看着刺眼, 用 MiSans'
+    // 之前 v0.3.25 这块没指定 fontFamily, 用了 Compose Serif fallback
+    // 加阴影 (黑色 0.30) 在白玻璃上看着扎眼
     val titleTextStyle = androidx.compose.ui.text.TextStyle(
         color = Color(0xFF141413),
         fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
+        fontFamily = com.threel.openlist.ui.theme.MiSansFamily,
         shadow = androidx.compose.ui.graphics.Shadow(
-            color = Color.Black.copy(alpha = 0.30f),
+            color = Color.Black.copy(alpha = 0.20f),  // v0.3.27 阴影 0.30 -> 0.20 (减弱)
             offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-            blurRadius = 4f,
+            blurRadius = 2f,  // v0.3.27 模糊 4 -> 2
         ),
     )
     val iconTint = Color(0xFF141413).copy(alpha = 0.95f)

@@ -1,3 +1,18 @@
+## v0.3.27 (build 37) - 2026-06-14 19:40
+### 🎨 字体换 MiSans (老板 6/14 19:35 拍: '什么字体？看着刺眼, 用 misans 吧')
+- **Type.kt 重写**:
+  - 之前: SerifFamily (系统衬线) + SansFamily (Roboto/Noto), 衬线在小字号 + 阴影下扎眼
+  - 现在: MiSansFamily = FontFamily(Regular, Medium, Semibold, Bold) — 4 字重全装入
+  - 字体源: ~/dev-projects/synapse/app/assets/fonts/MiSans*.ttf (小米 2022, CC-BY 4.0)
+- **APK 体积 增大**: 1.8MB -> 32MB (MiSans 4 字重 * 8MB)
+  - 后续可优化: pyftsubset 中文子集化 (上文字符 3000+)
+- **LiquidGlass 文字阴影 减弱** (顺手修):
+  - titleTextStyle 阴影 0.30/4 -> 0.20/2 (TopBar 标题)
+  - liquidGlassTextStyle helper 默认 0.25/3 -> 0.12/1.5 (Row 文字)
+  - subtitle 0.20/3 -> 0.08/1.5
+  - 原因: 阴影 + 0.30 黑色 + 白玻璃, 在 OLED 屏上双层黑色看着扎眼
+  - 不去阴影: 白玻璃 0.72 alpha 下, 黑色文字 + 白底其实够清楚, 阴影只加层次
+
 ## v0.3.26 (build 36) - 2026-06-14 19:30
 ### 🐛 修复文件夹列表文字模糊 (老板 6/14 19:20 拍)
 - **LiquidGlassRow 拆双层 Box**:
