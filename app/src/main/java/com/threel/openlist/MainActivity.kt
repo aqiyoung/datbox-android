@@ -20,8 +20,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // 液态玻璃 TopAppBar 需要状态栏有背景色做模糊底, 不用 edge-to-edge
-        // enableEdgeToEdge()
+        enableEdgeToEdge()
         setContent {
             OpenListTheme {
                 // 每次重组都同步状态栏图标颜色: 浅色模式深色图标, 深色模式浅色图标
