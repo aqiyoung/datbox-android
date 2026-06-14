@@ -14,6 +14,7 @@ import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.LoginScreen
+import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +29,14 @@ class RootViewModel @Inject constructor(
     val loggedIn = _loggedIn.asStateFlow()
 
     init {
-        viewModelScope.launch { _loggedIn.value = repo.isLoggedIn() }
+        // 老板 6/14 11:56 反馈: 装 v0.3.10 后说 '失败' 但 log 收不到
+        // 加启动 log 看是否 APP 启动了
+        TelemetryLog.i("NavGraph", "OpenListNavGraph init, isLoggedIn check...")
+        viewModelScope.launch {
+            val isLogin = repo.isLoggedIn()
+            TelemetryLog.i("NavGraph", "isLoggedIn=$isLogin")
+            _loggedIn.value = isLogin
+        }
     }
 
     fun logout() {
