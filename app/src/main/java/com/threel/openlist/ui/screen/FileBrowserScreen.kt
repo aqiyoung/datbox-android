@@ -33,6 +33,20 @@ import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassFab
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.component.LiquidGlassTopBar
+import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.Code
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Android
+import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Terminal
+import androidx.compose.material.icons.outlined.TextSnippet
+import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.threel.openlist.data.model.FsItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -280,14 +294,10 @@ fun FileBrowserScreen(
                                 menuItem = item
                             }  // 老板 6/14: 点三个点弹玻璃弹窗
                         } else null
+                        // 老板 6/14 拍: 根据扩展名识别文件类型, 用对应图标 + 颜色
+                        val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
                         FileRow(
-                            icon = {
-                                Icon(
-                                    if (item.isDir) Icons.Outlined.Folder else Icons.Outlined.InsertDriveFile,
-                                    null,
-                                    tint = if (item.isDir) Color(0xFFC96442) else Color(0xFF87867F),
-                                )
-                            },
+                            icon = { Icon(fileIcon, null, tint = fileColor) },
                             name = item.name,
                             size = if (item.isDir) "" else humanSize(item.size),
                             modified = item.modified.take(10),
@@ -555,4 +565,72 @@ private fun humanSize(b: Long): String = when {
     b < 1024 * 1024 -> "${sizeFmt.format(b / 1024.0)} KB"
     b < 1024L * 1024 * 1024 -> "${sizeFmt.format(b / 1024.0 / 1024)} MB"
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
+}
+
+/**
+ * 老板 6/14 拍: 根据扩展名识别文件类型, 返回对应图标
+ *
+ * | 分类 | 扩展名 | 图标 | 颜色 |
+ * |---|---|---|---|
+ * | 压缩包 | zip/7z/rar/tar/gz/bz2/xz/tgz | Archive | 棕 #8B6F47 |
+ * | EXE 可执行 | exe/msi/apk/bat/cmd/sh/dmg/deb/rpm | Android | 紫 #7B5BA6 |
+ * | 图片 | jpg/jpeg/png/gif/bmp/webp/svg/heic/ico | Image | 蓝 #5B8AC9 |
+ * | 视频 | mp4/mkv/avi/mov/flv/wmv/m4v/webm | Movie | 红 #C95B5B |
+ * | 音频 | mp3/flac/wav/aac/ogg/wma/m4a | MusicNote | 粉 #C95BA0 |
+ * | PDF | pdf | PictureAsPdf | 朱红 #DC4A3A |
+ * | 代码 | kt/java/py/js/ts/go/rust/c/cpp/h/json/xml/yaml | Code | 绿 #5B8F5B |
+ * | 文本 | txt/md/log/csv | TextSnippet | 灰 #87867F |
+ * | Office | doc/docx/xls/xlsx/ppt/pptx | Description | 藏青 #4A6B8A |
+ * | 表格 | xls/xlsx/csv | GridView | 藏青 #4A6B8A |
+ * | 演示 | ppt/pptx | Slideshow | 藏青 #4A6B8A |
+ */
+private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> = when {
+    isDir -> Icons.Outlined.Folder to Color(0xFFC96442)  // 文件夹 始终 Terracotta
+    else -> {
+        val ext = name.substringAfterLast('.', "").lowercase()
+        when (ext) {
+            // 压缩包
+            "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst" ->
+                Icons.Outlined.Archive to Color(0xFF8B6F47)
+            // EXE 可执行
+            "exe", "msi", "apk", "bat", "cmd", "sh", "dmg", "deb", "rpm", "app", "jar", "bin", "run" ->
+                Icons.Outlined.Android to Color(0xFF7B5BA6)
+            // 图片
+            "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
+                Icons.Outlined.Image to Color(0xFF5B8AC9)
+            // 视频
+            "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
+                Icons.Outlined.Movie to Color(0xFFC95B5B)
+            // 音频
+            "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
+                Icons.Outlined.MusicNote to Color(0xFFC95BA0)
+            // PDF
+            "pdf" -> Icons.Outlined.PictureAsPdf to Color(0xFFDC4A3A)
+            // 代码 (kt 优先突出本项目)
+            "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs", "c", "cpp", "cc", "cxx", "h", "hpp",
+            "json", "xml", "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php", "sh", "bash",
+            "zsh", "ps1", "html", "htm", "css", "scss", "sass", "less", "sql" ->
+                Icons.Outlined.Code to Color(0xFF5B8F5B)
+            // 文本
+            "txt", "md", "markdown", "log", "rst", "tex" ->
+                Icons.Outlined.TextSnippet to Color(0xFF87867F)
+            // Word
+            "doc", "docx", "rtf", "odt" ->
+                Icons.Outlined.Description to Color(0xFF4A6B8A)
+            // Excel / CSV
+            "xls", "xlsx", "ods", "csv" ->
+                Icons.Outlined.GridView to Color(0xFF4A6B8A)
+            // PowerPoint
+            "ppt", "pptx", "odp", "key" ->
+                Icons.Outlined.Slideshow to Color(0xFF4A6B8A)
+            // 表格文件
+            "iso" ->
+                Icons.Outlined.FolderZip to Color(0xFF8B6F47)
+            // 终端脚本
+            "sh", "bash", "zsh", "fish", "ps1" ->
+                Icons.Outlined.Terminal to Color(0xFF5B8F5B)
+            // 默认: 未知文件
+            else -> Icons.Outlined.InsertDriveFile to Color(0xFF87867F)
+        }
+    }
 }
