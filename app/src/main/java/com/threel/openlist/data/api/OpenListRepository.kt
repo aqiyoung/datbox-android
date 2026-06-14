@@ -114,6 +114,7 @@ class OpenListRepository @Inject constructor(
         }
         com.threel.openlist.util.TelemetryLog.i("Repo", "download DONE: $fileName ${outFile.length()}B -> ${outFile.absolutePath}")
         outFile
+        }
     }
 
     /** 老板 6/14 修: 上传文件 (OkHttp 直发 multipart)
@@ -173,6 +174,7 @@ class OpenListRepository @Inject constructor(
         val code = codeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
         val message = Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(respBody)?.groupValues?.get(1) ?: ""
         FsUploadResponse(code = code, message = message)
+        }
     }
 
     /** 老板 6/14 修: 公开分享链接 (需先调 fs/get 拿 sign)
