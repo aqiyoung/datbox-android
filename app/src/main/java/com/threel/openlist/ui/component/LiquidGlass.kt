@@ -180,9 +180,13 @@ fun LiquidGlassTopBar(
 }
 
 /**
- * 玻璃圆 FAB (老板 6/14 15:25 拍: "圆形的加号设计一下, 不需要文字")
+ * 玻璃圆 FAB (老板 6/14 16:05 拍: "液态玻璃吗？透明色", "我不要橙色")
  *
- * 设计: 56dp 圆 + 加号 icon + Terracotta 渐变 + 1px BorderCream
+ * v0.3.17 重设计: iOS 26 / visionOS 风格白玻璃
+ * - 56dp 圆
+ * - 白渐变 (上 0.7 alpha, 下 0.5 alpha)
+ * - 1px 白边 0.8 alpha
+ * - icon 黑色 #141413 (跟 LiquidGlassRow 一致)
  */
 @Composable
 fun LiquidGlassFab(
@@ -199,12 +203,12 @@ fun LiquidGlassFab(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFC96442).copy(alpha = if (enabled) 0.95f else 0.5f),
-                        Color(0xFF8A3A20).copy(alpha = if (enabled) 0.95f else 0.5f),
+                        Color.White.copy(alpha = if (enabled) 0.70f else 0.40f),
+                        Color.White.copy(alpha = if (enabled) 0.50f else 0.30f),
                     )
                 )
             )
-            .border(1.dp, Color(0xFFFAF9F5).copy(alpha = 0.4f), shape)
+            .border(1.dp, Color.White.copy(alpha = 0.80f), shape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
@@ -216,22 +220,22 @@ fun LiquidGlassFab(
         Icon(
             icon,
             contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(28.dp),
+            tint = Color(0xFF141413),
+            modifier = Modifier.size(26.dp),
         )
     }
 }
 
 /**
- * 玻璃登录/主操作按钮 (老板 6/14 15:25 拍: 重新设计, 不像"灯笼框")
+ * 玻璃主操作按钮 (老板 6/14 16:05 拍: "白就行了", "液态玻璃透明色")
  *
- * 修正:
- * - 圆角 12dp (不是 20dp 灯笼, 也不是 0dp 死板矩形)
- * - 渐变更素雅: Terracotta 0.85 -> 0.7 (v0.3.15 0.95+0.95 太艳)
- * - 细 1px BorderCream (v0.3.15 Terracotta 1.6 太黑)
- * - 高度 48dp (v0.3.15 56dp 太像灯笼) + 内容居中
- * - 文字 15sp medium 白色 (v0.3.15 文字 16sp + 文字大写 "登 录" 中间空格)
- * - 全面使用 fillMaxWidth
+ * v0.3.17 重设计: iOS 26 / visionOS 风格白玻璃 (不用 Terracotta)
+ * - 12dp 圆角
+ * - 48dp 高度
+ * - 白渐变 (上 0.70 alpha, 下 0.50 alpha)
+ * - 0.5dp 白边 0.7 alpha
+ * - icon + 文字 黑色 #141413
+ * - fillMaxWidth
  */
 @Composable
 fun LiquidGlassPrimaryButton(
@@ -250,12 +254,12 @@ fun LiquidGlassPrimaryButton(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFFC96442).copy(alpha = if (enabled) 0.85f else 0.4f),
-                        Color(0xFFA04F30).copy(alpha = if (enabled) 0.85f else 0.4f),
+                        Color.White.copy(alpha = if (enabled) 0.70f else 0.40f),
+                        Color.White.copy(alpha = if (enabled) 0.50f else 0.30f),
                     )
                 )
             )
-            .border(0.5.dp, Color(0xFFFAF9F5).copy(alpha = 0.5f), shape)
+            .border(0.5.dp, Color.White.copy(alpha = 0.70f), shape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
@@ -266,12 +270,12 @@ fun LiquidGlassPrimaryButton(
         horizontalArrangement = Arrangement.Center,
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
         Text(
             text = text,
-            color = Color.White,
+            color = Color(0xFF141413),
             fontSize = 15.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
         )
