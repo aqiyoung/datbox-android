@@ -1,3 +1,22 @@
+## v0.3.14 (build 24) - 2026-06-14 13:30
+### ✨ 液态玻璃 UI 全面升级 (老板 6/14 拍: "全做 在加上手势返回")
+- **LiquidGlass.kt 增强 (3 个新组件)**:
+  - `LiquidGlassRow`: 圆角 16dp + 选中态 alpha 0.95 + 暖色渐变底
+  - `LiquidGlassTopBar`: 半透明 Parchment 0.75 + 渐变底 + 标题前缀 logo icon
+  - `LiquidGlassFab`: Terracotta 渐变 + 1px 描边 + 圆角 20dp
+- **FileBrowserScreen**:
+  - `TopAppBar` → `LiquidGlassTopBar`
+  - `ExtendedFloatingActionButton` → `LiquidGlassFab` (玻璃上传按钮)
+  - `FileRow` → `LiquidGlassRow` (圆角 16dp, 选中态液态)
+  - `CenterLoading` / `CenterMessage` → `LiquidGlassCard` (居中玻璃卡)
+  - 空目录 / 错误 加 "返回上一层" / "刷新" 按钮
+- **AboutScreen**: 顶部品牌区 → 大号 `LiquidGlassCard` (24dp 圆角) 装 LOGO + 名称 + 版本 + "基于官方 OpenList 开发" 标注
+- **LoginScreen**: 矩形 `Button` → `LiquidGlassFab` (玻璃登录按钮)
+- **OpenListNavGraph**: `BackHandler` 在 About 屏幕 → 系统返回键 / 手势返回都能回到 files
+- **OpenListRepository**: 修 EACCES! 下载写 `getExternalFilesDir(DIRECTORY_DOWNLOADS)` (app 私有目录, 不需 WRITE_EXTERNAL_STORAGE 权限, Android 11+ scoped storage 兼容)
+- **OpenListNavGraph**: 启动 Loading → 居中 `CircularProgressIndicator`
+- **CHANGELOG / latest.json / changelog.json**: 同步到 <your-server>
+
 # 三页云盘 (OpenList) - 版本迭代记录
 
 ## v0.3.9 (build 19) - 2026-06-14
