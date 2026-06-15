@@ -195,12 +195,6 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
             }
 
-            item {
-                Spacer(Modifier.height(20.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
-                Spacer(Modifier.height(12.dp))
-            }
-
             item { Spacer(Modifier.height(24.dp)) }
         }
     }
