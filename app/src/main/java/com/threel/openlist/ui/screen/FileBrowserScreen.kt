@@ -44,6 +44,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.ManagementRepository
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.data.download.AppDownloadManager
 import com.threel.openlist.data.model.FsItem
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassFab
@@ -81,6 +82,7 @@ data class FileActionState(val busy: Boolean = false, val message: String? = nul
 class FileBrowserViewModel @Inject constructor(
     private val repo: OpenListRepository,
     private val managementRepo: ManagementRepository,
+    private val downloadManager: AppDownloadManager,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FileBrowserState())
     val state = _state.asStateFlow()
@@ -147,14 +149,9 @@ class FileBrowserViewModel @Inject constructor(
     }
 
     fun downloadFile(remotePath: String, fileName: String) {
-        _action.value = FileActionState(busy = true, message = "下载 $fileName 中...")
-        viewModelScope.launch {
-            repo.download(remotePath, fileName).onSuccess { file ->
-                _action.value = FileActionState(message = "已下载到 ${file.absolutePath}")
-            }.onFailure { e ->
-                _action.value = FileActionState(message = "下载失败: ${e.message}", isError = true)
-            }
-        }
+        _action.value = FileActionState(busy = true, message = "开始下载 $fileName...")
+        downloadManager.enqueue(remotePath, fileName)
+        _action.value = FileActionState(message = "已加入下载队列")
     }
 
     fun uploadFile(localFile: File) {
