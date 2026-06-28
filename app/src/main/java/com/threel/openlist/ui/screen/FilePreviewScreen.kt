@@ -22,7 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.EntryPoint
+import androidx.hilt.EntryPointAccessors
 import coil.compose.AsyncImage
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.util.AppConfig
@@ -34,7 +35,6 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
 
 /**
  * 文件预览页面
@@ -43,11 +43,9 @@ import javax.inject.Inject
  * - 音视频: 系统播放器打开
  * - 文本: 直接显示内容
  */
-@HiltViewModel
-class FilePreviewViewModel @Inject constructor(
-    private val tokenStore: TokenStore,
-) : androidx.lifecycle.ViewModel() {
-    val tokenSync: String get() = tokenStore.tokenSync()
+@EntryPoint
+interface TokenStoreEntryPoint {
+    fun tokenStore(): TokenStore
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -56,7 +54,6 @@ fun FilePreviewScreen(
     remotePath: String,
     fileName: String,
     onBack: () -> Unit,
-    vm: FilePreviewViewModel = hiltViewModel(),
 ) {
     val ext = fileName.substringAfterLast(".").lowercase()
     val isImage = ext in setOf(
@@ -78,7 +75,6 @@ fun FilePreviewScreen(
     )
     val isPdf = ext == "pdf"
 
-    val context = LocalContext.current
     val serverUrl = AppConfig.PUBLIC_BASE_URL.trimEnd('/')
 
     // 预览状态
@@ -87,7 +83,9 @@ fun FilePreviewScreen(
     var textLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    val authToken = vm.tokenSync
+    val context = LocalContext.current
+    val entryPoint = EntryPointAccessors.fromApplication(context, TokenStoreEntryPoint::class.java)
+    val authToken = entryPoint.tokenStore().tokenSync()
 
     // 获取预览 URL (需要 sign)
     LaunchedEffect(remotePath) {
