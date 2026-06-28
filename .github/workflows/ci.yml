@@ -7,9 +7,9 @@ name: CI Build Check
 
 on:
   pull_request:
-    branches: [ master, beta ]
+    branches: [ main, beta ]
   push:
-    branches: [ master, beta ]
+    branches: [ main, beta ]
     paths:
       - 'app/src/**'
       - 'app/build.gradle.kts'
