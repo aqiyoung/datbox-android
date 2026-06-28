@@ -292,7 +292,7 @@ fun FileBrowserScreen(
                 state.items.isEmpty() -> CenterMessage(
                     msg = if (state.path == "/") "还没有挂载任何网盘" else "空目录",
                     actionLabel = if (state.path != "/") "返回上一层" else null,
-                    onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) : null,
+                    onAction = if (state.path != "/") { vm.load(vm.goUp()) } else null,
                 )
                 else -> {
                     LazyColumn(
