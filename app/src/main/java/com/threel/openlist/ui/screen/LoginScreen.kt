@@ -167,7 +167,7 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF87867F),
             )
-            Spacer(Modifier.height = 64.dp))
+            Spacer(Modifier.height(64.dp))
 
             // iOS 26 风格登录卡
             Column(
