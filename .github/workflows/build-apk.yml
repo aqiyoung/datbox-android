@@ -40,14 +40,29 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
 
+      - name: Clear stale Gradle caches
+        run: |
+          rm -rf ~/.gradle/caches
+          rm -rf ~/.gradle/wrapper
+          echo "Gradle caches cleared"
+
+      # 提取 compose-bom 版本纳入 cache key → 降/升级依赖后自动清缓存
+      - name: Extract compose-bom version
+        id: bom
+        run: |
+          BOM_VERSION=$(grep -oP 'compose-bom:\K[^"]+' app/build.gradle.kts)
+          echo "bom=$BOM_VERSION" >> $GITHUB_OUTPUT
+          echo "compose-bom version: $BOM_VERSION"
+
       - name: Cache Gradle
         uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+          key: ${{ runner.os }}-release-${{ steps.bom.outputs.bom }}-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-release-${{ steps.bom.outputs.bom }}-
 
       - name: Get version
         id: version
