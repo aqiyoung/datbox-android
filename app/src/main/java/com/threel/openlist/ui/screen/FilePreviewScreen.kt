@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dagger.hilt.EntryPoint
 import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import dagger.hilt.InstallIn
 import coil.compose.AsyncImage
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.util.AppConfig
@@ -44,6 +46,7 @@ import java.util.concurrent.TimeUnit
  * - 文本: 直接显示内容
  */
 @EntryPoint
+@InstallIn(SingletonComponent::class)
 interface TokenStoreEntryPoint {
     fun tokenStore(): TokenStore
 }
