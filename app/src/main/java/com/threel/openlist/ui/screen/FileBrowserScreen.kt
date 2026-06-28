@@ -596,6 +596,7 @@ private fun FileRow(
         cornerRadius = 16.dp,
         selected = selected,
         onClick = onClick,
+        onLongClick = onLongClick,
         leading = icon,
         title = name,
         subtitle = if (modified.isNotEmpty() || size.isNotEmpty()) listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · ") else null,

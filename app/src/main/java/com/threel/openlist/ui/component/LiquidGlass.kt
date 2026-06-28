@@ -1,8 +1,10 @@
 package com.threel.openlist.ui.component
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,12 +119,14 @@ fun LiquidGlassCard(
  * - 选中时更高 alpha (0.95 vs 0.85)
  * - 模糊 6dp (更柔和)
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LiquidGlassRow(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
     selected: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
     leading: @Composable (() -> Unit)? = null,
     title: String = "",
@@ -135,10 +139,11 @@ fun LiquidGlassRow(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .clickable(
+            .combinedClickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
                 onClick = onClick,
+                onLongClick = onLongClick,
             ),
     ) {
         // 外层: 玻璃背景
