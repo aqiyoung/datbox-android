@@ -308,15 +308,6 @@ fun FileBrowserScreen(
         }
     }
 
-    // 下拉刷新状态 (Material 3 pullRefresh — compose-bom 2024.06 自带)
-    val pullRefreshState = rememberPullToRefreshState()
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
-            vm.refresh()
-            pullRefreshState.endRefresh()
-        }
-    }
-
     Scaffold(
         topBar = {
             if (searchActive) {
@@ -384,9 +375,7 @@ fun FileBrowserScreen(
                     onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                 )
                 else -> Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .nestedScroll(pullRefreshState.nestedScrollConnection)
+                    modifier = Modifier.fillMaxSize()
                 ) {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
@@ -429,10 +418,6 @@ fun FileBrowserScreen(
                             )
                         }
                     }
-                    PullToRefreshContainer(
-                        state = pullRefreshState,
-                        modifier = Modifier.align(Alignment.TopCenter),
-                    )
                 }
             }
         }
