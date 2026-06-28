@@ -8,19 +8,25 @@ data class User(
     val id: Int,
     val username: String,
     val password: String = "",
-    val role: Int = 1,
+    @SerialName("base_path") val basePath: String = "/",
+    val role: Int = 1,  // 0=general, 1=guest, 2=admin
     val disabled: Boolean = false,
-    val permission: Int = 0
+    val permission: Int = 0,
+    @SerialName("sso_id") val ssoId: String = ""
 )
 
 @Serializable
 data class Mount(
     val id: Int = 0,
-    val name: String = "",
+    @SerialName("mount_path") val mountPath: String = "",
     val driver: String = "Local",
-    val path: String = "",
-    val status: Int = 1
-)
+    val status: String = "work",
+    val order: Int = 0,
+    val remark: String = "",
+    val disabled: Boolean = false
+) {
+    val path: String get() = mountPath
+}
 
 @Serializable
 data class Share(
@@ -28,14 +34,29 @@ data class Share(
     val path: String = "",
     val name: String = "",
     val password: String = "",
-    val expires: String = ""
+    val expires: String = "",
+    @SerialName("download_count") val downloadCount: Int = 0,
+    @SerialName("viewer_id") val viewerId: Int? = null,
+    @SerialName("creator_id") val creatorId: Int? = null,
+    @SerialName("created_at") val createdAt: String = ""
+)
+
+@Serializable
+data class Option(
+    val key: String = "",
+    val value: String = "",
+    val type: String = "string",
+    val description: String = ""
 )
 
 @Serializable
 data class Overview(
-    val userCount: Int = 0,
-    val mountCount: Int = 0,
-    val shareCount: Int = 0
+    @SerialName("user_count") val userCount: Int = 0,
+    @SerialName("mount_count") val mountCount: Int = 0,
+    @SerialName("share_count") val shareCount: Int = 0,
+    @SerialName("storage_used") val storageUsed: Long = 0,
+    @SerialName("storage_total") val storageTotal: Long = 0,
+    @SerialName("schema_migrations") val schemaMigrations: Int = 0
 )
 
 @Serializable

@@ -16,11 +16,18 @@ import retrofit2.http.Query
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class PageReq(
+    val page: Int = 1,
+    val perPage: Int = 50
+)
+
+@Serializable
 data class UserCreateRequest(
     val username: String,
     val password: String,
     val role: Int = 1,
-    val permission: Int = 0
+    val permission: Int = 0,
+    val base_path: String = "/"
 )
 
 @Serializable
@@ -63,31 +70,17 @@ data class OptionUpdateRequest(
 )
 
 @Serializable
-data class UserListResponse(
+data class IdListResponse<T>(
     val code: Int = 0,
     val message: String = "",
-    val data: List<User> = emptyList()
+    val data: List<T> = emptyList()
 )
 
 @Serializable
-data class MountListResponse(
+data class ObjResponse<T>(
     val code: Int = 0,
     val message: String = "",
-    val data: List<Mount> = emptyList()
-)
-
-@Serializable
-data class ShareListResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: List<Share> = emptyList()
-)
-
-@Serializable
-data class OptionListResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: List<Option> = emptyList()
+    val data: T? = null
 )
 
 @Serializable
@@ -97,75 +90,55 @@ data class OverviewResponse(
     val data: Overview? = null
 )
 
-@Serializable
-data class UserResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: User? = null
-)
-
-@Serializable
-data class MountResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: Mount? = null
-)
-
-@Serializable
-data class ShareResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: Share? = null
-)
-
 interface ManagementApi {
-    // ===== 用户管理 =====
-    @GET("api/user/list")
-    suspend fun userList(): UserListResponse
+    // ===== 用户管理 (Admin) =====
+    @POST("api/admin/user/list")
+    suspend fun userList(@Body req: PageReq = PageReq()): IdListResponse<User>
 
-    @POST("api/user/create")
-    suspend fun userCreate(@Body req: UserCreateRequest): UserResponse
+    @POST("api/admin/user/add")
+    suspend fun userCreate(@Body req: UserCreateRequest): ObjResponse<User>
 
-    @POST("api/user/update")
+    @POST("api/admin/user/update")
     suspend fun userUpdate(@Body req: UserUpdateRequest): ManagementResponse
 
-    @DELETE("api/user/delete")
+    @POST("api/admin/user/delete")
     suspend fun userDelete(@Query("id") id: Int): ManagementResponse
 
-    // ===== 挂载管理 =====
-    @GET("api/storage/list")
-    suspend fun mountList(): MountListResponse
+    // ===== 挂载管理 (Admin) =====
+    @POST("api/admin/storage/list")
+    suspend fun mountList(@Body req: PageReq = PageReq()): IdListResponse<Mount>
 
-    @POST("api/storage/add")
-    suspend fun mountCreate(@Body req: MountCreateRequest): MountResponse
+    @POST("api/admin/storage/add")
+    suspend fun mountCreate(@Body req: MountCreateRequest): ObjResponse<Mount>
 
-    @POST("api/storage/update")
+    @POST("api/admin/storage/update")
     suspend fun mountUpdate(@Body req: MountUpdateRequest): ManagementResponse
 
-    @DELETE("api/storage/remove")
+    @POST("api/admin/storage/remove")
     suspend fun mountDelete(@Query("id") id: Int): ManagementResponse
 
-    // ===== 分享管理 =====
-    @GET("api/share/list")
-    suspend fun shareList(): ShareListResponse
+    // ===== 分享管理 (Admin) =====
+    @POST("api/admin/share/list")
+    suspend fun shareList(@Body req: PageReq = PageReq()): IdListResponse<Share>
 
-    @POST("api/share/create")
-    suspend fun shareCreate(@Body req: ShareCreateRequest): ShareResponse
+    @POST("api/admin/share/add")
+    suspend fun shareCreate(@Body req: ShareCreateRequest): ObjResponse<Share>
 
-    @DELETE("api/share/delete")
+    @POST("api/admin/share/delete")
     suspend fun shareDelete(@Query("id") id: String): ManagementResponse
 
-    // ===== 系统设置 =====
-    @GET("api/overview")
-    suspend fun overview(): OverviewResponse
+    // ===== 系统设置 (Admin) =====
+    @POST("api/admin/setting/list")
+    suspend fun optionList(@Body req: PageReq = PageReq()): IdListResponse<Option>
 
-    @GET("api/option/list")
-    suspend fun optionList(): OptionListResponse
-
-    @POST("api/option/update")
+    @POST("api/admin/setting/update")
     suspend fun optionUpdate(@Body req: OptionUpdateRequest): ManagementResponse
 
-    // ===== 文件操作 =====
+    // ===== 仪表盘 (Public) =====
+    @GET("api/public/info")
+    suspend fun publicInfo(): ObjResponse<Map<String, String>>
+
+    // ===== 文件操作 (FS) =====
     @POST("api/fs/mkdir")
     suspend fun mkdir(@Body req: Map<String, String>): ManagementResponse
 
@@ -175,6 +148,6 @@ interface ManagementApi {
     @POST("api/fs/move")
     suspend fun move(@Body req: Map<String, String>): ManagementResponse
 
-    @POST("api/fs/delete")
+    @POST("api/fs/remove")
     suspend fun delete(@Body req: Map<String, String>): ManagementResponse
 }

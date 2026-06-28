@@ -100,12 +100,6 @@ class ManagementRepository @Inject constructor(
     }
 
     // ===== 系统设置 =====
-    suspend fun overview(): Result<Overview> = safeApiCall {
-        val resp = api.overview()
-        if (resp.code != 200 || resp.data == null) error(resp.message)
-        resp.data
-    }
-
     suspend fun optionList(): Result<List<Option>> = safeApiCall {
         val resp = api.optionList()
         if (resp.code != 200) error(resp.message)
@@ -117,14 +111,15 @@ class ManagementRepository @Inject constructor(
         if (resp.code != 200) error(resp.message)
     }
 
-    // ===== 文件操作 =====
-    suspend fun mkdir(path: String, name: String): Result<Unit> = withContext(Dispatchers.IO) {
-        safeApiCall {
-            val body = """{"path":"$path","name":"$name"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
+    // ===== 文件操作 (OkHttp 直发) =====
+    private suspend fun fsPost(path: String, body: String): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            val mediaType = "application/json; charset=utf-8".toMediaType()
+            val reqBody = body.toRequestBody(mediaType)
             val req = Request.Builder()
-                .url("${tokenStore.serverUrlSync().trimEnd('/')}/api/fs/mkdir")
+                .url("${tokenStore.serverUrlSync().trimEnd('/')}/api/fs/$path")
                 .header("Authorization", tokenStore.tokenSync())
-                .post(body)
+                .post(reqBody)
                 .build()
             client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
@@ -132,45 +127,8 @@ class ManagementRepository @Inject constructor(
         }
     }
 
-    suspend fun rename(path: String, newName: String): Result<Unit> = withContext(Dispatchers.IO) {
-        safeApiCall {
-            val body = """{"path":"$path","new_name":"$newName"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
-            val req = Request.Builder()
-                .url("${tokenStore.serverUrlSync().trimEnd('/')}/api/fs/rename")
-                .header("Authorization", tokenStore.tokenSync())
-                .post(body)
-                .build()
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
-            }
-        }
-    }
-
-    suspend fun move(path: String, newPath: String): Result<Unit> = withContext(Dispatchers.IO) {
-        safeApiCall {
-            val body = """{"path":"$path","new_path":"$newPath"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
-            val req = Request.Builder()
-                .url("${tokenStore.serverUrlSync().trimEnd('/')}/api/fs/move")
-                .header("Authorization", tokenStore.tokenSync())
-                .post(body)
-                .build()
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
-            }
-        }
-    }
-
-    suspend fun delete(path: String): Result<Unit> = withContext(Dispatchers.IO) {
-        safeApiCall {
-            val body = """{"path":"$path"}""".toRequestBody("application/json; charset=utf-8".toMediaType())
-            val req = Request.Builder()
-                .url("${tokenStore.serverUrlSync().trimEnd('/')}/api/fs/delete")
-                .header("Authorization", tokenStore.tokenSync())
-                .post(body)
-                .build()
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
-            }
-        }
-    }
+    suspend fun mkdir(path: String, name: String): Result<Unit> = fsPost("mkdir", """{"path":"$path","name":"$name"}""")
+    suspend fun rename(path: String, newName: String): Result<Unit> = fsPost("rename", """{"path":"$path","new_name":"$newName"}""")
+    suspend fun move(path: String, newPath: String): Result<Unit> = fsPost("move", """{"path":"$path","new_path":"$newPath"}""")
+    suspend fun delete(path: String): Result<Unit> = fsPost("remove", """{"path":"$path"}""")
 }

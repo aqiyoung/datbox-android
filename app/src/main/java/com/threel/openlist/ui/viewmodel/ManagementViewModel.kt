@@ -41,13 +41,11 @@ class ManagementViewModel @Inject constructor(
             val users = repo.userList().getOrNull()
             val mounts = repo.mountList().getOrNull()
             val shares = repo.shareList().getOrNull()
-            val overview = repo.overview().getOrNull()
             val options = repo.optionList().getOrNull()
             _state.value = _state.value.copy(
                 users = users ?: emptyList(),
                 mounts = mounts ?: emptyList(),
                 shares = shares ?: emptyList(),
-                overview = overview,
                 options = options ?: emptyList(),
                 loading = false,
                 error = if (users == null && mounts == null && shares == null) "加载失败" else null
