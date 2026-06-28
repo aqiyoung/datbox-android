@@ -161,10 +161,10 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authT
                 .post(requestBody)
                 .build()
             val sign = client.newCall(getRequest).execute().use { resp ->
-                if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
-                val body = resp.body?.string() ?: error("empty body")
+                if (!resp.isSuccessful) throw IllegalStateException("fs/get HTTP ${resp.code}")
+                val body = resp.body?.string() ?: throw IllegalStateException("empty body")
                 val match = Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)
-                    ?: error("no sign in response")
+                    ?: throw IllegalStateException("no sign in response")
                 match.groupValues[1]
             }
             "$serverUrl/d$remotePath?sign=$sign"
@@ -181,7 +181,7 @@ private suspend fun downloadTextContent(url: String, authToken: String): String?
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
             val req = Request.Builder().url(url).addHeader("Authorization", authToken).get().build()
             client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) error("HTTP ${resp.code}")
+                if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code}")
                 resp.body?.string()?.take(100_000) ?: ""  // 限制 100KB
             }
         } catch (e: Exception) {
