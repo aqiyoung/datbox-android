@@ -22,8 +22,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.EntryPoint
-import androidx.hilt.EntryPointAccessors
+import dagger.hilt.EntryPoint
+import dagger.hilt.android.EntryPointAccessors
 import coil.compose.AsyncImage
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.util.AppConfig
