@@ -219,7 +219,6 @@ class AppDownloadManager @Inject constructor(
 }
 
 private fun String.toRequestBody(): okhttp3.RequestBody {
-    return okhttp3.RequestBody.create("application/json; charset=utf-8".toMediaType(), this.toByteArray())
+    val mediaType = okhttp3.MediaType.get("application/json; charset=utf-8")
+    return okhttp3.RequestBody.create(mediaType, this.toByteArray())
 }
-
-private fun String.toMediaType() = okhttp3.MediaType.parse(this)

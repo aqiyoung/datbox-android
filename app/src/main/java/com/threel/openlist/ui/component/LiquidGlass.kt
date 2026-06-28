@@ -281,7 +281,7 @@ fun LiquidGlassTopBar(
                     )
                 }
             },
-            navigationIcon = navigationIcon,
+            navigationIcon = navigationIcon ?: {},
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
