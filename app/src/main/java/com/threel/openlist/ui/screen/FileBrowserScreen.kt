@@ -387,7 +387,7 @@ fun FileBrowserScreen(
                     modifier = Modifier.size(56.dp),
                 ) {
                     Icon(
-                        imageVector = if (fabExpanded) Icons.Filled.Close else Icons.Filled.Apps,
+                        imageVector = if (fabExpanded) Icons.Filled.Close else Icons.Filled.MoreVert,
                         contentDescription = "菜单",
                         modifier = Modifier.size(26.dp),
                     )
