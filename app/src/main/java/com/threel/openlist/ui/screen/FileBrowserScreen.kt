@@ -48,6 +48,7 @@ import com.threel.openlist.data.download.AppDownloadManager
 import com.threel.openlist.data.model.FsItem
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassFab
+import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.component.LiquidGlassTopBar
 import com.threel.openlist.util.TelemetryLog
@@ -461,7 +462,6 @@ private fun SearchTopBar(
                     DropdownMenuItem(
                         text = { Text(item.label) },
                         onClick = { onSortSelected(item.mode) },
-                        leadingIcon = if (sortMode == item.mode) { { Icon(Icons.Outlined.Check, modifier = Modifier.size(18.dp)) } } else null,
                     )
                 }
             }

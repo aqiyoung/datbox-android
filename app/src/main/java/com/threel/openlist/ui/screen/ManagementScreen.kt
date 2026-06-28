@@ -138,6 +138,7 @@ private fun UserCard(user: User, onEdit: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, String, Int, Int) -> Unit) {
     var username by remember { mutableStateOf(user?.username ?: "") }
@@ -210,7 +211,7 @@ private fun MountCard(mount: Mount, onEdit: () -> Unit, onDelete: () -> Unit) {
             Icon(Icons.Outlined.Storage, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(mount.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF141413))
+                Text(mount.mountPath, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF141413))
                 Text("${mount.driver} · ${mount.path}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF87867F), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF87867F)) }
@@ -219,11 +220,12 @@ private fun MountCard(mount: Mount, onEdit: () -> Unit, onDelete: () -> Unit) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (String, String, String, Int) -> Unit) {
-    var name by remember { mutableStateOf(mount?.name ?: "") }
+    var name by remember { mutableStateOf(mount?.mountPath ?: "") }
     var driver by remember { mutableStateOf(mount?.driver ?: "Local") }
-    var path by remember { mutableStateOf(mount?.path ?: "") }
+    var path by remember { mutableStateOf(mount?.mountPath ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,

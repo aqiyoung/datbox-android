@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
@@ -50,7 +51,7 @@ fun OpenListLogo(size: Dp = 72.dp) {
         contentDescription = "OpenList Logo",
         contentScale = ContentScale.Crop,
         modifier = Modifier
-            .size(size)
+            .then(Modifier.size(size))
             .clip(RoundedCornerShape(size * cornerPct))
     )
 }
