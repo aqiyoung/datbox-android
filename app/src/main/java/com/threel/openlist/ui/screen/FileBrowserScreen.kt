@@ -5,6 +5,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,32 +15,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Apps
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.Code
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.SaveAlt
-import androidx.compose.material.icons.filled.Slideshow
-import androidx.compose.material.icons.filled.TextSnippet
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -47,10 +39,8 @@ import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.download.AppDownloadManager
 import com.threel.openlist.data.model.FsItem
 import com.threel.openlist.ui.component.LiquidGlassCard
-import com.threel.openlist.ui.component.LiquidGlassFab
 import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
 import com.threel.openlist.ui.component.LiquidGlassRow
-import com.threel.openlist.ui.component.LiquidGlassTopBar
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -60,8 +50,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.net.URLDecoder
-import java.net.URLEncoder
 import java.text.DecimalFormat
 import javax.inject.Inject
 
@@ -183,7 +171,6 @@ class FileBrowserViewModel @Inject constructor(
 
     fun clearMessage() { _action.value = FileActionState() }
 
-    // v0.3.37: 文件操作
     fun mkdir(name: String) {
         val path = _state.value.path
         _action.value = FileActionState(busy = true, message = "创建 $name 中...")
@@ -222,6 +209,13 @@ class FileBrowserViewModel @Inject constructor(
     }
 }
 
+// ===== iOS 26 风格 FAB 菜单项 =====
+data class FabMenuItem(
+    val icon: ImageVector,
+    val label: String,
+    val onClick: () -> Unit,
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileBrowserScreen(
@@ -237,14 +231,13 @@ fun FileBrowserScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    var fabExpanded by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
-    var sortMenuExpanded by remember { mutableStateOf(false) }
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
     val menuRemotePath = menuItem?.let { item ->
         if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
     }
 
-    // v0.3.37: 弹窗状态
     var showMkdirDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf<FsItem?>(null) }
     var showDeleteDialog by remember { mutableStateOf<FsItem?>(null) }
@@ -271,87 +264,50 @@ fun FileBrowserScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            if (searchActive) {
-                SearchTopBar(
-                    query = state.searchQuery,
-                    onQueryChange = vm::updateSearchQuery,
-                    onBack = { searchActive = false; vm.updateSearchQuery("") },
-                    sortMode = state.sortMode,
-                    onSortClick = { sortMenuExpanded = true },
-                    onSortSelected = { mode -> vm.updateSortMode(mode); sortMenuExpanded = false },
-                    sortMenuExpanded = sortMenuExpanded,
-                    onDismissSortMenu = { sortMenuExpanded = false },
-                    onAbout = onAbout,
-                    onLogout = onLogout,
-                    onManagement = onManagement,
-                )
-            } else {
-                LiquidGlassTopBar(
-                    title = "三页云盘 · ${state.path}",
-                    leadingIcon = Icons.Outlined.Folder,
-                    actions = {
-                        IconButton(onClick = { searchActive = true }) {
-                            Icon(Icons.Outlined.Search, contentDescription = "搜索")
-                        }
-                        IconButton(onClick = { vm.load(state.path) }) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
-                        }
-                        IconButton(onClick = onManagement) {
-                            Icon(Icons.Outlined.Settings, contentDescription = "管理")
-                        }
-                        IconButton(onClick = onAbout) {
-                            Icon(Icons.Outlined.Info, contentDescription = "关于")
-                        }
-                        IconButton(onClick = onLogout) {
-                            Icon(Icons.Outlined.Logout, contentDescription = "退出")
-                        }
-                    },
-                )
-            }
-        },
-        floatingActionButton = {
-            if (action.busy) {
-                LiquidGlassFab(icon = Icons.Filled.Refresh, enabled = false, onClick = {})
-            } else {
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    if (state.path != "/") {
-                        SmallFloatingActionButton(
-                            onClick = { showMkdirDialog = true },
-                            containerColor = Color.White.copy(alpha = 0.85f),
-                            contentColor = Color(0xFF141413),
-                            shape = CircleShape,
-                        ) {
-                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = "新建文件夹")
-                        }
-                    }
-                    LiquidGlassFab(icon = Icons.Filled.Add, onClick = { pickFileLauncher.launch("*/*") })
-                }
-            }
-        },
-        containerColor = Color(0xFFF5F4ED),
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+    // 搜索弹窗
+    if (searchActive) {
+        SearchDialog(
+            query = state.searchQuery,
+            onQueryChange = vm::updateSearchQuery,
+            onSortSelected = { mode -> vm.updateSortMode(mode) },
+            sortMode = state.sortMode,
+            onDismiss = { searchActive = false; vm.updateSearchQuery("") },
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F4ED))) {
+        // 内容区
+        Column(modifier = Modifier.fillMaxSize()) {
+            // 顶部栏: 仅退出按钮
+            FileBrowserTopBar(
+                path = state.path,
+                onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
+                onLogout = onLogout,
+            )
+
+            // 文件列表
             when {
                 state.loading -> CenterLoading()
                 state.error != null -> CenterMessage(state.error!!, "刷新")
                 state.items.isEmpty() -> CenterMessage(
                     msg = if (state.path == "/") "还没有挂载任何网盘" else "空目录",
                     actionLabel = if (state.path != "/") "返回上一层" else null,
-                    onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
+                    onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) : null,
                 )
-                else -> Box(modifier = Modifier.fillMaxSize()) {
+                else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f),
                     ) {
                         if (state.path != "/") {
                             item {
-                                FileRow(icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) }, name = "..", size = "", modified = "", onClick = { vm.load(vm.goUp()) }, onLongClick = null, onMenuClick = null)
+                                FileRow(
+                                    icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
+                                    name = "..", size = "", modified = "",
+                                    onClick = { vm.load(vm.goUp()) },
+                                    onLongClick = null, onMenuClick = null,
+                                )
                             }
                         }
                         items(displayedItems) { item ->
@@ -377,6 +333,64 @@ fun FileBrowserScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // 悬浮按钮区域 (右下角)
+        Box(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            contentAlignment = Alignment.BottomEnd,
+        ) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                // 展开的子菜单
+                if (fabExpanded) {
+                    val menuItems = listOf(
+                        FabMenuItem(Icons.Outlined.Search, "搜索") { searchActive = true; fabExpanded = false },
+                        FabMenuItem(Icons.Outlined.Refresh, "刷新") { vm.refresh(); fabExpanded = false },
+                        FabMenuItem(Icons.Outlined.CreateNewFolder, "新建文件夹") { showMkdirDialog = true; fabExpanded = false },
+                        FabMenuItem(Icons.Outlined.Upload, "上传文件") { pickFileLauncher.launch("*/*"); fabExpanded = false },
+                        FabMenuItem(Icons.Outlined.Settings, "管理") { onManagement(); fabExpanded = false },
+                        FabMenuItem(Icons.Outlined.Info, "关于") { onAbout(); fabExpanded = false },
+                    )
+                    menuItems.forEachIndexed { index, item ->
+                        AnimatedVisibility(
+                            visible = fabExpanded,
+                            enter = fadeIn(
+                                animationSpec = tween(
+                                    durationMillis = 200,
+                                    delayMillis = index * 30,
+                                )
+                            ) + slideInVertically(
+                                animationSpec = tween(
+                                    durationMillis = 200,
+                                    delayMillis = index * 30,
+                                ),
+                                initialOffsetY = { it },
+                            ),
+                            exit = fadeOut(animationSpec = tween(150)),
+                        ) {
+                            FabMenuItemRow(item)
+                        }
+                    }
+                }
+
+                // 主 FAB 按钮
+                FloatingActionButton(
+                    onClick = { fabExpanded = !fabExpanded },
+                    containerColor = Color.White.copy(alpha = 0.92f),
+                    contentColor = Color(0xFF141413),
+                    shape = CircleShape,
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    Icon(
+                        imageVector = if (fabExpanded) Icons.Filled.Close else Icons.Filled.Apps,
+                        contentDescription = "菜单",
+                        modifier = Modifier.size(26.dp),
+                    )
                 }
             }
         }
@@ -419,59 +433,154 @@ fun FileBrowserScreen(
     }
 }
 
-// ===== 搜索 + 排序 TopBar =====
-@OptIn(ExperimentalMaterial3Api::class)
+// ===== 顶部栏: 仅退出 =====
 @Composable
-private fun SearchTopBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onBack: () -> Unit,
-    sortMode: SortMode,
-    onSortClick: () -> Unit,
-    onSortSelected: (SortMode) -> Unit,
-    sortMenuExpanded: Boolean,
-    onDismissSortMenu: () -> Unit,
-    onAbout: () -> Unit,
+private fun FileBrowserTopBar(
+    path: String,
+    onBack: (() -> Unit)?,
     onLogout: () -> Unit,
-    onManagement: () -> Unit,
 ) {
+    val title = if (path == "/") "三页云盘" else path.substringAfterLast('/')
     Row(
-        modifier = Modifier.fillMaxWidth().background(Color(0xFFF5F4ED)).padding(horizontal = 4.dp, vertical = 8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFFF5F4ED))
+            .statusBarsPadding()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) { Icon(Icons.Outlined.ArrowBack, contentDescription = "返回") }
-        OutlinedTextField(
-            value = query, onValueChange = onQueryChange, modifier = Modifier.weight(1f),
-            placeholder = { Text("搜索文件...", color = Color(0xFF87867F)) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF141413), unfocusedBorderColor = Color(0xFFD9D8D4),
-            ),
-        )
-        Box {
-            IconButton(onClick = onSortClick) { Icon(Icons.Outlined.List, contentDescription = "排序") }
-            DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = onDismissSortMenu) {
-                data class SortItem(val mode: SortMode, val label: String)
-                val items = listOf(
-                    SortItem(SortMode.DEFAULT, "默认排序"), SortItem(SortMode.NAME_ASC, "名称 A → Z"),
-                    SortItem(SortMode.NAME_DESC, "名称 Z → A"), SortItem(SortMode.SIZE_ASC, "大小 小→大"),
-                    SortItem(SortMode.SIZE_DESC, "大小 大→小"), SortItem(SortMode.DATE_ASC, "日期 旧→新"),
-                    SortItem(SortMode.DATE_DESC, "日期 新→旧"),
-                )
-                items.forEach { item ->
-                    DropdownMenuItem(
-                        text = { Text(item.label) },
-                        onClick = { onSortSelected(item.mode) },
-                    )
-                }
+        // 返回按钮 (仅非根目录显示)
+        if (onBack != null) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
             }
+        } else {
+            Spacer(Modifier.width(12.dp))
         }
-        IconButton(onClick = onManagement) { Icon(Icons.Outlined.Settings, contentDescription = "管理") }
-        IconButton(onClick = onAbout) { Icon(Icons.Outlined.Info, contentDescription = "关于") }
-        IconButton(onClick = onLogout) { Icon(Icons.Outlined.Logout, contentDescription = "退出") }
+
+        // 标题
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = Color(0xFF141413),
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+
+        // 退出按钮
+        IconButton(onClick = onLogout) {
+            Icon(Icons.Outlined.Logout, contentDescription = "退出", tint = Color(0xFF141413))
+        }
     }
 }
 
+// ===== FAB 菜单项行 =====
+@Composable
+private fun FabMenuItemRow(item: FabMenuItem) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.End,
+    ) {
+        // 标签
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color.White.copy(alpha = 0.92f),
+            shadowElevation = 4.dp,
+        ) {
+            Text(
+                text = item.label,
+                color = Color(0xFF141413),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        // 小圆形图标按钮
+        SmallFloatingActionButton(
+            onClick = item.onClick,
+            containerColor = Color.White.copy(alpha = 0.92f),
+            contentColor = Color(0xFF141413),
+            shape = CircleShape,
+            modifier = Modifier.size(40.dp),
+        ) {
+            Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+// ===== 搜索弹窗 =====
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SearchDialog(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onSortSelected: (SortMode) -> Unit,
+    sortMode: SortMode,
+    onDismiss: () -> Unit,
+) {
+    var sortMenuExpanded by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("搜索文件", color = Color(0xFF141413)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = query, onValueChange = onQueryChange,
+                    placeholder = { Text("输入文件名...", color = Color(0xFF87867F)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF141413),
+                        unfocusedBorderColor = Color(0xFFD9D8D4),
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                // 排序选择
+                Box {
+                    TextButton(onClick = { sortMenuExpanded = true }) {
+                        Icon(Icons.Outlined.Sort, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("排序: ${sortModeLabel(sortMode)}", color = Color(0xFF141413))
+                    }
+                    DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
+                        listOf(
+                            SortMode.DEFAULT to "默认排序",
+                            SortMode.NAME_ASC to "名称 A→Z",
+                            SortMode.NAME_DESC to "名称 Z→A",
+                            SortMode.SIZE_ASC to "大小 小→大",
+                            SortMode.SIZE_DESC to "大小 大→小",
+                            SortMode.DATE_ASC to "日期 旧→新",
+                            SortMode.DATE_DESC to "日期 新→旧",
+                        ).forEach { (mode, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label) },
+                                onClick = { onSortSelected(mode); sortMenuExpanded = false },
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("完成", color = Color(0xFF141413))
+            }
+        },
+    )
+}
+
+private fun sortModeLabel(mode: SortMode) = when (mode) {
+    SortMode.DEFAULT -> "默认"
+    SortMode.NAME_ASC, SortMode.NAME_DESC -> "名称"
+    SortMode.SIZE_ASC, SortMode.SIZE_DESC -> "大小"
+    SortMode.DATE_ASC, SortMode.DATE_DESC -> "日期"
+}
+
+// ===== 文件行 =====
 @Composable
 private fun FileRow(
     icon: @Composable () -> Unit,
@@ -519,6 +628,7 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
         }
     }
 
+// ===== 文件操作弹窗 =====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GlassActionDialog(
@@ -546,7 +656,7 @@ private fun GlassActionDialog(
                 GlassActionItem(icon = Icons.Outlined.Delete, iconTint = Color(0xFFFF3B30), label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
                 Spacer(Modifier.height(4.dp))
                 Surface(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onDismiss() }, color = Color(0xFFF5F4ED).copy(alpha = 0.8f)) {
-                    Text("取消", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF2A2925), fontWeight = FontWeight.Medium, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp))
+                    Text("取消", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF2A2925), fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp))
                 }
             }
         }
@@ -569,7 +679,7 @@ private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, s
     }
 }
 
-// ===== v0.3.37: 文件操作弹窗 =====
+// ===== 文件操作弹窗 =====
 
 @Composable
 private fun MkdirDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {

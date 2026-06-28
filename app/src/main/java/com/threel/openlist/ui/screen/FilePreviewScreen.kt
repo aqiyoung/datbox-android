@@ -22,7 +22,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.util.AppConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -32,6 +34,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.util.concurrent.TimeUnit
+import javax.inject.Inject
 
 /**
  * 文件预览页面
@@ -40,12 +43,20 @@ import java.util.concurrent.TimeUnit
  * - 音视频: 系统播放器打开
  * - 文本: 直接显示内容
  */
+@HiltViewModel
+class FilePreviewViewModel @Inject constructor(
+    private val tokenStore: TokenStore,
+) : androidx.lifecycle.ViewModel() {
+    val tokenSync: String get() = tokenStore.tokenSync()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilePreviewScreen(
     remotePath: String,
     fileName: String,
     onBack: () -> Unit,
+    vm: FilePreviewViewModel = hiltViewModel(),
 ) {
     val ext = fileName.substringAfterLast(".").lowercase()
     val isImage = ext in setOf(
@@ -76,14 +87,16 @@ fun FilePreviewScreen(
     var textLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    val authToken = vm.tokenSync
+
     // 获取预览 URL (需要 sign)
     LaunchedEffect(remotePath) {
         if (isImage || isVideo || isAudio) {
-            previewUrl = buildPreviewUrl(serverUrl, remotePath)
+            previewUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
         }
         if (isText) {
             textLoading = true
-            val content = downloadTextContent("$serverUrl/d$remotePath")
+            val content = downloadTextContent("$serverUrl/d$remotePath", authToken)
             textContent = content
             textLoading = false
         }
@@ -134,7 +147,7 @@ fun FilePreviewScreen(
 }
 
 /** 构建预览 URL: 走 /api/fs/get 拿 sign → /d/<path>?sign=hmac */
-private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String): String? {
+private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authToken: String): String? {
     return withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
@@ -144,7 +157,7 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String): Stri
             val requestBody = getBody.toRequestBody(mediaType)
             val getRequest = Request.Builder()
                 .url("$serverUrl/api/fs/get")
-                .addHeader("Authorization", "")
+                .addHeader("Authorization", authToken)
                 .post(requestBody)
                 .build()
             val sign = client.newCall(getRequest).execute().use { resp ->
@@ -162,11 +175,11 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String): Stri
 }
 
 /** 下载文本文件内容 */
-private suspend fun downloadTextContent(url: String): String? {
+private suspend fun downloadTextContent(url: String, authToken: String): String? {
     return withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
-            val req = Request.Builder().url(url).get().build()
+            val req = Request.Builder().url(url).addHeader("Authorization", authToken).get().build()
             client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) error("HTTP ${resp.code}")
                 resp.body?.string()?.take(100_000) ?: ""  // 限制 100KB
