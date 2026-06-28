@@ -1,41 +1,36 @@
 package com.threel.openlist.ui.screen
 
-import kotlin.math.min
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.painter.ColorPainter
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.path
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.threel.openlist.R
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
@@ -46,12 +41,12 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-// 老板 6/14 拍: 跟 APP 图标 mipmap 一致 - 白底 + 22% 圆角 + 跟背景融合
+// iOS 26 风格 Logo
 @Composable
-fun OpenListLogo(size: androidx.compose.ui.unit.Dp = 72.dp) {
+fun OpenListLogo(size: Dp = 72.dp) {
     val cornerPct = 0.22f
     Image(
-        painter = androidx.compose.ui.res.painterResource(id = com.threel.openlist.R.drawable.openlist_logo_official),
+        painter = painterResource(id = R.drawable.openlist_logo_official),
         contentDescription = "OpenList Logo",
         contentScale = ContentScale.Crop,
         modifier = Modifier
@@ -66,26 +61,23 @@ data class LoginUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false,
-    val passwordVisible: Boolean = false,  // 老板 6/13 拍: 加小眼睛切换密码可见
+    val passwordVisible: Boolean = false,
     val serverUrl: String = "https://<your-server>",
     val testLoading: Boolean = false,
     val testResult: TestResult? = null,
 )
 
-enum class TestResult {
-    SUCCESS, FAILED,
-}
+enum class TestResult { SUCCESS, FAILED }
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val repo: OpenListRepository,
-    private val tokenStore: TokenStore,  // 老板 6/13: 记住账号密码
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
     private val _state = MutableStateFlow(LoginUiState())
     val state = _state.asStateFlow()
 
     init {
-        // v0.3.37: 自动顶填上次账号+密码
         viewModelScope.launch {
             val username = tokenStore.lastUsername.first()
             val password = tokenStore.lastPassword.first()
@@ -104,7 +96,6 @@ class LoginViewModel @Inject constructor(
     fun onServerUrl(v: String) { _state.value = _state.value.copy(serverUrl = v, testResult = null) }
     fun clearTestResult() { _state.value = _state.value.copy(testResult = null) }
 
-    /** v0.3.36: 测试服务器连接 */
     fun testConnection() {
         if (_state.value.testLoading) return
         _state.value = _state.value.copy(testLoading = true, testResult = null)
@@ -125,15 +116,10 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             repo.login(_state.value.username.trim(), _state.value.password, _state.value.serverUrl)
                 .onSuccess {
-                    // v0.3.37: 登录成功 -> 记住账号+密码
-                    tokenStore.saveLastCredentials(
-                        _state.value.username.trim(),
-                        _state.value.password
-                    )
+                    tokenStore.saveLastCredentials(_state.value.username.trim(), _state.value.password)
                     _state.value = _state.value.copy(loading = false, success = true)
                 }
                 .onFailure { e ->
-                    // 登录失败: 清 token (强制重新登录), 保留账号密码缓存方便重试
                     tokenStore.clear()
                     _state.value = _state.value.copy(
                         loading = false,
@@ -159,11 +145,10 @@ fun LoginScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                // 老板 6/14 16:35 拍: 橙色丑不拉几, 改成白玻璃
                 Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.35f),  // 中心白亮
-                        Color(0xFFF5F4ED),                  // 边缘 Parchment
+                        Color.White.copy(alpha = 0.4f),
+                        Color(0xFFF5F4ED),
                     )
                 )
             )
@@ -175,7 +160,6 @@ fun LoginScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // 老板 6/13 拍: 用原版 OpenList logo 替换 "OpenList" 文字
             OpenListLogo(size = 72.dp)
             Spacer(Modifier.height(16.dp))
             Text(
@@ -183,17 +167,17 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFF87867F),
             )
-            Spacer(Modifier.height(64.dp))
+            Spacer(Modifier.height = 64.dp))
 
-            // 液态玻璃登录卡
+            // iOS 26 风格登录卡
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.5f))
+                    .background(Color.White.copy(alpha = 0.85f))
                     .padding(24.dp),
             ) {
-                // v0.3.36: 服务器地址输入
+                // 服务器地址
                 OutlinedTextField(
                     value = state.serverUrl,
                     onValueChange = vm::onServerUrl,
@@ -204,7 +188,7 @@ fun LoginScreen(
                 )
                 Spacer(Modifier.height(8.dp))
 
-                // v0.3.36: 测试连接按钮 + 结果
+                // 测试连接
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -227,18 +211,10 @@ fun LoginScreen(
 
                 if (state.testResult == TestResult.SUCCESS) {
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "连接成功",
-                        color = Color(0xFF2E7D32),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text("连接成功", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
                 } else if (state.testResult == TestResult.FAILED) {
                     Spacer(Modifier.height(4.dp))
-                    Text(
-                        "无法连接到此服务器",
-                        color = Color(0xFFB33A3A),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text("无法连接到此服务器", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -270,16 +246,10 @@ fun LoginScreen(
 
                 if (state.error != null) {
                     Spacer(Modifier.height(12.dp))
-                    Text(
-                        state.error!!,
-                        color = Color(0xFFB33A3A),  // 老板拍: 错误用警示红, 不用 Terracotta
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                    Text(state.error!!, color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
                 }
 
                 Spacer(Modifier.height(24.dp))
-                // 老板 6/14 15:25 拍: 重新设计, 不要"灯笼框" (v0.3.15 圆角 20dp 太像灯笼)
-                // v0.3.16: 用 LiquidGlassPrimaryButton (12dp 圆角 + 48dp 高度 + 素雅渐变)
                 LiquidGlassPrimaryButton(
                     text = if (state.loading) "登录中..." else "登录",
                     icon = if (state.loading) Icons.Filled.Refresh else Icons.Filled.Login,

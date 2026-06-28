@@ -146,7 +146,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),
@@ -175,7 +175,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             context.startActivity(intent)
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp),

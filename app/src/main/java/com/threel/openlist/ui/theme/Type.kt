@@ -8,10 +8,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.threel.openlist.R
 
-// v0.3.27 老板 6/14 19:35 拍: '现在用的什么字体？看着有点刺眼, 用 MiSans 吧'
-//
-// 之前: SerifFamily (系统衬线) + SansFamily (Roboto/Noto Sans), 衬线在小字号 + 白底
-// 阴影下看着扎眼. 统一用 MiSans (小米 2022, CC-BY 4.0, 中文 + 拉丁, 4 字重)
+// iOS 26 风格字体 - 使用 MiSans 作为 SF Pro 的替代
 private val misans_regular = Font(R.font.misans_regular, FontWeight.Normal)
 private val misans_medium = Font(R.font.misans_medium, FontWeight.Medium)
 private val misans_semibold = Font(R.font.misans_semibold, FontWeight.SemiBold)
@@ -24,43 +21,61 @@ val MiSansFamily = FontFamily(
     misans_bold,
 )
 
-// 旧 API 保留, 不要再用, 改用 MiSansFamily
-@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
-val SerifFamily = MiSansFamily
-@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
-val SansFamily = MiSansFamily
-
+// iOS 26 风格排版
+// - 大标题: 34sp, Semibold, 间距 -0.5
+// - 标题: 22sp, Semibold
+// - 正文: 17sp, Normal
+// - 说明: 13sp, Normal
 val OpenListTypography = Typography(
+    // 大标题 (Navigation Title Large)
     displayLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
-        fontSize = 36.sp, lineHeight = 44.sp, letterSpacing = 0.sp
+        fontSize = 34.sp, lineHeight = 41.sp, letterSpacing = (-0.5).sp
     ),
+    // 标题 (Navigation Title)
     headlineLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp, lineHeight = 36.sp
+        fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.3).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp, lineHeight = 30.sp
+        fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.2).sp
     ),
+    // 卡片标题
     titleLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp, lineHeight = 24.sp
+        fontSize = 18.sp, lineHeight = 24.sp, letterSpacing = 0.sp
     ),
+    titleMedium = TextStyle(
+        fontFamily = MiSansFamily, fontWeight = FontWeight.Medium,
+        fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = 0.sp
+    ),
+    // 正文
     bodyLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Normal,
-        fontSize = 16.sp, lineHeight = 24.sp
+        fontSize = 17.sp, lineHeight = 24.sp, letterSpacing = 0.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Normal,
-        fontSize = 14.sp, lineHeight = 20.sp
+        fontSize = 15.sp, lineHeight = 20.sp, letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Normal,
-        fontSize = 12.sp, lineHeight = 16.sp
+        fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.sp
+    ),
+    // 标签
+    labelLarge = TextStyle(
+        fontFamily = MiSansFamily, fontWeight = FontWeight.Medium,
+        fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.sp
     ),
     labelSmall = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Medium,
         fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp
     ),
 )
+
+// 旧 API 保留
+@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
+val SerifFamily = MiSansFamily
+@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
+val SansFamily = MiSansFamily

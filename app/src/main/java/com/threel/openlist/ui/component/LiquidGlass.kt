@@ -5,17 +5,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,106 +28,95 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.font.FontWeight
+import com.threel.openlist.ui.theme.BorderLight
+import com.threel.openlist.ui.theme.GlassBorder
+import com.threel.openlist.ui.theme.GlassHighlight
+import com.threel.openlist.ui.theme.GlassShadow
+import com.threel.openlist.ui.theme.GlassWhite
+import com.threel.openlist.ui.theme.MiSansFamily
+import com.threel.openlist.ui.theme.WarmWhite
+
+// ===== iOS 26 风格液态玻璃组件库 =====
 
 /**
- * 液态玻璃文字统一阴影 (v0.3.27 老板 19:35 拍: 刺眼)
+ * 玻璃卡 (iOS 26 / visionOS 风格)
  *
- * 白玻璃盖下去, Material 默认近黑文字 (OnSurface #141413) 盖上白底
- * 对比度不够, 看起来发灰, 甚至跟背景融在一起。加阴影增加层次
- * v0.3.27 减弱: alpha 0.25 -> 0.12, blurRadius 3 -> 1.5 (iOS 26 液态玻璃同款 + 老板要求)
- * 之前 alpha 太高在 OLED 上加双层黑色看着扎眼
- */
-private fun liquidGlassTextStyle(
-    base: androidx.compose.ui.text.TextStyle,
-    shadowAlpha: Float = 0.12f,
-) = base.copy(
-    shadow = androidx.compose.ui.graphics.Shadow(
-        color = Color.Black.copy(alpha = shadowAlpha),
-        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-        blurRadius = 1.5f,
-    ),
-)
-
-/**
- * 液态玻璃组件库 (iOS 26 风格, v0.3.14 增强版)
+ * 视觉要素 (自下而上):
+ * 1. 暖色径向渐变底 (WarmWhite 0.95 → 0.80 alpha)
+ * 2. 顶部高光线 (白色 0.9 → 0)
+ * 3. 0.5dp 玻璃边框 (White 0.6 alpha)
+ * 4. 内容区 (清晰, 不模糊)
  *
- * 视觉要素 (自下而上 4 层):
- * 1. 暖色径向渐变底 (Parchment 0.20 → 0.06 alpha)
- * 2. 顶部高光 (半透明白)
- * 3. 1px 描边 (BorderCream alpha 0.30)
- * 4. 内部 padding
- *
- * 老板 6/14: 7+2 项 UI 优化都用这个组件, 视觉一致
- */
-/**
- * 玻璃卡 (iOS 26 / visionOS 真液态玻璃, v0.3.23)
- *
- * 老板 6/14 17:35 拍: "一眼看上去就是那种液态玻璃的"
- * 关键 4 要素:
- * 1. 背景模糊 (blur 20dp) — 看后面内容扭曲
- * 2. 高 alpha 白渐变 (上 0.70 下 0.55) — 明显白玻璃
- * 3. 1px 白色边 0.7
- * 4. 顶部 1px 光泽 (高光)
- * 5. 圆角 20dp
- *
- * 实现: 用 Box 分两层 — 外层背景 (clip + blur + 渐变 + 边 + 光泽), 内层 content (清晰)
+ * iOS 26 特征:
+ * - 大圆角 24dp
+ * - 高 alpha 白玻璃 (0.85-0.95)
+ * - 模糊半径 8dp (更柔和)
+ * - 顶部暖色光晕
  */
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 20.dp,
+    cornerRadius: Dp = 24.dp,
     contentPadding: Dp = 16.dp,
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     Box(modifier = modifier) {
-        // 外层: 玻璃背景 (模糊 + 渐变 + 边 + 光泽)
+        // 外层: 玻璃背景
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(shape)
-                // 背景模糊 (16dp, iOS 26 同款) — 模糊的是"后面的内容"
-                .blur(16.dp)
-                // 高 alpha 白渐变
+                .blur(8.dp)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFFFAF9F5).copy(alpha = 0.70f),
-                            Color(0xFFFAF9F5).copy(alpha = 0.55f),
+                            WarmWhite.copy(alpha = 0.95f),
+                            WarmWhite.copy(alpha = 0.80f),
                         )
                     )
                 )
-                // 顶部 1px 光泽 (高光)
+                // 顶部高光线
                 .drawBehind {
                     drawRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.55f),
+                                GlassHighlight,
                                 Color.White.copy(alpha = 0.0f),
                             ),
                             startY = 0f,
-                            endY = 2f,
+                            endY = 3f,
                         ),
-                        size = androidx.compose.ui.geometry.Size(size.width, 2f),
+                        size = Size(size.width, 3f),
                     )
                 }
-                // 1px 白边 0.7
-                .border(1.dp, Color.White.copy(alpha = 0.70f), shape)
+                .border(0.5.dp, GlassBorder, shape)
         )
-        // 内层: 内容 (清晰, 不模糊)
+        // 内层: 内容
         Box(modifier = Modifier.padding(contentPadding)) { content() }
     }
 }
 
-/** 玻璃行 (列表 item, v0.3.26 修文字模糊 bug) */
+/**
+ * 玻璃行 (列表 item)
+ *
+ * iOS 26 特征:
+ * - 圆角 16dp
+ * - 选中时更高 alpha (0.95 vs 0.85)
+ * - 模糊 6dp (更柔和)
+ */
 @Composable
 fun LiquidGlassRow(
     modifier: Modifier = Modifier,
@@ -141,10 +130,7 @@ fun LiquidGlassRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    // 老板 6/14 17:35 拍: 增加不透明度
-    val baseAlpha = if (selected) 0.92f else 0.72f
-    // v0.3.26 修: 拆双层 Box, 外层背景 (blur + 渐变 + 边), 内层内容 (清晰)
-    // 之前 v0.3.23 单 Box + .blur(12.dp) 会把内层 Row 文字也模糊了 (老板 19:20 拍: 文件名看不清)
+    val baseAlpha = if (selected) 0.95f else 0.85f
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -155,24 +141,23 @@ fun LiquidGlassRow(
                 onClick = onClick,
             ),
     ) {
-        // 外层: 玻璃背景 (模糊 + 渐变 + 边)
+        // 外层: 玻璃背景
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(shape)
+                .blur(6.dp)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
                             Color.White.copy(alpha = baseAlpha),
-                            Color.White.copy(alpha = baseAlpha * 0.75f),
+                            Color.White.copy(alpha = baseAlpha * 0.85f),
                         )
                     )
                 )
-                // v0.3.26 模糊半径 12dp → 6dp (外层 Box, 模糊背景, 不影响内层文字)
-                .blur(6.dp)
-                .border(0.5.dp, Color.White.copy(alpha = 0.65f), shape)
+                .border(0.5.dp, GlassBorder.copy(alpha = 0.5f), shape)
         )
-        // 内层: 内容 (清晰, 不被 blur 影响)
+        // 内层: 内容
         Row(
             modifier = Modifier.padding(contentPadding),
             verticalAlignment = Alignment.CenterVertically,
@@ -184,7 +169,7 @@ fun LiquidGlassRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = liquidGlassTextStyle(MaterialTheme.typography.bodyLarge),
+                    style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -192,10 +177,8 @@ fun LiquidGlassRow(
                     Spacer(Modifier.height(2.dp))
                     Text(
                         text = subtitle,
-                        style = liquidGlassTextStyle(
-                            MaterialTheme.typography.bodySmall,
-                            shadowAlpha = 0.08f,
-                        ).copy(color = Color(0xFF87867F)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF87867F),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -210,16 +193,13 @@ fun LiquidGlassRow(
 }
 
 /**
- * 玻璃 TopAppBar (iOS 26 真液态玻璃, v0.3.25 修复文字糊)
+ * 玻璃 TopAppBar (iOS 26 风格)
  *
- * v0.3.25 老板 18:40 拍: 状态栏不沉浸, 液态玻璃假糊, 日志没了
- * 真因: v0.3.23 blur(20dp) + 白玻璃在状态栏下面, 因为没开 edge-to-edge
- *      (上一次改错了), 状态栏区域画的是白底, blur 模糊的是白底, 看起来就是"白盖子"
- * 修复:
- * 1) 恢复 enableEdgeToEdge() (MainActivity), 状态栏透明, TopAppBar 模糊真实画布
- * 2) 标题 + icon 加 text shadow (Compose Shadow) — 黑色 0.30 alpha, 偏移 0,1, 模糊 4
- * 3) 模糊半径 20dp → 12dp (太大会把内容洗成一片, 12dp 是 iOS 26 苹果默认)
- * 4) 玻璃 alpha 略降 (0.80/0.60 → 0.55/0.40), 让底下内容更可见
+ * iOS 26 特征:
+ * - 底部大圆角 24dp
+ * - 高 alpha 白玻璃 (0.9)
+ * - 模糊 8dp
+ * - 标题加粗 Semibold
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -229,68 +209,58 @@ fun LiquidGlassTopBar(
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
 ) {
-    val topBarShape = androidx.compose.foundation.shape.RoundedCornerShape(
-        bottomStart = 20.dp,
-        bottomEnd = 20.dp,
-    )
-    // v0.3.27 老板 19:35 拍: '看着刺眼, 用 MiSans'
-    // 之前 v0.3.25 这块没指定 fontFamily, 用了 Compose Serif fallback
-    // 加阴影 (黑色 0.30) 在白玻璃上看着扎眼
-    val titleTextStyle = androidx.compose.ui.text.TextStyle(
+    val topBarShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+    val titleTextStyle = TextStyle(
         color = Color(0xFF141413),
-        fontSize = 18.sp,
-        fontWeight = FontWeight.SemiBold,
-        fontFamily = com.threel.openlist.ui.theme.MiSansFamily,
-        shadow = androidx.compose.ui.graphics.Shadow(
-            color = Color.Black.copy(alpha = 0.20f),  // v0.3.27 阴影 0.30 -> 0.20 (减弱)
-            offset = androidx.compose.ui.geometry.Offset(0f, 1f),
-            blurRadius = 2f,  // v0.3.27 模糊 4 -> 2
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = MiSansFamily,
+        shadow = Shadow(
+            color = GlassShadow,
+            offset = Offset(0f, 1f),
+            blurRadius = 1f,
         ),
     )
-    val iconTint = Color(0xFF141413).copy(alpha = 0.95f)
     Box(modifier = Modifier.fillMaxWidth()) {
-        // 外层玻璃背景: blur + 渐变 + 边 + 光泽
+        // 外层玻璃背景
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(topBarShape)
-                // v0.3.25 模糊半径 20dp → 12dp (iOS 26 同款)
-                .blur(12.dp)
+                .blur(8.dp)
                 .background(
                     Brush.verticalGradient(
-                        // v0.3.25 alpha 0.80/0.60 → 0.55/0.40 (让下面内容可见)
                         colors = listOf(
-                            Color(0xFFFAF9F5).copy(alpha = 0.55f),
-                            Color(0xFFFAF9F5).copy(alpha = 0.40f),
+                            WarmWhite.copy(alpha = 0.9f),
+                            WarmWhite.copy(alpha = 0.75f),
                         )
                     )
                 )
-                // 顶部 1px 光泽
                 .drawBehind {
                     drawRect(
                         brush = Brush.verticalGradient(
                             colors = listOf(
-                                Color.White.copy(alpha = 0.55f),
+                                GlassHighlight,
                                 Color.White.copy(alpha = 0.0f),
                             ),
                             startY = 0f,
-                            endY = 2f,
+                            endY = 3f,
                         ),
-                        size = androidx.compose.ui.geometry.Size(size.width, 2f),
+                        size = Size(size.width, 3f),
                     )
                 }
                 .border(
                     width = 0.5.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.70f),
-                            Color.White.copy(alpha = 0.25f),
+                            GlassBorder,
+                            GlassBorder.copy(alpha = 0.3f),
                         )
                     ),
                     shape = topBarShape,
                 )
         )
-        // 内层: TopAppBar 本身 (透明背景, 标题图标清晰 + 阴影)
+        // 内层: TopAppBar
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -298,8 +268,7 @@ fun LiquidGlassTopBar(
                         Icon(
                             imageVector = leadingIcon,
                             contentDescription = null,
-                            // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
-                            tint = iconTint,
+                            tint = Color(0xFF141413).copy(alpha = 0.95f),
                             modifier = Modifier.size(24.dp),
                         )
                         Spacer(Modifier.width(8.dp))
@@ -312,31 +281,25 @@ fun LiquidGlassTopBar(
                     )
                 }
             },
-            navigationIcon = {
-                if (navigationIcon != null) {
-                    navigationIcon()
-                }
-            },
+            navigationIcon = navigationIcon?.let { { it() } },
             actions = actions,
             colors = TopAppBarDefaults.topAppBarColors(
-                // 透明, 让外层 Box 渐变显示出来
                 containerColor = Color.Transparent,
                 titleContentColor = Color(0xFF141413),
-                navigationIconContentColor = iconTint,
-                actionIconContentColor = iconTint,
+                navigationIconContentColor = Color(0xFF141413).copy(alpha = 0.95f),
+                actionIconContentColor = Color(0xFF141413).copy(alpha = 0.95f),
             ),
         )
     }
 }
 
 /**
- * 玻璃圆 FAB (老板 6/14 16:05 拍: "液态玻璃吗？透明色", "我不要橙色")
+ * 玻璃圆形 FAB
  *
- * v0.3.17 重设计: iOS 26 / visionOS 风格白玻璃
- * - 56dp 圆
- * - 白渐变 (上 0.7 alpha, 下 0.5 alpha)
- * - 1px 白边 0.8 alpha
- * - icon 黑色 #141413 (跟 LiquidGlassRow 一致)
+ * iOS 26 特征:
+ * - 56dp 圆形
+ * - 高 alpha 白玻璃 (0.9)
+ * - 1dp 玻璃边框
  */
 @Composable
 fun LiquidGlassFab(
@@ -345,20 +308,19 @@ fun LiquidGlassFab(
     size: Dp = 56.dp,
     enabled: Boolean = true,
 ) {
-    val shape = androidx.compose.foundation.shape.CircleShape
     Box(
         modifier = Modifier
             .size(size)
-            .clip(shape)
+            .clip(CircleShape)
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (enabled) 0.70f else 0.40f),
-                        Color.White.copy(alpha = if (enabled) 0.50f else 0.30f),
+                        Color.White.copy(alpha = if (enabled) 0.9f else 0.5f),
+                        Color.White.copy(alpha = if (enabled) 0.7f else 0.3f),
                     )
                 )
             )
-            .border(1.dp, Color.White.copy(alpha = 0.80f), shape)
+            .border(1.dp, GlassBorder, CircleShape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
@@ -377,15 +339,12 @@ fun LiquidGlassFab(
 }
 
 /**
- * 玻璃主操作按钮 (老板 6/14 16:05 拍: "白就行了", "液态玻璃透明色")
+ * 玻璃主操作按钮
  *
- * v0.3.17 重设计: iOS 26 / visionOS 风格白玻璃 (不用 Terracotta)
- * - 12dp 圆角
- * - 48dp 高度
- * - 白渐变 (上 0.70 alpha, 下 0.50 alpha)
- * - 0.5dp 白边 0.7 alpha
- * - icon + 文字 黑色 #141413
- * - fillMaxWidth
+ * iOS 26 特征:
+ * - 圆角 16dp
+ * - 高度 48dp
+ * - 高 alpha 白玻璃 (0.9)
  */
 @Composable
 fun LiquidGlassPrimaryButton(
@@ -395,7 +354,7 @@ fun LiquidGlassPrimaryButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(16.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -404,12 +363,12 @@ fun LiquidGlassPrimaryButton(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (enabled) 0.70f else 0.40f),
-                        Color.White.copy(alpha = if (enabled) 0.50f else 0.30f),
+                        Color.White.copy(alpha = if (enabled) 0.9f else 0.5f),
+                        Color.White.copy(alpha = if (enabled) 0.7f else 0.3f),
                     )
                 )
             )
-            .border(0.5.dp, Color.White.copy(alpha = 0.70f), shape)
+            .border(0.5.dp, GlassBorder, shape)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
@@ -426,8 +385,9 @@ fun LiquidGlassPrimaryButton(
         Text(
             text = text,
             color = Color(0xFF141413),
-            fontSize = 15.sp,
-            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = MiSansFamily,
         )
     }
 }
