@@ -15,6 +15,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -219,11 +220,7 @@ class AppDownloadManager @Inject constructor(
 }
 
 private fun String.toRequestBody(): okhttp3.RequestBody {
-    return this.toRequestBody("application/json; charset=utf-8".toMediaType())
-}
-
-private fun String.toRequestBody(mediaType: okhttp3.MediaType): okhttp3.RequestBody {
+    val mediaType = "application/json; charset=utf-8".toMediaType()
+        ?: error("Invalid media type")
     return okhttp3.RequestBody.create(mediaType, this.toByteArray())
 }
-
-private fun String.toMediaType() = okhttp3.MediaType.parse(this)
