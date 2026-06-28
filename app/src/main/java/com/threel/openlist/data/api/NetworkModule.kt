@@ -57,4 +57,9 @@ object NetworkModule {
     @Singleton
     fun provideOpenListApi(retrofit: Retrofit): OpenListApi =
         retrofit.create(OpenListApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideManagementApi(retrofit: Retrofit): ManagementApi =
+        retrofit.create(ManagementApi::class.java)
 }

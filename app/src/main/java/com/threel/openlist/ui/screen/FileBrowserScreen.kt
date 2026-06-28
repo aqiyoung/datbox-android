@@ -263,6 +263,7 @@ class FileBrowserViewModel @Inject constructor(
 fun FileBrowserScreen(
     onLogout: () -> Unit,
     onAbout: () -> Unit = {},
+    onManagement: () -> Unit = {},
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -334,6 +335,9 @@ fun FileBrowserScreen(
                         }
                         IconButton(onClick = { vm.load(state.path) }) {
                             Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
+                        }
+                        IconButton(onClick = onManagement) {
+                            Icon(Icons.Outlined.Settings, contentDescription = "管理")
                         }
                         IconButton(onClick = onAbout) {
                             Icon(Icons.Outlined.Info, contentDescription = "关于")
@@ -509,6 +513,9 @@ private fun SearchTopBar(
                     )
                 }
             }
+        }
+        IconButton(onClick = onManagement) {
+            Icon(Icons.Outlined.Settings, contentDescription = "管理")
         }
         IconButton(onClick = onAbout) {
             Icon(Icons.Outlined.Info, contentDescription = "关于")

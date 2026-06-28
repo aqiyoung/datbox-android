@@ -21,6 +21,7 @@ import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.LoginScreen
+import com.threel.openlist.ui.screen.ManagementScreen
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,7 +75,8 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             composable("files") {
                 FileBrowserScreen(
                     onLogout = { vm.logout() },
-                    onAbout = { nav.navigate("about") }
+                    onAbout = { nav.navigate("about") },
+                    onManagement = { nav.navigate("management") }
                 )
             }
             composable("about") {
@@ -86,6 +88,14 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     }
                 }
                 AboutScreen(onBack = { nav.popBackStack() })
+            }
+            composable("management") {
+                BackHandler(enabled = true) {
+                    if (!nav.popBackStack()) {
+                        // 栈底了, 让系统默认处理 (退出)
+                    }
+                }
+                ManagementScreen(onBack = { nav.popBackStack() })
             }
         }
         false -> NavHost(nav, startDestination = "login") {

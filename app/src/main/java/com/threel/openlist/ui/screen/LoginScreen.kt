@@ -85,13 +85,13 @@ class LoginViewModel @Inject constructor(
     val state = _state.asStateFlow()
 
     init {
-        // 老板 6/13 拍: 自动顶填上次账号 (不填密码, 密码用户手动输, 避免老板改密码后 APP 登不上)
+        // v0.3.37: 自动顶填上次账号+密码
         viewModelScope.launch {
             val username = tokenStore.lastUsername.first()
+            val password = tokenStore.lastPassword.first()
             if (username.isNotEmpty()) {
-                _state.value = _state.value.copy(username = username)
+                _state.value = _state.value.copy(username = username, password = password)
             }
-            // v0.3.36: 读取上次保存的服务器地址
             val savedServerUrl = tokenStore.serverUrl.first()
             _state.value = _state.value.copy(serverUrl = savedServerUrl)
         }
@@ -125,16 +125,15 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             repo.login(_state.value.username.trim(), _state.value.password, _state.value.serverUrl)
                 .onSuccess {
-                    // 老板 6/13 拍: 登录成功 -> 记住账号 (不记住密码, 6/15 修复)
+                    // v0.3.37: 登录成功 -> 记住账号+密码
                     tokenStore.saveLastCredentials(
                         _state.value.username.trim(),
-                        _state.value.password  // 传入但不再写入 DataStore
+                        _state.value.password
                     )
                     _state.value = _state.value.copy(loading = false, success = true)
                 }
                 .onFailure { e ->
-                    // 老板 6/14 拍: 登录失败清掉旧缓存避免错的旧账号反复触发 server 限流 (5 次错锁 5 min)
-                    // 6/15 调整: 改成清 token (强制重新登录), 不再清 lastUsername (账号名没问题)
+                    // 登录失败: 清 token (强制重新登录), 保留账号密码缓存方便重试
                     tokenStore.clear()
                     _state.value = _state.value.copy(
                         loading = false,

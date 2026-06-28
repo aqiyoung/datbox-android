@@ -20,9 +20,8 @@ class TokenStore @Inject constructor(
 ) {
     private val TOKEN_KEY = stringPreferencesKey("jwt_token")
     private val SERVER_KEY = stringPreferencesKey("server_url")
-    private val USERNAME_KEY = stringPreferencesKey("last_username")  // 老板 6/13: 记住账号
-    // 老板 6/15 拍: 干掉明文密码缓存 (6/13 加的, 6/15 发现老板改密码后 APP 登不上 + 安全考虑)
-    // 不再缓存 password, 改由用户每次手动输入
+    private val USERNAME_KEY = stringPreferencesKey("last_username")
+    private val PASSWORD_KEY = stringPreferencesKey("last_password")  // v0.3.37: 恢复密码缓存
 
     val token: Flow<String> = ctx.dataStore.data.map { it[TOKEN_KEY] ?: "" }
 
@@ -45,22 +44,33 @@ class TokenStore @Inject constructor(
 
     fun serverUrlSync(): String = runBlocking { serverUrl.first() }
 
-    /** 老板 6/13 拍: 记住账号 (不要密码) */
+    /** 记住账号 */
     val lastUsername: Flow<String> = ctx.dataStore.data.map { it[USERNAME_KEY] ?: "" }
 
-    /** 老板 6/15 拍: 不再缓存密码, 只缓存账号 */
+    /** 记住密码 */
+    val lastPassword: Flow<String> = ctx.dataStore.data.map { it[PASSWORD_KEY] ?: "" }
+
     suspend fun saveLastUsername(username: String) {
         ctx.dataStore.edit { it[USERNAME_KEY] = username }
     }
 
-    /** 兼容老代码调用, 只清账号, 不再有密码要清 */
-    suspend fun saveLastCredentials(username: String, @Suppress("UNUSED_PARAMETER") password: String) {
-        // password 参数保留是为不破坏旧调用点, 但不再写入 DataStore
-        saveLastUsername(username)
+    suspend fun saveLastPassword(password: String) {
+        ctx.dataStore.edit { it[PASSWORD_KEY] = password }
+    }
+
+    /** 保存账号密码 */
+    suspend fun saveLastCredentials(username: String, password: String) {
+        ctx.dataStore.edit {
+            it[USERNAME_KEY] = username
+            it[PASSWORD_KEY] = password
+        }
     }
 
     suspend fun clearLastCredentials() {
-        ctx.dataStore.edit { it.remove(USERNAME_KEY) }
+        ctx.dataStore.edit {
+            it.remove(USERNAME_KEY)
+            it.remove(PASSWORD_KEY)
+        }
     }
 
     companion object {
