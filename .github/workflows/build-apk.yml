@@ -118,6 +118,7 @@ jobs:
         if: success()
         run: |
           set +e
+          rm -rf ~/.gradle/caches ~/.gradle/wrapper
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log | tail -200
           echo "===exit=== exit=$?"
         env:
