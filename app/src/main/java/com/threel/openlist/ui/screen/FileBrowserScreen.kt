@@ -1,8 +1,14 @@
 package com.threel.openlist.ui.screen
 
+enum class SortMode { NAME_ASC, NAME_DESC, SIZE_ASC, SIZE_DESC, DATE_ASC, DATE_DESC, DEFAULT }
+
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -71,6 +77,9 @@ data class FileBrowserState(
     val items: List<FsItem> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
+    val searchQuery: String = "",
+    val sortMode: SortMode = SortMode.DEFAULT,
+    val isRefreshing: Boolean = false,
 )
 
 /** 老板 6/13 v0.3.0: 加 download/upload/share 状态 */
@@ -91,6 +100,35 @@ class FileBrowserViewModel @Inject constructor(
     val action = _action.asStateFlow()
 
     init { load("/") }
+
+    private val sortedItems = derivedStateOf {
+        val query = _state.value.searchQuery.trim()
+        val filtered = if (query.isEmpty()) {
+            _state.value.items
+        } else {
+            _state.value.items.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        when (_state.value.sortMode) {
+            SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
+            SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
+            SortMode.SIZE_ASC -> filtered.sortedBy { it.size }
+            SortMode.SIZE_DESC -> filtered.sortedByDescending { it.size }
+            SortMode.DATE_ASC -> filtered.sortedBy { it.modified }
+            SortMode.DATE_DESC -> filtered.sortedByDescending { it.modified }
+            SortMode.DEFAULT -> filtered
+        }
+    }
+
+    val displayedItems: List<FsItem>
+        get() = sortedItems.value
+
+    fun updateSearchQuery(query: String) {
+        _state.value = _state.value.copy(searchQuery = query)
+    }
+
+    fun updateSortMode(mode: SortMode) {
+        _state.value = _state.value.copy(sortMode = mode)
+    }
 
     /**
      * 老板 6/14 16:42 拍: 屏蔽指定目录不显示
@@ -222,10 +260,12 @@ class FileBrowserViewModel @Inject constructor(
 fun FileBrowserScreen(
     onLogout: () -> Unit,
     onAbout: () -> Unit = {},
+    onPreview: (String, String) -> Unit = { _, _ -> },
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
     val action by vm.action.collectAsState()
+    val displayedItems = vm.displayedItems
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -263,23 +303,43 @@ fun FileBrowserScreen(
         }
     }
 
+    // 搜索栏
+    var searchActive by remember { mutableStateOf(false) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
-            LiquidGlassTopBar(
-                title = "三页云盘 · ${state.path}",
-                leadingIcon = Icons.Outlined.Folder,
-                actions = {
-                    IconButton(onClick = { vm.load(state.path) }) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
-                    }
-                    IconButton(onClick = onAbout) {
-                        Icon(Icons.Outlined.Info, contentDescription = "关于")
-                    }
-                    IconButton(onClick = onLogout) {
-                        Icon(Icons.Outlined.Logout, contentDescription = "退出")
-                    }
-                },
-            )
+            if (searchActive) {
+                SearchBar(
+                    query = state.searchQuery,
+                    onQueryChange = { vm.updateSearchQuery(it) },
+                    onBack = { searchActive = false; vm.updateSearchQuery("") },
+                    onSort = { sortMenuExpanded = true },
+                    sortMode = state.sortMode,
+                    onSortSelected = { mode -> vm.updateSortMode(mode); sortMenuExpanded = false },
+                    onAbout = onAbout,
+                    onLogout = onLogout,
+                )
+            } else {
+                LiquidGlassTopBar(
+                    title = "三页云盘 · ${state.path}",
+                    leadingIcon = Icons.Outlined.Folder,
+                    actions = {
+                        IconButton(onClick = { searchActive = true }) {
+                            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = Color(0xFF141413))
+                        }
+                        IconButton(onClick = { vm.load(state.path) }) {
+                            Icon(Icons.Outlined.Refresh, contentDescription = "刷新", tint = Color(0xFF141413))
+                        }
+                        IconButton(onClick = onAbout) {
+                            Icon(Icons.Outlined.Info, contentDescription = "关于", tint = Color(0xFF141413))
+                        }
+                        IconButton(onClick = onLogout) {
+                            Icon(Icons.Outlined.Logout, contentDescription = "退出", tint = Color(0xFF141413))
+                        }
+                    },
+                )
+            }
         },
         floatingActionButton = {
             // 老板 6/14 15:25 拍: 圆形加号, 不需要文字
@@ -298,9 +358,18 @@ fun FileBrowserScreen(
         },
         containerColor = Color(0xFFF5F4ED),
     ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
+        val pullToRefreshState = rememberPullToRefreshState()
+        if (pullToRefreshState.isRefreshing) {
+            LaunchedEffect(true) {
+                vm.load(state.path)
+                pullToRefreshState.endRefresh()
+            }
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .nestedScroll(pullToRefreshState.nestedScrollConnection)
         ) {
             when {
                 state.loading -> CenterLoading()
@@ -317,7 +386,6 @@ fun FileBrowserScreen(
                     if (state.path != "/") {
                         item {
                             FileRow(
-                                // 老板 6/14 16:35 拍: 不用橙色, 改 NearBlack (液态玻璃原色)
                                 icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
                                 name = "..",
                                 size = "",
@@ -328,17 +396,13 @@ fun FileBrowserScreen(
                             )
                         }
                     }
-                    items(state.items) { item ->
+                    items(displayedItems) { item ->
                         val onMenu = if (!item.isDir) {
                             {
                                 com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user tapped 3-dot menu on file: ${item.name}")
                                 menuItem = item
-                            }  // 老板 6/14: 点三个点弹玻璃弹窗
+                            }
                         } else null
-                        // 老板 6/14 拍: 根据扩展名识别文件类型, 用对应图标 + 颜色
-                        // v0.3.32 老板 6/14 21:55 拍: '用谷歌的' (Google Material Icons)
-                        // 之前 v0.3.31 自绘 14 个图形 (丑陋) -> 改用 material-icons-extended
-                        // 的官方矢量图标 + 品牌色 (陶土红 / NearBlack)
                         val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
                         FileRow(
                             icon = { Icon(fileIcon, null, tint = fileColor) },
@@ -349,14 +413,23 @@ fun FileBrowserScreen(
                                 if (item.isDir) {
                                     val next = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
                                     vm.load(next)
+                                } else {
+                                    val remotePath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+                                    onPreview(remotePath, item.name)
                                 }
                             },
-                            onLongClick = null,  // 老板 6/14: 取消长按, 用三个点弹
+                            onLongClick = null,
                             onMenuClick = onMenu,
                         )
                     }
                 }
             }
+            PullToRefreshContainer(
+                state = pullToRefreshState,
+                containerColor = Color(0xFFF5F4ED),
+                contentColor = Color(0xFF141413),
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
 
         // 老板 6/14: 液态玻璃弹窗
@@ -370,7 +443,6 @@ fun FileBrowserScreen(
                 },
                 onShare = {
                     com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user clicked SHARE: ${pending.name}")
-                    // 老板 6/14 修: buildShareUrl 是 suspend, 需 scope.launch
                     scope.launch {
                         val url = vm.buildShareUrl(menuRemotePath)
                         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -382,6 +454,82 @@ fun FileBrowserScreen(
                 },
                 onDismiss = { menuItem = null },
             )
+        }
+    }
+}
+
+/**
+ * 搜索栏 + 排序弹窗
+ */
+@Composable
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onBack: () -> Unit,
+    onSort: () -> Unit,
+    sortMode: SortMode,
+    onSortSelected: (SortMode) -> Unit,
+    onAbout: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    var showSortMenu by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回")
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+            placeholder = { Text("搜索文件...", color = Color(0xFF87867F)) },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF141413),
+                unfocusedBorderColor = Color(0xFFD9D8D4),
+            ),
+        )
+        Box {
+            IconButton(onClick = { showSortMenu = true }) {
+                Icon(Icons.Outlined.Sort, contentDescription = "排序")
+            }
+            DropdownMenu(
+                expanded = showSortMenu,
+                onDismissRequest = { showSortMenu = false },
+            ) {
+                data class SortItem(val mode: SortMode, val label: String)
+                val items = listOf(
+                    SortItem(SortMode.DEFAULT, "默认排序"),
+                    SortItem(SortMode.NAME_ASC, "名称 A → Z"),
+                    SortItem(SortMode.NAME_DESC, "名称 Z → A"),
+                    SortItem(SortMode.SIZE_ASC, "大小 (小 → 大)"),
+                    SortItem(SortMode.SIZE_DESC, "大小 (大 → 小)"),
+                    SortItem(SortMode.DATE_ASC, "日期 (旧 → 新)"),
+                    SortItem(SortMode.DATE_DESC, "日期 (新 → 旧)"),
+                )
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        text = { Text(item.label) },
+                        onClick = {
+                            onSortSelected(item.mode)
+                            showSortMenu = false
+                        },
+                        leadingIcon = if (sortMode == item.mode) {
+                            { Icon(Icons.Outlined.Check, modifier = Modifier.size(18.dp)) }
+                        } else null,
+                    )
+                }
+            }
+        }
+        IconButton(onClick = onAbout) {
+            Icon(Icons.Outlined.Info, contentDescription = "关于")
+        }
+        IconButton(onClick = onLogout) {
+            Icon(Icons.Outlined.Logout, contentDescription = "退出")
         }
     }
 }
