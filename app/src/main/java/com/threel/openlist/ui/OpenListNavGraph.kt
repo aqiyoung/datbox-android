@@ -17,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.LoginScreen
@@ -30,6 +31,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RootViewModel @Inject constructor(
     private val repo: OpenListRepository,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
     private val _loggedIn = MutableStateFlow<Boolean?>(null)
     val loggedIn = _loggedIn.asStateFlow()
@@ -37,6 +39,9 @@ class RootViewModel @Inject constructor(
     init {
         TelemetryLog.i("NavGraph", "OpenListNavGraph init, isLoggedIn check...")
         viewModelScope.launch {
+            // v0.3.36: 读取持久化的服务器地址
+            val serverUrl = tokenStore.serverUrl.first()
+            TelemetryLog.i("NavGraph", "saved serverUrl=$serverUrl")
             val isLogin = repo.isLoggedIn()
             TelemetryLog.i("NavGraph", "isLoggedIn=$isLogin")
             _loggedIn.value = isLogin

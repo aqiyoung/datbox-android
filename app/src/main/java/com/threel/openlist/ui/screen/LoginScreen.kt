@@ -67,7 +67,14 @@ data class LoginUiState(
     val error: String? = null,
     val success: Boolean = false,
     val passwordVisible: Boolean = false,  // 老板 6/13 拍: 加小眼睛切换密码可见
+    val serverUrl: String = "https://<your-server>",
+    val testLoading: Boolean = false,
+    val testResult: TestResult? = null,
 )
+
+enum class TestResult {
+    SUCCESS, FAILED,
+}
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -84,6 +91,9 @@ class LoginViewModel @Inject constructor(
             if (username.isNotEmpty()) {
                 _state.value = _state.value.copy(username = username)
             }
+            // v0.3.36: 读取上次保存的服务器地址
+            val savedServerUrl = tokenStore.serverUrl.first()
+            _state.value = _state.value.copy(serverUrl = savedServerUrl)
         }
     }
 
@@ -91,12 +101,29 @@ class LoginViewModel @Inject constructor(
     fun onPassword(v: String) { _state.value = _state.value.copy(password = v) }
     fun togglePasswordVisible() { _state.value = _state.value.copy(passwordVisible = !_state.value.passwordVisible) }
     fun clearError() { _state.value = _state.value.copy(error = null) }
+    fun onServerUrl(v: String) { _state.value = _state.value.copy(serverUrl = v, testResult = null) }
+    fun clearTestResult() { _state.value = _state.value.copy(testResult = null) }
+
+    /** v0.3.36: 测试服务器连接 */
+    fun testConnection() {
+        if (_state.value.testLoading) return
+        _state.value = _state.value.copy(testLoading = true, testResult = null)
+        viewModelScope.launch {
+            val reachable = repo.testConnection(_state.value.serverUrl)
+            if (reachable) {
+                tokenStore.saveServerUrl(_state.value.serverUrl)
+                _state.value = _state.value.copy(testLoading = false, testResult = TestResult.SUCCESS)
+            } else {
+                _state.value = _state.value.copy(testLoading = false, testResult = TestResult.FAILED)
+            }
+        }
+    }
 
     fun submit() {
         if (_state.value.loading) return
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            repo.login(_state.value.username.trim(), _state.value.password)
+            repo.login(_state.value.username.trim(), _state.value.password, _state.value.serverUrl)
                 .onSuccess {
                     // 老板 6/13 拍: 登录成功 -> 记住账号 (不记住密码, 6/15 修复)
                     tokenStore.saveLastCredentials(
@@ -167,6 +194,55 @@ fun LoginScreen(
                     .background(Color.White.copy(alpha = 0.5f))
                     .padding(24.dp),
             ) {
+                // v0.3.36: 服务器地址输入
+                OutlinedTextField(
+                    value = state.serverUrl,
+                    onValueChange = vm::onServerUrl,
+                    label = { Text("服务器地址") },
+                    placeholder = { Text("https://your-openlist-server.com") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // v0.3.36: 测试连接按钮 + 结果
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    LiquidGlassPrimaryButton(
+                        text = if (state.testLoading) "测试中..." else "测试连接",
+                        enabled = !state.testLoading && state.serverUrl.isNotBlank(),
+                        onClick = vm::testConnection,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (state.testLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = Color(0xFF87867F),
+                        )
+                    }
+                }
+
+                if (state.testResult == TestResult.SUCCESS) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "连接成功",
+                        color = Color(0xFF2E7D32),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else if (state.testResult == TestResult.FAILED) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "无法连接到此服务器",
+                        color = Color(0xFFB33A3A),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = state.username,
                     onValueChange = vm::onUsername,

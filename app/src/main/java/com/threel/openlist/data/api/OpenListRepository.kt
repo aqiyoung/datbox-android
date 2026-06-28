@@ -34,13 +34,38 @@ class OpenListRepository @Inject constructor(
             .build()
     }
 
-    suspend fun login(username: String, password: String): Result<String> = runCatching {
+    suspend fun login(username: String, password: String, serverUrl: String = tokenStore.serverUrlSync()): Result<String> = runCatching {
         val resp = api.login(LoginRequest(username, password))
         if (resp.code != 200 || resp.data == null) {
             error("登录失败: ${resp.message}")
         }
         tokenStore.saveToken(resp.data.token)
         resp.data.token
+    }
+
+    /**
+     * 测试服务器连通性
+     *
+     * 发送空用户名登录, 如果返回 401 (而非连接失败/超时/OPTIONS 405),
+     * 说明服务器可达而且是 OpenList 服务。
+     */
+    suspend fun testConnection(serverUrl: String): Boolean {
+        return try {
+            val url = serverUrl.trimEnd('/')
+            val body = """{"username":"","password":""}"""
+                .toRequestBody("application/json; charset=utf-8".toMediaType())
+            val req = Request.Builder()
+                .url("$url/api/auth/login")
+                .post(body)
+                .build()
+            client.newCall(req).execute().use { resp ->
+                // 401 = OpenList 返回 "用户名或密码错误" = 服务器可达
+                // 200 也行 (空密码刚好登录成功, 虽然不太可能)
+                resp.code == 401 || resp.code == 200
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 
     suspend fun userInfo(): Result<UserInfo> = runCatching {
