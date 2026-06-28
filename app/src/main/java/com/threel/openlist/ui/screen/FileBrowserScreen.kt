@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.threel.openlist.data.api.ManagementRepository
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassFab
@@ -88,6 +90,7 @@ data class FileActionState(
 @HiltViewModel
 class FileBrowserViewModel @Inject constructor(
     private val repo: OpenListRepository,
+    private val managementRepo: ManagementRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(FileBrowserState())
     val state = _state.asStateFlow()
@@ -256,6 +259,51 @@ class FileBrowserViewModel @Inject constructor(
     }
 
     fun clearMessage() { _action.value = FileActionState() }
+
+    // ===== v0.3.37: 文件操作 =====
+
+    fun mkdir(name: String) {
+        val path = _state.value.path
+        _action.value = FileActionState(busy = true, message = "创建 $name 中...")
+        viewModelScope.launch {
+            managementRepo.mkdir(path, name)
+                .onSuccess {
+                    _action.value = FileActionState(message = "$name 创建成功")
+                    load(path)
+                }
+                .onFailure {
+                    _action.value = FileActionState(message = "创建失败: ${it.message}", isError = true)
+                }
+        }
+    }
+
+    fun rename(path: String, newName: String) {
+        _action.value = FileActionState(busy = true, message = "重命名中...")
+        viewModelScope.launch {
+            managementRepo.rename(path, newName)
+                .onSuccess {
+                    _action.value = FileActionState(message = "重命名为 $newName 成功")
+                    load(_state.value.path)
+                }
+                .onFailure {
+                    _action.value = FileActionState(message = "重命名失败: ${it.message}", isError = true)
+                }
+        }
+    }
+
+    fun delete(path: String) {
+        _action.value = FileActionState(busy = true, message = "删除中...")
+        viewModelScope.launch {
+            managementRepo.delete(path)
+                .onSuccess {
+                    _action.value = FileActionState(message = "删除成功")
+                    load(_state.value.path)
+                }
+                .onFailure {
+                    _action.value = FileActionState(message = "删除失败: ${it.message}", isError = true)
+                }
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
@@ -281,6 +329,11 @@ fun FileBrowserScreen(
     val menuRemotePath = menuItem?.let { item ->
         if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
     }
+
+    // v0.3.37: 新建文件夹 / 重命名 / 删除 弹窗
+    var showMkdirDialog by remember { mutableStateOf(false) }
+    var showRenameDialog by remember { mutableStateOf<FsItem?>(null) }
+    var showDeleteDialog by remember { mutableStateOf<FsItem?>(null) }
 
     // 老板 6/13 v0.3.0: 文件选择器 (上传)
     val pickFileLauncher = rememberLauncherForActivityResult(
@@ -357,10 +410,26 @@ fun FileBrowserScreen(
                     onClick = {},
                 )
             } else {
-                LiquidGlassFab(
-                    icon = Icons.Filled.Add,
-                    onClick = { pickFileLauncher.launch("*/*") },
-                )
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // 新建文件夹 FAB (非根目录)
+                    if (state.path != "/") {
+                        SmallFloatingActionButton(
+                            onClick = { showMkdirDialog = true },
+                            containerColor = Color.White.copy(alpha = 0.7f),
+                            contentColor = Color(0xFF141413),
+                            shape = CircleShape,
+                        ) {
+                            Icon(Icons.Outlined.CreateNewFolder, contentDescription = "新建文件夹")
+                        }
+                    }
+                    LiquidGlassFab(
+                        icon = Icons.Filled.Add,
+                        onClick = { pickFileLauncher.launch("*/*") },
+                    )
+                }
             }
         },
         containerColor = Color(0xFFF5F4ED),
@@ -405,6 +474,10 @@ fun FileBrowserScreen(
                                     menuItem = item
                                 }
                             } else null
+                            val onLongClick = {
+                                com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user long-pressed: ${item.name}")
+                                menuItem = item
+                            }
                             val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
                             FileRow(
                                 icon = { Icon(fileIcon, null, tint = fileColor) },
@@ -417,7 +490,7 @@ fun FileBrowserScreen(
                                         vm.load(next)
                                     }
                                 },
-                                onLongClick = null,
+                                onLongClick = onLongClick,
                                 onMenuClick = onMenu,
                             )
                         }
@@ -446,7 +519,52 @@ fun FileBrowserScreen(
                         context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
                     }
                 },
+                onRename = {
+                    menuItem = null
+                    showRenameDialog = pending
+                },
+                onDelete = {
+                    menuItem = null
+                    showDeleteDialog = pending
+                },
                 onDismiss = { menuItem = null },
+            )
+        }
+
+        // v0.3.37: 新建文件夹弹窗
+        if (showMkdirDialog) {
+            MkdirDialog(
+                onDismiss = { showMkdirDialog = false },
+                onCreate = { name ->
+                    vm.mkdir(name)
+                    showMkdirDialog = false
+                }
+            )
+        }
+
+        // v0.3.37: 重命名弹窗
+        showRenameDialog?.let { item ->
+            val itemPath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+            RenameDialog(
+                currentName = item.name,
+                onDismiss = { showRenameDialog = null },
+                onRename = { newName ->
+                    vm.rename(itemPath, newName)
+                    showRenameDialog = null
+                }
+            )
+        }
+
+        // v0.3.37: 删除确认弹窗
+        showDeleteDialog?.let { item ->
+            val itemPath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+            DeleteDialog(
+                fileName = item.name,
+                onDismiss = { showDeleteDialog = null },
+                onDelete = {
+                    vm.delete(itemPath)
+                    showDeleteDialog = null
+                }
             )
         }
     }
@@ -603,6 +721,8 @@ private fun GlassActionDialog(
     fileName: String,
     onDownload: () -> Unit,
     onShare: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
@@ -648,6 +768,20 @@ private fun GlassActionDialog(
                     label = "分享链接",
                     subLabel = "复制 / 发送短链",
                     onClick = { onShare(); onDismiss() },
+                )
+                GlassActionItem(
+                    icon = Icons.Outlined.Edit,
+                    iconTint = Color(0xFF141413),
+                    label = "重命名",
+                    subLabel = "修改文件名",
+                    onClick = { onRename() },
+                )
+                GlassActionItem(
+                    icon = Icons.Outlined.Delete,
+                    iconTint = Color(0xFFB33A3A),
+                    label = "删除",
+                    subLabel = "永久删除此文件",
+                    onClick = { onDelete() },
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -725,6 +859,93 @@ private fun GlassActionItem(
             }
         }
     }
+}
+
+// ========== v0.3.37: 文件操作弹窗 ==========
+
+@Composable
+private fun MkdirDialog(
+    onDismiss: () -> Unit,
+    onCreate: (String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("新建文件夹") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("文件夹名称") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            LiquidGlassPrimaryButton(
+                text = "创建",
+                enabled = name.isNotBlank(),
+                onClick = { onCreate(name.trim()) }
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@Composable
+private fun RenameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onRename: (String) -> Unit
+) {
+    var name by remember { mutableStateOf(currentName) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("重命名") },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("新名称") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            LiquidGlassPrimaryButton(
+                text = "重命名",
+                enabled = name.isNotBlank() && name != currentName,
+                onClick = { onRename(name.trim()) }
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
+}
+
+@Composable
+private fun DeleteDialog(
+    fileName: String,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("删除文件") },
+        text = { Text("确认删除「$fileName」？此操作不可撤销。") },
+        confirmButton = {
+            LiquidGlassPrimaryButton(
+                text = "删除",
+                onClick = onDelete
+            )
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("取消") }
+        }
+    )
 }
 
 private val sizeFmt = DecimalFormat("#,##0.#")
