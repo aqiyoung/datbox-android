@@ -20,8 +20,11 @@ import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
+import com.threel.openlist.ui.screen.FilePreviewScreen
 import com.threel.openlist.ui.screen.LoginScreen
 import com.threel.openlist.ui.screen.ManagementScreen
+import java.net.URLDecoder
+import java.net.URLEncoder
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -76,7 +79,10 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                 FileBrowserScreen(
                     onLogout = { vm.logout() },
                     onAbout = { nav.navigate("about") },
-                    onManagement = { nav.navigate("management") }
+                    onManagement = { nav.navigate("management") },
+                    onPreview = { path, name ->
+                        nav.navigate("preview/${URLEncoder.encode(path, "UTF-8")}")
+                    }
                 )
             }
             composable("about") {
@@ -96,6 +102,18 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     }
                 }
                 ManagementScreen(onBack = { nav.popBackStack() })
+            }
+            // 文件预览: path 作为参数 (URL encoded)
+            composable("preview/{path}") { backStackEntry ->
+                BackHandler(enabled = true) { nav.popBackStack() }
+                val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
+                val path = URLDecoder.decode(encodedPath, "UTF-8")
+                val fileName = path.substringAfterLast('/')
+                FilePreviewScreen(
+                    remotePath = path,
+                    fileName = fileName,
+                    onBack = { nav.popBackStack() }
+                )
             }
         }
         false -> NavHost(nav, startDestination = "login") {

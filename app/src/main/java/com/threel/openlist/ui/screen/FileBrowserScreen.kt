@@ -64,6 +64,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.text.DecimalFormat
 import javax.inject.Inject
 
@@ -312,6 +314,7 @@ fun FileBrowserScreen(
     onLogout: () -> Unit,
     onAbout: () -> Unit = {},
     onManagement: () -> Unit = {},
+    onPreview: (String, String) -> Unit = { _, _ -> },
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -488,6 +491,9 @@ fun FileBrowserScreen(
                                     if (item.isDir) {
                                         val next = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
                                         vm.load(next)
+                                    } else {
+                                        val filePath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+                                        onPreview(filePath, item.name)
                                     }
                                 },
                                 onLongClick = onLongClick,
