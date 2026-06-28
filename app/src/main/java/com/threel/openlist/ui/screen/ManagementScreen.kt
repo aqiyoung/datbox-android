@@ -64,8 +64,8 @@ fun ManagementScreen(
             TabRow(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = Color(0xFFF5F4ED),
-                contentColor = Color(0xFF141413),
-                indicator = { TabRowDefaults.SecondaryIndicator(color = Color(0xFF141413)) }
+                contentColor = Color(0xFF2A2925),
+                indicator = { TabRowDefaults.SecondaryIndicator(color = Color(0xFF2A2925)) }
             ) {
                 ManagementTab.entries.forEach { tab ->
                     Tab(
@@ -98,7 +98,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     Box(modifier = Modifier.fillMaxSize()) {
         if (loading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color(0xFF141413))
+                CircularProgressIndicator(color = Color(0xFF2A2925))
             }
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -126,13 +126,13 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
 private fun UserCard(user: User, onEdit: () -> Unit, onDelete: () -> Unit) {
     LiquidGlassCard(cornerRadius = 16.dp, contentPadding = 16.dp) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Person, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(24.dp))
+            Icon(Icons.Outlined.Person, contentDescription = null, tint = Color(0xFF2A2925), modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(user.username, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF141413))
-                Text(when (user.role) { 0 -> "管理员"; 1 -> "游客"; 2 -> "普通用户"; else -> "未知" }, style = MaterialTheme.typography.bodySmall, color = Color(0xFF87867F))
+                Text(user.username, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                Text(when (user.role) { 0 -> "管理员"; 1 -> "游客"; 2 -> "普通用户"; else -> "未知" }, style = MaterialTheme.typography.bodySmall, color = Color(0xFF5C5B57))
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF87867F)) }
+            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF5C5B57)) }
             IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30)) }
         }
     }
@@ -181,7 +181,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
 
     Box(modifier = Modifier.fillMaxSize()) {
         if (loading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFF141413)) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFF2A2925)) }
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item {
@@ -208,13 +208,13 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
 private fun MountCard(mount: Mount, onEdit: () -> Unit, onDelete: () -> Unit) {
     LiquidGlassCard(cornerRadius = 16.dp, contentPadding = 16.dp) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Storage, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(24.dp))
+            Icon(Icons.Outlined.Storage, contentDescription = null, tint = Color(0xFF2A2925), modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(mount.mountPath, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF141413))
-                Text("${mount.driver} · ${mount.path}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF87867F), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(mount.mountPath, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                Text("${mount.driver} · ${mount.path}", style = MaterialTheme.typography.bodySmall, color = Color(0xFF5C5B57), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF87867F)) }
+            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF5C5B57)) }
             IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30)) }
         }
     }
@@ -247,7 +247,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
 private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewModel) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (loading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFF141413)) }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Color(0xFF2A2925)) }
         } else {
             LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(shares) { share -> ShareCard(share = share, onDelete = { vm.deleteShare(share.id) }) }
@@ -260,11 +260,11 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
 private fun ShareCard(share: Share, onDelete: () -> Unit) {
     LiquidGlassCard(cornerRadius = 16.dp, contentPadding = 16.dp) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Share, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(24.dp))
+            Icon(Icons.Outlined.Share, contentDescription = null, tint = Color(0xFF2A2925), modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(share.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF141413))
-                Text(share.path, style = MaterialTheme.typography.bodySmall, color = Color(0xFF87867F), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(share.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                Text(share.path, style = MaterialTheme.typography.bodySmall, color = Color(0xFF5C5B57), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = onDelete) { Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30)) }
         }
@@ -278,14 +278,14 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
         item {
             LiquidGlassCard(cornerRadius = 16.dp, contentPadding = 16.dp) {
                 Column {
-                    Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF141413))
+                    Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                     Spacer(Modifier.height(8.dp))
-                    Text("地址: <your-server>", color = Color(0xFF87867F))
-                    Text("版本: OpenList v4.2.2", color = Color(0xFF87867F))
+                    Text("地址: <your-server>", color = Color(0xFF5C5B57))
+                    Text("版本: OpenList v4.2.2", color = Color(0xFF5C5B57))
                     overview?.let {
-                        Text("用户数: ${it.userCount}", color = Color(0xFF87867F))
-                        Text("挂载数: ${it.mountCount}", color = Color(0xFF87867F))
-                        Text("分享数: ${it.shareCount}", color = Color(0xFF87867F))
+                        Text("用户数: ${it.userCount}", color = Color(0xFF5C5B57))
+                        Text("挂载数: ${it.mountCount}", color = Color(0xFF5C5B57))
+                        Text("分享数: ${it.shareCount}", color = Color(0xFF5C5B57))
                     }
                 }
             }
@@ -293,10 +293,10 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
         item {
             LiquidGlassCard(cornerRadius = 16.dp, contentPadding = 16.dp) {
                 Column {
-                    Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF141413))
+                    Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                     Spacer(Modifier.height(8.dp))
-                    Text("三页云盘 v0.3.38", color = Color(0xFF87867F))
-                    Text("基于官方 OpenList 开发", color = Color(0xFF87867F))
+                    Text("三页云盘 v0.3.38", color = Color(0xFF5C5B57))
+                    Text("基于官方 OpenList 开发", color = Color(0xFF5C5B57))
                 }
             }
         }
