@@ -1,7 +1,5 @@
 package com.threel.openlist.ui.screen
 
-enum class SortMode { NAME_ASC, NAME_DESC, SIZE_ASC, SIZE_DESC, DATE_ASC, DATE_DESC, DEFAULT }
-
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
