@@ -506,9 +506,6 @@ private fun SearchTopBar(
                     DropdownMenuItem(
                         text = { Text(item.label) },
                         onClick = { onSortSelected(item.mode) },
-                        leadingIcon = if (sortMode == item.mode) {
-                            { Icon(Icons.Outlined.Check, modifier = Modifier.size(18.dp)) }
-                        } else null,
                     )
                 }
             }
