@@ -10,12 +10,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +19,6 @@ import androidx.navigation.compose.rememberNavController
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
-import com.threel.openlist.ui.screen.FilePreviewScreen
 import com.threel.openlist.ui.screen.LoginScreen
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -72,32 +65,13 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             }
         }
         true -> NavHost(nav, startDestination = "files") {
-            composable("files",
-                enterTransition = { fadeIn() + slideInHorizontally { it } },
-                exitTransition = { fadeOut() + slideOutHorizontally { -it } },
-            ) {
+            composable("files") {
                 FileBrowserScreen(
                     onLogout = { vm.logout() },
-                    onAbout = { nav.navigate("about") },
-                    onPreview = { path, name -> nav.navigate("preview/$path/$name") },
+                    onAbout = { nav.navigate("about") }
                 )
             }
-            composable("preview/{path}/{name}",
-                enterTransition = { fadeIn() + slideInHorizontally { it } },
-                exitTransition = { fadeOut() + slideOutHorizontally { -it } },
-            ) { backStackEntry ->
-                val path = backStackEntry.arguments?.getString("path") ?: ""
-                val name = backStackEntry.arguments?.getString("name") ?: ""
-                FilePreviewScreen(
-                    remotePath = path,
-                    fileName = name,
-                    onBack = { nav.popBackStack() },
-                )
-            }
-            composable("about",
-                enterTransition = { fadeIn() + slideInHorizontally { it } },
-                exitTransition = { fadeOut() + slideOutHorizontally { -it } },
-            ) {
+            composable("about") {
                 // 老板 6/14 拍: 加手势返回 / 系统返回键支持
                 // AboutScreen onBack 是按钮回调, BackHandler 走系统返回手势
                 BackHandler(enabled = true) {

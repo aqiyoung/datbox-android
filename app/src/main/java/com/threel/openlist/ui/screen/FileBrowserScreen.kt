@@ -3,15 +3,10 @@ package com.threel.openlist.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -70,6 +65,9 @@ import java.io.FileOutputStream
 import java.text.DecimalFormat
 import javax.inject.Inject
 
+// SortMode: 搜索排序模式
+enum class SortMode { DEFAULT, NAME_ASC, NAME_DESC, SIZE_ASC, SIZE_DESC, DATE_ASC, DATE_DESC }
+
 data class FileBrowserState(
     val path: String = "/",
     val items: List<FsItem> = emptyList(),
@@ -99,26 +97,33 @@ class FileBrowserViewModel @Inject constructor(
 
     init { load("/") }
 
-    private val sortedItems = derivedStateOf {
-        val query = _state.value.searchQuery.trim()
-        val filtered = if (query.isEmpty()) {
-            _state.value.items
-        } else {
-            _state.value.items.filter { it.name.contains(query, ignoreCase = true) }
-        }
-        when (_state.value.sortMode) {
-            SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
-            SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
-            SortMode.SIZE_ASC -> filtered.sortedBy { it.size }
-            SortMode.SIZE_DESC -> filtered.sortedByDescending { it.size }
-            SortMode.DATE_ASC -> filtered.sortedBy { it.modified }
-            SortMode.DATE_DESC -> filtered.sortedByDescending { it.modified }
-            SortMode.DEFAULT -> filtered
-        }
-    }
+    /** 根目录隐藏 (默认空) */
+    private val hiddenRootDirs: Set<String> = emptySet()
 
+    /** 任意子目录隐藏 ("天翼云盘飞牛备份" 在 /天翼云盘/ 下面) */
+    private val hiddenSubDirs: Set<String> = setOf(
+        "天翼云盘飞牛备份",
+    )
+
+    /** 排序+过滤后的展示列表 */
     val displayedItems: List<FsItem>
-        get() = sortedItems.value
+        get() {
+            val query = _state.value.searchQuery.trim()
+            val filtered = if (query.isEmpty()) {
+                _state.value.items
+            } else {
+                _state.value.items.filter { it.name.contains(query, ignoreCase = true) }
+            }
+            return when (_state.value.sortMode) {
+                SortMode.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
+                SortMode.NAME_DESC -> filtered.sortedByDescending { it.name.lowercase() }
+                SortMode.SIZE_ASC -> filtered.sortedBy { it.size }
+                SortMode.SIZE_DESC -> filtered.sortedByDescending { it.size }
+                SortMode.DATE_ASC -> filtered.sortedBy { it.modified }
+                SortMode.DATE_DESC -> filtered.sortedByDescending { it.modified }
+                SortMode.DEFAULT -> filtered
+            }
+        }
 
     fun updateSearchQuery(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
@@ -127,25 +132,6 @@ class FileBrowserViewModel @Inject constructor(
     fun updateSortMode(mode: SortMode) {
         _state.value = _state.value.copy(sortMode = mode)
     }
-
-    /**
-     * 老板 6/14 16:42 拍: 屏蔽指定目录不显示
-     *
-     * **16:50 #39682 老板再次明确**: "天翼云盘要显示呀, 天翼云盘下面还挂了个天翼云盘飞牛备份"
-     * = 根目录 "天翼云盘" 要保留, 只藏它下面的 "天翼云盘飞牛备份" 子目录
-     *
-     * 修正路线:
-     * - v0.3.19: 藏 "天翼云盘" + "飞牛备份" 根目录 (错)
-     * - v0.3.20: 藏 "天翼云盘" 根 + "天翼云盘飞牛备份" 子 (还是错, 天翼云盘不应该藏)
-     * - v0.3.21: hiddenRootDirs = 空 (不藏根目录), hiddenSubDirs = "天翼云盘飞牛备份" (只藏这子目录)
-     */
-    /** 根目录隐藏 (默认空) */
-    private val hiddenRootDirs: Set<String> = emptySet()
-
-    /** 任意子目录隐藏 ("天翼云盘飞牛备份" 在 /天翼云盘/ 下面) */
-    private val hiddenSubDirs: Set<String> = setOf(
-        "天翼云盘飞牛备份",
-    )
 
     fun load(path: String) {
         _state.value = _state.value.copy(loading = true, path = path, error = null)
@@ -163,6 +149,25 @@ class FileBrowserViewModel @Inject constructor(
                         loading = false,
                         error = e.message ?: "加载失败",
                     )
+                }
+        }
+    }
+
+    /** 下拉刷新 */
+    fun refresh() {
+        val currentPath = _state.value.path
+        _state.value = _state.value.copy(isRefreshing = true)
+        viewModelScope.launch {
+            repo.list(currentPath)
+                .onSuccess { items ->
+                    val visible = when {
+                        currentPath == "/" -> items.filter { it.name !in hiddenRootDirs }
+                        else -> items.filter { it.name !in hiddenSubDirs }
+                    }
+                    _state.value = _state.value.copy(items = visible, isRefreshing = false)
+                }
+                .onFailure { e ->
+                    _state.value = _state.value.copy(isRefreshing = false, error = e.message ?: "刷新失败")
                 }
         }
     }
@@ -258,7 +263,6 @@ class FileBrowserViewModel @Inject constructor(
 fun FileBrowserScreen(
     onLogout: () -> Unit,
     onAbout: () -> Unit = {},
-    onPreview: (String, String) -> Unit = { _, _ -> },
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -266,6 +270,10 @@ fun FileBrowserScreen(
     val displayedItems = vm.displayedItems
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // 搜索栏状态
+    var searchActive by remember { mutableStateOf(false) }
+    var sortMenuExpanded by remember { mutableStateOf(false) }
 
     // 老板 6/14: 液态玻璃弹窗 - 长按文件后设置该项
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
@@ -279,7 +287,6 @@ fun FileBrowserScreen(
     ) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user picked file: $uri")
-        // 把 content:// URI 复制到 cacheFile (Retrofit 上传需要 File)
         scope.launch {
             val tempFile = withContext(Dispatchers.IO) {
                 val name = uri.lastPathSegment?.substringAfterLast('/') ?: "upload_${System.currentTimeMillis()}"
@@ -301,20 +308,28 @@ fun FileBrowserScreen(
         }
     }
 
-    // 搜索栏
-    var searchActive by remember { mutableStateOf(false) }
-    var sortMenuExpanded by remember { mutableStateOf(false) }
+    // 下拉刷新状态 (Material 3 pullRefresh — compose-bom 2024.06 自带)
+    val pullRefreshState = rememberPullToRefreshState()
+    if (pullRefreshState.isRefreshing) {
+        LaunchedEffect(true) {
+            vm.refresh()
+            pullRefreshState.endRefresh()
+        }
+    }
 
     Scaffold(
         topBar = {
             if (searchActive) {
-                SearchBar(
+                // 搜索栏
+                SearchTopBar(
                     query = state.searchQuery,
                     onQueryChange = { vm.updateSearchQuery(it) },
                     onBack = { searchActive = false; vm.updateSearchQuery("") },
-                    onSort = { sortMenuExpanded = true },
                     sortMode = state.sortMode,
+                    onSortClick = { sortMenuExpanded = true },
                     onSortSelected = { mode -> vm.updateSortMode(mode); sortMenuExpanded = false },
+                    sortMenuExpanded = sortMenuExpanded,
+                    onDismissSortMenu = { sortMenuExpanded = false },
                     onAbout = onAbout,
                     onLogout = onLogout,
                 )
@@ -324,23 +339,22 @@ fun FileBrowserScreen(
                     leadingIcon = Icons.Outlined.Folder,
                     actions = {
                         IconButton(onClick = { searchActive = true }) {
-                            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = Color(0xFF141413))
+                            Icon(Icons.Outlined.Search, contentDescription = "搜索")
                         }
                         IconButton(onClick = { vm.load(state.path) }) {
-                            Icon(Icons.Outlined.Refresh, contentDescription = "刷新", tint = Color(0xFF141413))
+                            Icon(Icons.Outlined.Refresh, contentDescription = "刷新")
                         }
                         IconButton(onClick = onAbout) {
-                            Icon(Icons.Outlined.Info, contentDescription = "关于", tint = Color(0xFF141413))
+                            Icon(Icons.Outlined.Info, contentDescription = "关于")
                         }
                         IconButton(onClick = onLogout) {
-                            Icon(Icons.Outlined.Logout, contentDescription = "退出", tint = Color(0xFF141413))
+                            Icon(Icons.Outlined.Logout, contentDescription = "退出")
                         }
                     },
                 )
             }
         },
         floatingActionButton = {
-            // 老板 6/14 15:25 拍: 圆形加号, 不需要文字
             if (action.busy) {
                 LiquidGlassFab(
                     icon = Icons.Filled.Refresh,
@@ -356,18 +370,10 @@ fun FileBrowserScreen(
         },
         containerColor = Color(0xFFF5F4ED),
     ) { padding ->
-        val pullToRefreshState = rememberPullToRefreshState()
-        if (pullToRefreshState.isRefreshing) {
-            LaunchedEffect(true) {
-                vm.load(state.path)
-                pullToRefreshState.endRefresh()
-            }
-        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .nestedScroll(pullToRefreshState.nestedScrollConnection)
         ) {
             when {
                 state.loading -> CenterLoading()
@@ -377,57 +383,58 @@ fun FileBrowserScreen(
                     actionLabel = if (state.path != "/") "返回上一层" else null,
                     onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                 )
-                else -> LazyColumn(
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                else -> Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(pullRefreshState.nestedScrollConnection)
                 ) {
-                    if (state.path != "/") {
-                        item {
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        if (state.path != "/") {
+                            item {
+                                FileRow(
+                                    icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
+                                    name = "..",
+                                    size = "",
+                                    modified = "",
+                                    onClick = { vm.load(vm.goUp()) },
+                                    onLongClick = null,
+                                    onMenuClick = null,
+                                )
+                            }
+                        }
+                        items(displayedItems) { item ->
+                            val onMenu = if (!item.isDir) {
+                                {
+                                    com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user tapped 3-dot menu on file: ${item.name}")
+                                    menuItem = item
+                                }
+                            } else null
+                            val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
                             FileRow(
-                                icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
-                                name = "..",
-                                size = "",
-                                modified = "",
-                                onClick = { vm.load(vm.goUp()) },
+                                icon = { Icon(fileIcon, null, tint = fileColor) },
+                                name = item.name,
+                                size = if (item.isDir) "" else humanSize(item.size),
+                                modified = item.modified.take(10),
+                                onClick = {
+                                    if (item.isDir) {
+                                        val next = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
+                                        vm.load(next)
+                                    }
+                                },
                                 onLongClick = null,
-                                onMenuClick = null,
+                                onMenuClick = onMenu,
                             )
                         }
                     }
-                    items(displayedItems) { item ->
-                        val onMenu = if (!item.isDir) {
-                            {
-                                com.threel.openlist.util.TelemetryLog.i("FileBrowser", "user tapped 3-dot menu on file: ${item.name}")
-                                menuItem = item
-                            }
-                        } else null
-                        val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
-                        FileRow(
-                            icon = { Icon(fileIcon, null, tint = fileColor) },
-                            name = item.name,
-                            size = if (item.isDir) "" else humanSize(item.size),
-                            modified = item.modified.take(10),
-                            onClick = {
-                                if (item.isDir) {
-                                    val next = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
-                                    vm.load(next)
-                                } else {
-                                    val remotePath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
-                                    onPreview(remotePath, item.name)
-                                }
-                            },
-                            onLongClick = null,
-                            onMenuClick = onMenu,
-                        )
-                    }
+                    PullToRefreshContainer(
+                        state = pullRefreshState,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
                 }
             }
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                containerColor = Color(0xFFF5F4ED),
-                contentColor = Color(0xFF141413),
-                modifier = Modifier.align(Alignment.TopCenter),
-            )
         }
 
         // 老板 6/14: 液态玻璃弹窗
@@ -456,25 +463,26 @@ fun FileBrowserScreen(
     }
 }
 
-/**
- * 搜索栏 + 排序弹窗
- */
+// ========== 搜索 + 排序 TopBar ==========
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SearchBar(
+private fun SearchTopBar(
     query: String,
     onQueryChange: (String) -> Unit,
     onBack: () -> Unit,
-    onSort: () -> Unit,
     sortMode: SortMode,
+    onSortClick: () -> Unit,
     onSortSelected: (SortMode) -> Unit,
+    sortMenuExpanded: Boolean,
+    onDismissSortMenu: () -> Unit,
     onAbout: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    var showSortMenu by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .background(Color(0xFFF5F4ED))
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onBack) {
@@ -492,30 +500,27 @@ private fun SearchBar(
             ),
         )
         Box {
-            IconButton(onClick = { showSortMenu = true }) {
-                Icon(Icons.Outlined.Sort, contentDescription = "排序")
+            IconButton(onClick = onSortClick) {
+                Icon(Icons.Outlined.List, contentDescription = "排序")
             }
             DropdownMenu(
-                expanded = showSortMenu,
-                onDismissRequest = { showSortMenu = false },
+                expanded = sortMenuExpanded,
+                onDismissRequest = onDismissSortMenu,
             ) {
                 data class SortItem(val mode: SortMode, val label: String)
                 val items = listOf(
                     SortItem(SortMode.DEFAULT, "默认排序"),
                     SortItem(SortMode.NAME_ASC, "名称 A → Z"),
                     SortItem(SortMode.NAME_DESC, "名称 Z → A"),
-                    SortItem(SortMode.SIZE_ASC, "大小 (小 → 大)"),
-                    SortItem(SortMode.SIZE_DESC, "大小 (大 → 小)"),
-                    SortItem(SortMode.DATE_ASC, "日期 (旧 → 新)"),
-                    SortItem(SortMode.DATE_DESC, "日期 (新 → 旧)"),
+                    SortItem(SortMode.SIZE_ASC, "大小 小→大"),
+                    SortItem(SortMode.SIZE_DESC, "大小 大→小"),
+                    SortItem(SortMode.DATE_ASC, "日期 旧→新"),
+                    SortItem(SortMode.DATE_DESC, "日期 新→旧"),
                 )
                 items.forEach { item ->
                     DropdownMenuItem(
                         text = { Text(item.label) },
-                        onClick = {
-                            onSortSelected(item.mode)
-                            showSortMenu = false
-                        },
+                        onClick = { onSortSelected(item.mode) },
                         leadingIcon = if (sortMode == item.mode) {
                             { Icon(Icons.Outlined.Check, modifier = Modifier.size(18.dp)) }
                         } else null,
@@ -542,9 +547,8 @@ private fun FileRow(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
     onMenuClick: (() -> Unit)? = null,
-    selected: Boolean = false,  // 老板 6/14 拍: v0.3.14 选中态液态
+    selected: Boolean = false,
 ) {
-    // v0.3.14: 老板拍用 LiquidGlassRow 圆角 16dp + 轻 BorderCream + 选中态 alpha 0.95
     com.threel.openlist.ui.component.LiquidGlassRow(
         cornerRadius = 16.dp,
         selected = selected,
@@ -575,7 +579,6 @@ private fun FileRow(
 @Composable
 private fun CenterLoading() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
     com.threel.openlist.ui.component.LiquidGlassCard(cornerRadius = 24.dp, contentPadding = 32.dp) {
-        // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
         CircularProgressIndicator(color = Color(0xFF141413))
     }
 }
@@ -595,7 +598,6 @@ private fun CenterMessage(
             Text(msg, color = Color(0xFF141413), style = MaterialTheme.typography.bodyLarge)
             if (actionLabel != null && onAction != null) {
                 Spacer(Modifier.height(12.dp))
-                // 老板 6/14 15:25 拍: 按钮用新 LiquidGlassPrimaryButton (不再"灯笼框")
                 com.threel.openlist.ui.component.LiquidGlassPrimaryButton(
                     text = actionLabel,
                     onClick = onAction,
@@ -606,14 +608,6 @@ private fun CenterMessage(
     }
 }
 
-/** 老板 6/14: 液态玻璃弹窗 (Material 3 AlertDialog + 半透明白)
- *
- * 风格参考:
- * - 标题/文件名为次要色
- * - 主操作（下载/分享）每项独立卡片 + 大 icon + 文字
- * - 取消按钮独立一行
- * - 圆角 20dp + containerColor 半透明白 (0.85)
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GlassActionDialog(
@@ -628,7 +622,7 @@ private fun GlassActionDialog(
                 .fillMaxWidth()
                 .padding(horizontal = 32.dp),
             shape = RoundedCornerShape(24.dp),
-            color = Color.White.copy(alpha = 0.85f),  // 液态玻璃: 半透明白
+            color = Color.White.copy(alpha = 0.85f),
             tonalElevation = 6.dp,
             shadowElevation = 12.dp,
         ) {
@@ -636,7 +630,6 @@ private fun GlassActionDialog(
                 modifier = Modifier.padding(vertical = 20.dp, horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                // 标题
                 Text(
                     text = "文件操作",
                     style = MaterialTheme.typography.labelMedium,
@@ -653,7 +646,6 @@ private fun GlassActionDialog(
                     modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
                 )
 
-                // 老板 6/14 16:35 拍: 不用 Terracotta, 改 NearBlack
                 GlassActionItem(
                     icon = Icons.Outlined.Download,
                     iconTint = Color(0xFF141413),
@@ -661,7 +653,6 @@ private fun GlassActionDialog(
                     subLabel = "保存到下载目录",
                     onClick = { onDownload(); onDismiss() },
                 )
-                // 分享链接
                 GlassActionItem(
                     icon = Icons.Outlined.Share,
                     iconTint = Color(0xFF141413),
@@ -670,7 +661,6 @@ private fun GlassActionDialog(
                     onClick = { onShare(); onDismiss() },
                 )
 
-                // 老板 6/14: 取消独立一行 (液态玻璃感)
                 Spacer(Modifier.height(4.dp))
                 Surface(
                     modifier = Modifier
@@ -695,7 +685,6 @@ private fun GlassActionDialog(
     }
 }
 
-/** 弹窗里的一个操作行 (大 icon + 标题 + 副标题) */
 @Composable
 private fun GlassActionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -709,7 +698,7 @@ private fun GlassActionItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .clickable(onClick = onClick),
-        color = Color(0xFFFAF9F5).copy(alpha = 0.7f),  // 每行: 略亮一点的玻璃
+        color = Color(0xFFFAF9F5).copy(alpha = 0.7f),
     ) {
         Row(
             modifier = Modifier
@@ -717,7 +706,6 @@ private fun GlassActionItem(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // icon 背景小圆
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -758,62 +746,36 @@ private fun humanSize(b: Long): String = when {
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
 }
 
-/**
- * v0.3.32 老板 6/14 21:55 拍: '用谷歌的'
- * 
- * 之前 v0.3.31: 自绘 14 个 Canvas 图形 (596 行) - 老板吐槽"丑"
- * 之前 v0.3.0-30: Material Icons.Outlined + 8 种颜色 (冷暖混搭)
- * 现在: Material Icons.Filled (Google 官方矢量图标) + 品牌色统一 (陶土红 + NearBlack)
- * 
- * 颜色策略:
- * - 目录 + 文本/MD: NearBlack #141413 (跟液态玻璃原色一致, 老板 6/14 16:35 拍)
- * - 其他 12 类: 品牌陶土红 #D97757 (统一一种色, 跟液态玻璃 accent 一致)
- *   不再用 14 种彩虹色, 老板要的"彩色"= 跟单调黑对比, 跟 v0.3.31 多色对比都是进步
- * 
- * 项目本来就引了 material-icons-extended, 2000+ 图标
- */
 private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> = when {
     isDir -> Icons.Outlined.Folder to Color(0xFF141413)
     else -> {
         val ext = name.substringAfterLast('.', "").lowercase()
         when (ext) {
-            // 压缩包
             "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst", "iso" ->
                 Icons.Filled.Archive to Color(0xFFD97757)
-            // 应用程序 (APK / EXE / DMG / DEB / RPM / JAR / BIN / RUN / APP)
             "apk", "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1",
             "dmg", "deb", "rpm", "app", "pkg", "jar", "bin", "run" ->
-                Icons.Filled.Apps to Color(0xFFD97757)  // 用 Apps 不用 Android, 跟老板吐槽对应
-            // 图片
+                Icons.Filled.Apps to Color(0xFFD97757)
             "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
                 Icons.Filled.Image to Color(0xFFD97757)
-            // 视频
             "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
                 Icons.Filled.Movie to Color(0xFFD97757)
-            // 音频
             "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
                 Icons.Filled.MusicNote to Color(0xFFD97757)
-            // PDF
             "pdf" -> Icons.Filled.PictureAsPdf to Color(0xFFD97757)
-            // 代码
             "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs",
             "c", "cpp", "cc", "cxx", "h", "hpp", "json", "xml", "yaml", "yml",
             "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php",
             "html", "htm", "css", "scss", "sass", "less", "sql" ->
                 Icons.Filled.Code to Color(0xFFD97757)
-            // 文本 / Markdown (跟 NearBlack 区别, 显眼)
             "txt", "md", "markdown", "log", "rst", "tex" ->
                 Icons.Filled.TextSnippet to Color(0xFF141413)
-            // Word
             "doc", "docx", "rtf", "odt" ->
                 Icons.Filled.Description to Color(0xFFD97757)
-            // Excel / CSV
             "xls", "xlsx", "ods", "csv" ->
                 Icons.Filled.GridView to Color(0xFFD97757)
-            // PowerPoint
             "ppt", "pptx", "odp", "key" ->
                 Icons.Filled.Slideshow to Color(0xFFD97757)
-            // 默认: 未知文件
             else -> Icons.Filled.SaveAlt to Color(0xFFD97757)
         }
     }
