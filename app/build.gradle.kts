@@ -74,7 +74,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.0")
 
     // Compose + Material 3
-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
+    implementation(platform("androidx.compose:compose-bom:2025.01.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")

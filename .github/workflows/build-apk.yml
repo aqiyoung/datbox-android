@@ -40,13 +40,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
 
-      - name: Clear stale Gradle caches
-        run: |
-          rm -rf ~/.gradle/caches
-          rm -rf ~/.gradle/wrapper
-          echo "Gradle caches cleared"
-
-      - name: Clean gradle cache
+      - name: Clear Gradle caches
         run: rm -rf ~/.gradle/caches ~/.gradle/wrapper ~/.gradle/daemon
 
       - name: Get version
@@ -102,8 +96,6 @@ jobs:
       - name: Build Release APK (signed)
         if: success()
         run: |
-          set +e
-          rm -rf ~/.gradle/caches ~/.gradle/wrapper
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log | tail -200
           echo "===exit=== exit=$?"
         env:
