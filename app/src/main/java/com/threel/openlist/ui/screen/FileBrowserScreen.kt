@@ -44,6 +44,7 @@ import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -201,6 +202,7 @@ class FileBrowserViewModel @Inject constructor(
         viewModelScope.launch {
             managementRepo.delete(path).onSuccess {
                 _action.value = FileActionState(message = "删除成功")
+                delay(300)
                 load(_state.value.path)
             }.onFailure {
                 _action.value = FileActionState(message = "删除失败: ${it.message}", isError = true)
