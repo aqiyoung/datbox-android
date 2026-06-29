@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.threel.openlist.data.model.Mount
 import com.threel.openlist.data.model.Option
@@ -45,6 +46,16 @@ fun ManagementScreen(
     val state by vm.state.collectAsState()
     var selectedTab by remember { mutableStateOf(ManagementTab.USERS) }
 
+    // 强制浅色状态栏
+    val window = (LocalContext.current as? android.app.Activity)?.window
+    DisposableEffect(Unit) {
+        window?.let {
+            WindowCompat.getInsetsController(it, it.decorView).isAppearanceLightStatusBars = true
+            it.statusBarColor = android.graphics.Color.parseColor("#F5F4ED")
+        }
+        onDispose { }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F4ED)) {
     Scaffold(
         topBar = {
@@ -55,7 +66,12 @@ fun ManagementScreen(
                         Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF5F4ED))
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFFF5F4ED),
+                    scrolledContainerColor = Color(0xFFF5F4ED)
+                ),
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             )
         },
         containerColor = Color.Transparent,
@@ -66,6 +82,7 @@ fun ManagementScreen(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = Color(0xFFF5F4ED),
                 contentColor = Color(0xFF2A2925),
+                tonalElevation = 0.dp,
                 indicator = { TabRowDefaults.SecondaryIndicator(color = Color(0xFF2A2925)) }
             ) {
                 ManagementTab.entries.forEach { tab ->
