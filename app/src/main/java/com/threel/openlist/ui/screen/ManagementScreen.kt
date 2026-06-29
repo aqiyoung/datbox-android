@@ -2,6 +2,7 @@ package com.threel.openlist.ui.screen
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.util.Log
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebChromeClient
@@ -27,8 +28,6 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.InstallIn
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -43,11 +42,12 @@ fun ManagementScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val entryPoint = EntryPointAccessors.fromApplication(context, ManagementEntryPoint::class.java)
-    val tokenStore = entryPoint.tokenStore()
+    val tokenStore = remember {
+        EntryPointAccessors.fromApplication(context.applicationContext, ManagementEntryPoint::class.java).tokenStore()
+    }
 
-    val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
-    val token = tokenStore.tokenSync()
+    val serverUrl = remember { tokenStore.serverUrlSync().trimEnd('/') }
+    val token = remember { tokenStore.tokenSync() }
     val adminUrl = "$serverUrl/admin"
 
     var loading by remember { mutableStateOf(true) }
@@ -73,14 +73,6 @@ fun ManagementScreen(
                 .padding(padding),
             contentAlignment = Alignment.Center
         ) {
-            // 注入 token 到 cookie
-            val cookieManager = remember {
-                CookieManager.getInstance().apply {
-                    setAcceptCookie(true)
-                    setAcceptThirdPartyCookies(null, true)
-                }
-            }
-
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
                 factory = { ctx ->
@@ -89,29 +81,34 @@ fun ManagementScreen(
                             ViewGroup.LayoutParams.MATCH_PARENT,
                             ViewGroup.LayoutParams.MATCH_PARENT
                         )
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.cacheMode = WebSettings.LOAD_DEFAULT
-                        settings.useWideViewPort = true
-                        settings.loadWithOverviewMode = true
-                        settings.builtInZoomControls = true
-                        settings.displayZoomControls = false
-                        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        settings.setSupportMultipleWindows(false)
-                        settings.userAgentString = settings.userAgentString + " OpenListAndroid"
+                        settings.apply {
+                            javaScriptEnabled = true
+                            domStorageEnabled = true
+                            cacheMode = WebSettings.LOAD_DEFAULT
+                            useWideViewPort = true
+                            loadWithOverviewMode = true
+                            builtInZoomControls = true
+                            displayZoomControls = false
+                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                            userAgentString = "$userAgentString OpenListAndroid"
+                        }
 
                         // 注入 Authorization cookie
-                        val cookieDomain = serverUrl.removePrefix("https://").removePrefix("http://").split("/")[0]
-                        cookieManager.setCookie("$serverUrl/", "Authorization=$token")
-                        cookieManager.setCookie("https://$cookieDomain/", "Authorization=$token")
-                        cookieManager.flush()
+                        try {
+                            val cm = CookieManager.getInstance()
+                            cm.setAcceptCookie(true)
+                            cm.setAcceptThirdPartyCookies(this, true)
+                            val host = serverUrl.removePrefix("https://").removePrefix("http://").substringBefore("/")
+                            cm.setCookie(serverUrl, "Authorization=$token")
+                            cm.setCookie("https://$host", "Authorization=$token")
+                            cm.flush()
+                        } catch (e: Exception) {
+                            Log.e("ManagementScreen", "Cookie inject failed", e)
+                        }
 
                         webViewClient = object : WebViewClient() {
                             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                 loading = true
-                                // 每次页面跳转都重新注入 cookie
-                                cookieManager.setCookie("$serverUrl/", "Authorization=$token")
-                                cookieManager.flush()
                             }
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 loading = false
@@ -120,36 +117,27 @@ fun ManagementScreen(
                                 error = "加载失败: $description"
                                 loading = false
                             }
-                            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                // 内部跳转不拦截
-                                return false
-                            }
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean = false
                         }
+
                         webChromeClient = object : WebChromeClient() {
                             override fun onConsoleMessage(msg: android.webkit.ConsoleMessage?): Boolean {
-                                android.util.Log.d("WebView", "${msg?.message()} -- line ${msg?.lineNumber()}")
+                                Log.d("WebView", "${msg?.message()} -- line ${msg?.lineNumber()}")
                                 return true
                             }
                         }
 
                         loadUrl(adminUrl)
                     }
-                },
-                update = { /* no-op */ }
+                }
             )
 
-            // Loading 指示器
             if (loading) {
                 CircularProgressIndicator(color = Color(0xFF141413))
             }
 
-            // 错误提示
             error?.let {
-                Text(
-                    text = it,
-                    color = Color(0xFFFF3B30),
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                Text(text = it, color = Color(0xFFFF3B30))
             }
         }
     }
