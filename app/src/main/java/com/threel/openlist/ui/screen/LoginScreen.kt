@@ -310,13 +310,13 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(18.dp))
 
-                    Center {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Text("其他方式登录", fontSize = 13.sp, color = Color(0xFFBBBBBB))
                     }
 
                     Spacer(Modifier.height(12.dp))
 
-                    Center {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.VpnKey, contentDescription = null, tint = Color(0xFFCCCCCC), modifier = Modifier.size(28.dp))
                     }
                 }

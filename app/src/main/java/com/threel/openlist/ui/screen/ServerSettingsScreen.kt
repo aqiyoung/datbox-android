@@ -134,7 +134,7 @@ fun ServerSettingsScreen(
                                 color = Color(0xFF2A2925)
                             )
                         } else {
-                            Icon(Icons.Bolt, contentDescription = "自动选择最快", tint = Color(0xFF2A2925))
+                            Icon(Icons.Filled.FlashOn, contentDescription = "自动选择最快", tint = Color(0xFF2A2925))
                         }
                     }
                 },
