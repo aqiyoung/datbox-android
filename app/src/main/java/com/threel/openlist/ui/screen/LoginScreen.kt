@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -134,6 +135,7 @@ class LoginViewModel @Inject constructor(
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onServerSettings: () -> Unit = {},
     vm: LoginViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -161,6 +163,21 @@ fun LoginScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // 右上角服务器设置按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                IconButton(onClick = onServerSettings) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "服务器设置",
+                        tint = Color(0xFF87867F),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
             OpenListLogo(size = 72.dp)
             Spacer(Modifier.height(16.dp))
             Text(
@@ -178,47 +195,14 @@ fun LoginScreen(
                     .background(Color.White.copy(alpha = 0.85f))
                     .padding(24.dp),
             ) {
-                // 服务器地址
-                OutlinedTextField(
-                    value = state.serverUrl,
-                    onValueChange = vm::onServerUrl,
-                    label = { Text("服务器地址") },
-                    placeholder = { Text("https://your-openlist-server.com") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                // 当前服务器地址显示
+                Text(
+                    "服务器: ${state.serverUrl}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF87867F),
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
 
-                // 测试连接
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    LiquidGlassPrimaryButton(
-                        text = if (state.testLoading) "测试中..." else "测试连接",
-                        enabled = !state.testLoading && state.serverUrl.isNotBlank(),
-                        onClick = vm::testConnection,
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (state.testLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color(0xFF87867F),
-                        )
-                    }
-                }
-
-                if (state.testResult == TestResult.SUCCESS) {
-                    Spacer(Modifier.height(4.dp))
-                    Text("连接成功", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
-                } else if (state.testResult == TestResult.FAILED) {
-                    Spacer(Modifier.height(4.dp))
-                    Text("无法连接到此服务器", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
-                }
-
-                Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = state.username,
                     onValueChange = vm::onUsername,

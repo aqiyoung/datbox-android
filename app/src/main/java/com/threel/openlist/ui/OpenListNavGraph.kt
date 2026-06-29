@@ -82,7 +82,6 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     onLogout = { vm.logout() },
                     onAbout = { nav.navigate("about") },
                     onManagement = { nav.navigate("management") },
-                    onServerSettings = { nav.navigate("server_settings") },
                     onPreview = { path, name ->
                         nav.navigate("preview/${URLEncoder.encode(path, "UTF-8")}")
                     }
@@ -125,7 +124,10 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
         }
         false -> NavHost(nav, startDestination = "login") {
             composable("login") {
-                LoginScreen(onLoginSuccess = { vm.setLoggedIn() })
+                LoginScreen(
+                    onLoginSuccess = { vm.setLoggedIn() },
+                    onServerSettings = { nav.navigate("server_settings") }
+                )
             }
         }
     }

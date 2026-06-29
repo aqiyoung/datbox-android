@@ -224,7 +224,6 @@ fun FileBrowserScreen(
     onLogout: () -> Unit,
     onAbout: () -> Unit = {},
     onManagement: () -> Unit = {},
-    onServerSettings: () -> Unit = {},
     onPreview: (String, String) -> Unit = { _, _ -> },
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
@@ -357,7 +356,6 @@ fun FileBrowserScreen(
                         FabMenuItem(Icons.Outlined.CreateNewFolder, "新建文件夹") { showMkdirDialog = true; fabExpanded = false },
                         FabMenuItem(Icons.Outlined.Upload, "上传文件") { pickFileLauncher.launch("*/*"); fabExpanded = false },
                         FabMenuItem(Icons.Outlined.Settings, "管理") { onManagement(); fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.Settings, "服务器") { onServerSettings(); fabExpanded = false },
                         FabMenuItem(Icons.Outlined.Info, "关于") { onAbout(); fabExpanded = false },
                     )
                     menuItems.forEachIndexed { index, item ->
