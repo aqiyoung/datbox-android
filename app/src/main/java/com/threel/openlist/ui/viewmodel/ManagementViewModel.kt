@@ -145,9 +145,9 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    fun deleteFile(path: String, onSuccess: () -> Unit = {}) {
+    fun deleteFile(dir: String, name: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            repo.delete(path)
+            repo.delete(dir, name)
                 .onSuccess { onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
