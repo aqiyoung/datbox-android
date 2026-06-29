@@ -197,10 +197,10 @@ class FileBrowserViewModel @Inject constructor(
         }
     }
 
-    fun delete(path: String) {
+    fun delete(dir: String, name: String) {
         _action.value = FileActionState(busy = true, message = "删除中...")
         viewModelScope.launch {
-            managementRepo.delete(path).onSuccess {
+            managementRepo.delete(dir, name).onSuccess {
                 _action.value = FileActionState(message = "删除成功")
                 delay(300)
                 load(_state.value.path)
@@ -429,8 +429,9 @@ fun FileBrowserScreen(
 
         // 删除弹窗
         showDeleteDialog?.let { item ->
-            val itemPath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
-            DeleteDialog(fileName = item.name, onDismiss = { showDeleteDialog = null }, onDelete = { vm.delete(itemPath); showDeleteDialog = null })
+            val dir = state.path
+            val name = item.name
+            DeleteDialog(fileName = item.name, onDismiss = { showDeleteDialog = null }, onDelete = { vm.delete(dir, name); showDeleteDialog = null })
         }
     }
 }

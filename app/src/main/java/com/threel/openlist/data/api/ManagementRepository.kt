@@ -128,7 +128,7 @@ class ManagementRepository @Inject constructor(
     }
 
     suspend fun mkdir(path: String, name: String): Result<Unit> = fsPost("mkdir", """{"path":"$path","name":"$name"}""")
-    suspend fun rename(path: String, newName: String): Result<Unit> = fsPost("rename", """{"path":"$path","new_name":"$newName"}""")
+    suspend fun rename(path: String, newName: String): Result<Unit> = fsPost("rename", """{"path":"$path","name":"$newName"}""")
     suspend fun move(path: String, newPath: String): Result<Unit> = fsPost("move", """{"path":"$path","new_path":"$newPath"}""")
-    suspend fun delete(path: String): Result<Unit> = fsPost("remove", """{"path":"$path"}""")
+    suspend fun delete(dir: String, name: String): Result<Unit> = fsPost("remove", """{"dir":"$dir","names":["$name"]}""")
 }
