@@ -133,7 +133,7 @@ fun FilePreviewScreen(
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Black.copy(alpha = 0.5f)
+                containerColor = Color.Transparent
             )
         )
 

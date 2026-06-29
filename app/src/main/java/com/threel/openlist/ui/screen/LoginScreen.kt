@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -43,6 +42,7 @@ data class LoginUiState(
     val error: String? = null,
     val success: Boolean = false,
     val passwordVisible: Boolean = false,
+    val rememberMe: Boolean = true,
     val serverUrl: String = "https://<your-server>",
 )
 
@@ -69,6 +69,7 @@ class LoginViewModel @Inject constructor(
     fun onUsername(v: String) { _state.value = _state.value.copy(username = v) }
     fun onPassword(v: String) { _state.value = _state.value.copy(password = v) }
     fun togglePasswordVisible() { _state.value = _state.value.copy(passwordVisible = !_state.value.passwordVisible) }
+    fun toggleRememberMe() { _state.value = _state.value.copy(rememberMe = !_state.value.rememberMe) }
     fun clearError() { _state.value = _state.value.copy(error = null) }
 
     fun submit() {
@@ -264,20 +265,25 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(14.dp))
 
-                    // 记住我 + 忘记密码
+                    // 记住我（可点击切换）
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.toggleRememberMe() },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("记住我", fontSize = 13.sp, color = Color(0xFF666666))
-                        }
-                        Spacer(Modifier.weight(1f))
-                        TextButton(onClick = {}) {
-                            Text("忘记密码？", fontSize = 13.sp, color = Color(0xFF20C997))
-                        }
+                        Icon(
+                            if (state.rememberMe) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
+                            contentDescription = null,
+                            tint = if (state.rememberMe) Color(0xFF20C997) else Color(0xFFCCCCCC),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            "记住我",
+                            fontSize = 13.sp,
+                            color = if (state.rememberMe) Color(0xFF20C997) else Color(0xFF888888)
+                        )
                     }
 
                     Spacer(Modifier.height(10.dp))
@@ -308,17 +314,6 @@ fun LoginScreen(
                         Text(state.error!!, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.bodySmall)
                     }
 
-                    Spacer(Modifier.height(18.dp))
-
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("其他方式登录", fontSize = 13.sp, color = Color(0xFFBBBBBB))
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Filled.VpnKey, contentDescription = null, tint = Color(0xFFCCCCCC), modifier = Modifier.size(28.dp))
-                    }
                 }
             }
 
