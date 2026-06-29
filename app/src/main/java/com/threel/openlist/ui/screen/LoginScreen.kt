@@ -2,12 +2,14 @@ package com.threel.openlist.ui.screen
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -163,21 +165,6 @@ fun LoginScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // 右上角服务器设置按钮
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = onServerSettings) {
-                    Icon(
-                        Icons.Filled.Settings,
-                        contentDescription = "服务器设置",
-                        tint = Color(0xFF87867F),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
             OpenListLogo(size = 72.dp)
             Spacer(Modifier.height(16.dp))
             Text(
@@ -195,13 +182,25 @@ fun LoginScreen(
                     .background(Color.White.copy(alpha = 0.85f))
                     .padding(24.dp),
             ) {
-                // 当前服务器地址显示
-                Text(
-                    "服务器: ${state.serverUrl}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF87867F),
-                )
-                Spacer(Modifier.height(12.dp))
+                // ⭐ 可点击服务器卡片
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFFF5F4ED))
+                        .clickable { onServerSettings() }
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Filled.Public, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("当前服务器", style = MaterialTheme.typography.labelSmall, color = Color(0xFF87867F))
+                        Text(state.serverUrl, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                    }
+                    Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color(0xFF87867F), modifier = Modifier.size(20.dp))
+                }
+                Spacer(Modifier.height(16.dp))
 
                 OutlinedTextField(
                     value = state.username,
