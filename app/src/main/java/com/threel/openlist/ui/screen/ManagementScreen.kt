@@ -126,8 +126,9 @@ fun ManagementScreen(
                             }
                         }
                         webChromeClient = object : WebChromeClient() {
-                            override fun onConsoleMessage(msg: android.webkit.ConsoleMessage?) {
+                            override fun onConsoleMessage(msg: android.webkit.ConsoleMessage?): Boolean {
                                 android.util.Log.d("WebView", "${msg?.message()} -- line ${msg?.lineNumber()}")
+                                return true
                             }
                         }
 
