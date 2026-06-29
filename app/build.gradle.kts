@@ -45,8 +45,8 @@ android {
         applicationId = "com.threel.openlist"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 56
-        versionName = "0.3.56"
+        versionCode = 57
+        versionName = "0.3.57"
     }
 
     buildTypes {
@@ -106,4 +106,7 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // WebView
+    implementation("androidx.webkit:webkit:1.10.0")
 }
