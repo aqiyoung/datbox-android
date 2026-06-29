@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -69,9 +70,7 @@ fun ManagementScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFF5F4ED),
                     scrolledContainerColor = Color(0xFFF5F4ED)
-                ),
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
+                )
             )
         },
         containerColor = Color.Transparent,
@@ -82,7 +81,6 @@ fun ManagementScreen(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = Color(0xFFF5F4ED),
                 contentColor = Color(0xFF2A2925),
-                tonalElevation = 0.dp,
                 indicator = {},
                 divider = {}
             ) {
