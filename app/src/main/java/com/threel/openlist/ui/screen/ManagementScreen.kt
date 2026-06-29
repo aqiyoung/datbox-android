@@ -83,17 +83,21 @@ fun ManagementScreen(
                 containerColor = Color(0xFFF5F4ED),
                 contentColor = Color(0xFF2A2925),
                 tonalElevation = 0.dp,
-                indicator = { TabRowDefaults.SecondaryIndicator(color = Color(0xFF2A2925)) }
+                indicator = {},
+                divider = {}
             ) {
                 ManagementTab.entries.forEach { tab ->
+                    val selected = selectedTab == tab
                     Tab(
-                        selected = selectedTab == tab,
+                        selected = selected,
                         onClick = { selectedTab = tab },
-                        text = { Text(tab.label) },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) }
+                        modifier = Modifier.background(if (selected) Color(0xFFE8E6DC) else Color.Transparent),
+                        text = { Text(tab.label, color = Color(0xFF2A2925), fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+                        icon = { Icon(tab.icon, contentDescription = tab.label, tint = Color(0xFF2A2925)) }
                     )
                 }
             }
+            HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
 
             when (selectedTab) {
                 ManagementTab.USERS -> UsersTab(state.users, state.loading, vm)
