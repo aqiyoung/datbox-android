@@ -1,14 +1,11 @@
 package com.threel.openlist.ui.screen
 
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Error
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,35 +14,67 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
-import dagger.hilt.EntryPoint
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
-import dagger.hilt.InstallIn
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-@EntryPoint
-@InstallIn(SingletonComponent::class)
-interface ServerSettingsEntryPoint {
-    fun tokenStore(): TokenStore
-    fun openListRepository(): OpenListRepository
+data class ServerSettingsState(
+    val serverUrl: String = "",
+    val testing: Boolean = false,
+    val testResult: Boolean? = null,
+    val saved: Boolean = false
+)
+
+@HiltViewModel
+class ServerSettingsViewModel @Inject constructor(
+    private val tokenStore: TokenStore,
+    private val repo: OpenListRepository,
+) : ViewModel() {
+    private val _state = MutableStateFlow(ServerSettingsState())
+    val state = _state.asStateFlow()
+
+    init {
+        _state.value = _state.value.copy(serverUrl = tokenStore.serverUrlSync())
+    }
+
+    fun onServerUrl(v: String) {
+        _state.value = _state.value.copy(serverUrl = v, testResult = null)
+    }
+
+    fun testConnection() {
+        if (_state.value.testing || _state.value.serverUrl.isBlank()) return
+        _state.value = _state.value.copy(testing = true, testResult = null)
+        viewModelScope.launch {
+            val ok = repo.testConnection(_state.value.serverUrl.trim())
+            _state.value = _state.value.copy(testing = false, testResult = ok)
+        }
+    }
+
+    fun save(onSaved: () -> Unit) {
+        if (_state.value.serverUrl.isBlank()) return
+        viewModelScope.launch {
+            tokenStore.saveServerUrl(_state.value.serverUrl.trim())
+            _state.value = _state.value.copy(saved = true)
+            onSaved()
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerSettingsScreen(
     onBack: () -> Unit,
+    vm: ServerSettingsViewModel = hiltViewModel(),
 ) {
+    val state by vm.state.collectAsState()
     val context = LocalContext.current
-    val entryPoint = EntryPointAccessors.fromApplication(context, ServerSettingsEntryPoint::class.java)
-    val tokenStore = entryPoint.tokenStore()
-    val repo = entryPoint.openListRepository()
-
-    var serverUrl by remember { mutableStateOf(tokenStore.serverUrlSync()) }
-    var testing by remember { mutableStateOf(false) }
-    var testResult by remember { mutableStateOf<Boolean?>(null) }
-    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -70,11 +99,8 @@ fun ServerSettingsScreen(
         ) {
             // 服务器地址输入
             OutlinedTextField(
-                value = serverUrl,
-                onValueChange = {
-                    serverUrl = it
-                    testResult = null
-                },
+                value = state.serverUrl,
+                onValueChange = vm::onServerUrl,
                 label = { Text("服务器地址") },
                 placeholder = { Text("https://your-openlist-server.com") },
                 singleLine = true,
@@ -95,22 +121,12 @@ fun ServerSettingsScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
-                    onClick = {
-                        if (serverUrl.isNotBlank()) {
-                            testing = true
-                            testResult = null
-                            scope.launch {
-                                val ok = repo.testConnection(serverUrl.trim())
-                                testResult = ok
-                                testing = false
-                            }
-                        }
-                    },
-                    enabled = !testing && serverUrl.isNotBlank(),
+                    onClick = vm::testConnection,
+                    enabled = !state.testing && state.serverUrl.isNotBlank(),
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2925))
                 ) {
-                    if (testing) {
+                    if (state.testing) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
                             strokeWidth = 2.dp,
@@ -118,12 +134,12 @@ fun ServerSettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                     }
-                    Text(if (testing) "测试中..." else "测试连接", color = Color.White)
+                    Text(if (state.testing) "测试中..." else "测试连接", color = Color.White)
                 }
             }
 
             // 测试结果
-            when (testResult) {
+            when (state.testResult) {
                 true -> Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Outlined.Check, contentDescription = null, tint = Color(0xFF34C759))
                     Spacer(Modifier.width(8.dp))
@@ -140,15 +156,12 @@ fun ServerSettingsScreen(
             // 保存按钮
             Button(
                 onClick = {
-                    if (serverUrl.isNotBlank()) {
-                        tokenStore.run {
-                            kotlinx.coroutines.runBlocking { saveServerUrl(serverUrl.trim()) }
-                        }
+                    vm.save {
                         Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
                         onBack()
                     }
                 },
-                enabled = serverUrl.isNotBlank() && testResult == true,
+                enabled = state.serverUrl.isNotBlank() && state.testResult == true,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759))
             ) {
