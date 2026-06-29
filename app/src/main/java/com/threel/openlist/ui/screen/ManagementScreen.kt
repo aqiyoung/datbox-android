@@ -45,21 +45,22 @@ fun ManagementScreen(
     val state by vm.state.collectAsState()
     var selectedTab by remember { mutableStateOf(ManagementTab.USERS) }
 
+    Surface(modifier = Modifier.fillMaxSize(), color = Color(0xFFF5F4ED)) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("管理", fontWeight = FontWeight.Bold) },
+                title = { Text("管理", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF5F4ED))
             )
         },
-        containerColor = Color.White,
+        containerColor = Color.Transparent,
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F4ED)).padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // iOS 26 风格 Tab Row
             TabRow(
                 selectedTabIndex = selectedTab.ordinal,
@@ -85,6 +86,7 @@ fun ManagementScreen(
             }
         }
     }
+    } // Surface
 
     state.error?.let { err -> LaunchedEffect(err) { vm.clearError() } }
 }
