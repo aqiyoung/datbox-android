@@ -86,17 +86,17 @@ class ManagementViewModel @Inject constructor(
     }
 
     // ===== 挂载管理 =====
-    fun createMount(name: String, driver: String = "Local", path: String = "", status: Int = 1, onSuccess: () -> Unit = {}) {
+    fun createMount(driver: String = "Local", mountPath: String, order: Int = 0, remark: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            repo.mountCreate(name, driver, path, status)
+            repo.mountCreate(driver, mountPath, order, remark)
                 .onSuccess { loadAll(); onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
     }
 
-    fun updateMount(id: Int, name: String = "", driver: String = "", path: String = "", status: Int = -1, onSuccess: () -> Unit = {}) {
+    fun updateMount(id: Int, driver: String = "Local", mountPath: String = "", order: Int = -1, remark: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            repo.mountUpdate(id, name, driver, path, status)
+            repo.mountUpdate(id, driver, mountPath, order, remark)
                 .onSuccess { loadAll(); onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
@@ -156,6 +156,40 @@ class ManagementViewModel @Inject constructor(
         viewModelScope.launch {
             repo.delete(dir, name)
                 .onSuccess { onSuccess() }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    // ===== 系统设置 =====
+    fun saveOption(key: String, value: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            repo.optionSave(key, value)
+                .onSuccess { loadAll(); onSuccess() }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun deleteOption(key: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            repo.optionDelete(key)
+                .onSuccess { loadAll(); onSuccess() }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    // ===== 挂载启用/禁用 =====
+    fun enableMount(id: Int, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            repo.mountEnable(id)
+                .onSuccess { loadAll(); onSuccess() }
+                .onFailure { _state.value = _state.value.copy(error = it.message) }
+        }
+    }
+
+    fun disableMount(id: Int, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            repo.mountDisable(id)
+                .onSuccess { loadAll(); onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
     }

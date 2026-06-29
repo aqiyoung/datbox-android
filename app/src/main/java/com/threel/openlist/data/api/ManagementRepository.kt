@@ -7,6 +7,7 @@ import com.threel.openlist.data.model.Option
 import com.threel.openlist.data.model.Overview
 import com.threel.openlist.data.model.Share
 import com.threel.openlist.data.model.User
+import com.threel.openlist.data.model.UserInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,6 +34,13 @@ class ManagementRepository @Inject constructor(
 
     private suspend fun <T> safeApiCall(call: suspend () -> T): Result<T> = runCatching {
         call()
+    }
+
+    // ===== 当前用户 =====
+    suspend fun currentUser(): Result<UserInfo> = safeApiCall {
+        val resp = api.currentUser()
+        if (resp.code != 200 || resp.data == null) error(resp.message)
+        resp.data
     }
 
     // ===== 用户管理 =====
@@ -65,19 +73,29 @@ class ManagementRepository @Inject constructor(
         resp.data
     }
 
-    suspend fun mountCreate(name: String, driver: String = "Local", path: String = "", status: Int = 1): Result<Mount> = safeApiCall {
-        val resp = api.mountCreate(MountCreateRequest(name, driver, path, status))
+    suspend fun mountCreate(driver: String = "Local", mountPath: String, order: Int = 0, remark: String = ""): Result<Mount> = safeApiCall {
+        val resp = api.mountCreate(MountCreateRequest(driver, mountPath, order, remark))
         if (resp.code != 200 || resp.data == null) error(resp.message)
         resp.data
     }
 
-    suspend fun mountUpdate(id: Int, name: String = "", driver: String = "", path: String = "", status: Int = -1): Result<Unit> = safeApiCall {
-        val resp = api.mountUpdate(MountUpdateRequest(id, name, driver, path, status))
+    suspend fun mountUpdate(id: Int, driver: String = "Local", mountPath: String = "", order: Int = -1, remark: String = ""): Result<Unit> = safeApiCall {
+        val resp = api.mountUpdate(MountUpdateRequest(id, driver, mountPath, order, remark))
         if (resp.code != 200) error(resp.message)
     }
 
     suspend fun mountDelete(id: Int): Result<Unit> = safeApiCall {
         val resp = api.mountDelete(id)
+        if (resp.code != 200) error(resp.message)
+    }
+
+    suspend fun mountEnable(id: Int): Result<Unit> = safeApiCall {
+        val resp = api.mountEnable(id)
+        if (resp.code != 200) error(resp.message)
+    }
+
+    suspend fun mountDisable(id: Int): Result<Unit> = safeApiCall {
+        val resp = api.mountDisable(id)
         if (resp.code != 200) error(resp.message)
     }
 
@@ -106,8 +124,13 @@ class ManagementRepository @Inject constructor(
         resp.data
     }
 
-    suspend fun optionUpdate(key: String, value: String): Result<Unit> = safeApiCall {
-        val resp = api.optionUpdate(OptionUpdateRequest(key, value))
+    suspend fun optionSave(key: String, value: String): Result<Unit> = safeApiCall {
+        val resp = api.optionSave(OptionUpdateRequest(key, value))
+        if (resp.code != 200) error(resp.message)
+    }
+
+    suspend fun optionDelete(key: String): Result<Unit> = safeApiCall {
+        val resp = api.optionDelete(key)
         if (resp.code != 200) error(resp.message)
     }
 

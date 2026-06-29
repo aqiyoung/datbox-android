@@ -16,14 +16,17 @@ data class TokenData(
     val token: String,
 )
 
-/** OpenList /api/admin/user/info 响应 */
+/** OpenList /api/me 响应 */
 @Serializable
 data class UserInfo(
-    val id: Int,
-    val username: String,
+    val id: Int = 0,
+    val username: String = "",
+    val password: String = "",
     @SerialName("base_path") val basePath: String = "/",
     val role: Int = 2,  // 0=admin 1=guest 2=normal
+    val permission: Int = 0,
     val disabled: Boolean = false,
+    @SerialName("sso_id") val ssoId: String = ""
 )
 
 /** /api/fs/list 响应 */

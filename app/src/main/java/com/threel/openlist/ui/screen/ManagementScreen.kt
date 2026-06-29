@@ -358,19 +358,19 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
     }
 
     if (showAddDialog) {
-        MountEditDialog(mount = null, onDismiss = { showAddDialog = false }, onSave = { n, d, p, s -> vm.createMount(n, d, p, s) { showAddDialog = false } })
+        MountEditDialog(mount = null, onDismiss = { showAddDialog = false }, onSave = { d, mp, _, r -> vm.createMount(d, mp, 0, r) { showAddDialog = false } })
     }
     editingMount?.let { mount ->
-        MountEditDialog(mount = mount, onDismiss = { editingMount = null }, onSave = { n, d, p, s -> vm.updateMount(mount.id, n, d, p, s) { editingMount = null } })
+        MountEditDialog(mount = mount, onDismiss = { editingMount = null }, onSave = { d, mp, _, r -> vm.updateMount(mount.id, d, mp, 0, r) { editingMount = null } })
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (String, String, String, Int) -> Unit) {
-    var name by remember { mutableStateOf(mount?.mountPath ?: "") }
+private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (String, String, Int, String) -> Unit) {
     var driver by remember { mutableStateOf(mount?.driver ?: "Local") }
-    var path by remember { mutableStateOf(mount?.mountPath ?: "") }
+    var mountPath by remember { mutableStateOf(mount?.mountPath ?: "") }
+    var remark by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -379,7 +379,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = name, onValueChange = { name = it }, label = { Text("名称") },
+                    value = mountPath, onValueChange = { mountPath = it }, label = { Text("挂载路径") },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -397,7 +397,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
                     )
                 )
                 OutlinedTextField(
-                    value = path, onValueChange = { path = it }, label = { Text("路径") },
+                    value = remark, onValueChange = { remark = it }, label = { Text("备注") },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -409,7 +409,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
         },
         confirmButton = {
             Button(
-                onClick = { onSave(name, driver, path, 1) },
+                onClick = { onSave(driver, mountPath, 0, remark) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997))
             ) { Text("保存", color = Color.White) }
         },
