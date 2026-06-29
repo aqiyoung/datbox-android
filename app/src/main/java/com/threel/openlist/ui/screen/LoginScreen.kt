@@ -15,14 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -106,206 +105,230 @@ fun LoginScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF0F0C29),
-                        Color(0xFF302B63),
-                        Color(0xFF24243E)
-                    )
+                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
                 )
             )
     ) {
+        // ===== 背景装饰圆形 =====
+        Box(
+            modifier = Modifier
+                .offset(x = 120.dp, y = (-80).dp)
+                .size(160.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF20C997).copy(alpha = 0.08f))
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = (-60).dp, y = 600.dp)
+                .size(140.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF4285F4).copy(alpha = 0.06f))
+        )
+
+        // ===== 服务器按钮（右上角） =====
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 48.dp, end = 20.dp)
+                .clickable { onServerSettings() },
+            shape = RoundedCornerShape(30.dp),
+            color = Color.White,
+            shadowElevation = 6.dp,
+            tonalElevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(Icons.Filled.Storage, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+                Text("服务器", fontSize = 13.sp, color = Color(0xFF333333))
+                Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+            }
+        }
+
+        // ===== 主内容 =====
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 32.dp)
-                .padding(top = 80.dp, bottom = 32.dp),
+                .padding(horizontal = 24.dp)
+                .padding(top = 100.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Logo
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
+            // Logo 卡片
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = Color.White,
+                shadowElevation = 8.dp,
+                modifier = Modifier.size(72.dp)
             ) {
-                Icon(
-                    Icons.Filled.Cloud,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                "Welcome back",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                "Sign in to continue",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.6f)
-            )
-
-            Spacer(Modifier.height(48.dp))
-
-            // 服务器卡片
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.1f))
-                    .clickable { onServerSettings() }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Filled.Public, contentDescription = null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("当前服务器", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                    Text(state.serverUrl, style = MaterialTheme.typography.bodyMedium, color = Color.White, fontWeight = FontWeight.Medium)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Outlined.Cloud,
+                        contentDescription = null,
+                        tint = Color(0xFF20C997),
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
-                Icon(Icons.Filled.ChevronRight, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
             }
-
-            Spacer(Modifier.height(32.dp))
-
-            // 用户名输入框
-            OutlinedTextField(
-                value = state.username,
-                onValueChange = vm::onUsername,
-                placeholder = { Text("用户名", color = Color.White.copy(alpha = 0.4f)) },
-                leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White,
-                    focusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
-                )
-            )
 
             Spacer(Modifier.height(16.dp))
 
-            // 密码输入框
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = vm::onPassword,
-                placeholder = { Text("密码", color = Color.White.copy(alpha = 0.4f)) },
-                leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color.White.copy(alpha = 0.5f)) },
-                singleLine = true,
-                visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = vm::togglePasswordVisible) {
-                        Icon(
-                            imageVector = if (state.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                            contentDescription = if (state.passwordVisible) "隐藏密码" else "显示密码",
-                            tint = Color.White.copy(alpha = 0.5f)
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    cursorColor = Color.White,
-                    focusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
-                )
+            Text(
+                "聚合你的云盘",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.W600,
+                color = Color(0xFF1A1A1A)
             )
 
-            if (state.error != null) {
-                Spacer(Modifier.height(12.dp))
-                Text(state.error!!, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.bodySmall)
-            }
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                "一处登录 · 畅享所有",
+                fontSize = 14.sp,
+                color = Color(0xFF999999)
+            )
 
             Spacer(Modifier.height(32.dp))
 
-            // 登录按钮
-            Button(
-                onClick = vm::submit,
-                enabled = !state.loading && state.username.isNotBlank() && state.password.isNotBlank(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF0F0C29)
-                )
+            // ===== 登录卡片 =====
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = Color.White,
+                shadowElevation = 12.dp,
+                tonalElevation = 0.dp,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                if (state.loading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp,
-                        color = Color(0xFF0F0C29)
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    Text(
+                        "欢迎回来",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.W600,
+                        color = Color(0xFF1A1A1A)
                     )
-                } else {
-                    Text("登 录", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+
+                    Spacer(Modifier.height(18.dp))
+
+                    // 用户名
+                    OutlinedTextField(
+                        value = state.username,
+                        onValueChange = vm::onUsername,
+                        placeholder = { Text("用户名", color = Color(0xFFBBBBBB)) },
+                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Color(0xFFAAAAAA), modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F7FB),
+                            unfocusedContainerColor = Color(0xFFF5F7FB),
+                            focusedBorderColor = Color(0xFF20C997),
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = Color(0xFF20C997)
+                        )
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    // 密码
+                    OutlinedTextField(
+                        value = state.password,
+                        onValueChange = vm::onPassword,
+                        placeholder = { Text("密码", color = Color(0xFFBBBBBB)) },
+                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color(0xFFAAAAAA), modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = vm::togglePasswordVisible) {
+                                Icon(
+                                    imageVector = if (state.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = if (state.passwordVisible) "隐藏密码" else "显示密码",
+                                    tint = Color(0xFFAAAAAA),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF5F7FB),
+                            unfocusedContainerColor = Color(0xFFF5F7FB),
+                            focusedBorderColor = Color(0xFF20C997),
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = Color(0xFF20C997)
+                        )
+                    )
+
+                    Spacer(Modifier.height(14.dp))
+
+                    // 记住我 + 忘记密码
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("记住我", fontSize = 13.sp, color = Color(0xFF666666))
+                        }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = {}) {
+                            Text("忘记密码？", fontSize = 13.sp, color = Color(0xFF20C997))
+                        }
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+
+                    // 登录按钮（渐变绿）
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(Color(0xFF20C997), Color(0xFF12B886))
+                                )
+                            )
+                            .clickable(enabled = !state.loading && state.username.isNotBlank() && state.password.isNotBlank()) { vm.submit() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = Color.White)
+                        } else {
+                            Text("登录", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+
+                    if (state.error != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(state.error!!, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.bodySmall)
+                    }
+
+                    Spacer(Modifier.height(18.dp))
+
+                    Center {
+                        Text("其他方式登录", fontSize = 13.sp, color = Color(0xFFBBBBBB))
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Center {
+                        Icon(Icons.Filled.VpnKey, contentDescription = null, tint = Color(0xFFCCCCCC), modifier = Modifier.size(28.dp))
+                    }
                 }
-            }
-
-            Spacer(Modifier.height(32.dp))
-
-            // 分割线
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(modifier = Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.2f)))
-                Text(" 其他登录方式 ", color = Color.White.copy(alpha = 0.4f), style = MaterialTheme.typography.bodySmall)
-                Box(modifier = Modifier.weight(1f).height(1.dp).background(Color.White.copy(alpha = 0.2f)))
             }
 
             Spacer(Modifier.height(24.dp))
 
-            // 社交登录按钮
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
-            ) {
-                SocialButton(Icons.Filled.Apple, "Apple")
-                SocialButton(Icons.Filled.Code, "GitHub")
-            }
-
-            Spacer(Modifier.height(32.dp))
-
-            // 底部链接
-            Row {
-                Text("还没有账号？", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.bodySmall)
-                Text(
-                    "注册",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.clickable { }
-                )
-            }
+            Text(
+                "v0.3.7 · 三页札记",
+                fontSize = 12.sp,
+                color = Color(0xFFCCCCCC)
+            )
         }
-    }
-}
-
-@Composable
-private fun SocialButton(icon: ImageVector, label: String) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.1f))
-            .clickable { },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(icon, contentDescription = label, tint = Color.White, modifier = Modifier.size(22.dp))
     }
 }
