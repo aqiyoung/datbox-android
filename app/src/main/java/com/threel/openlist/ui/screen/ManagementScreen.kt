@@ -57,9 +57,9 @@ fun ManagementScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF5F4ED))
             )
         },
-        containerColor = Color(0xFFF5F4ED),
+        containerColor = Color.White,
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F4ED)).padding(padding)) {
             // iOS 26 风格 Tab Row
             TabRow(
                 selectedTabIndex = selectedTab.ordinal,
