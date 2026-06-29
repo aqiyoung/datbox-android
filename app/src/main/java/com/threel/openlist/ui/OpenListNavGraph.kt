@@ -129,6 +129,10 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     onServerSettings = { nav.navigate("server_settings") }
                 )
             }
+            composable("server_settings") {
+                BackHandler(enabled = true) { nav.popBackStack() }
+                ServerSettingsScreen(onBack = { nav.popBackStack() })
+            }
         }
     }
 }
