@@ -277,7 +277,15 @@ fun FileBrowserScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F4ED))) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
+                )
+            )
+    ) {
         // 内容区
         Column(modifier = Modifier.fillMaxSize()) {
             // 顶部栏: 仅退出按钮
@@ -380,11 +388,11 @@ fun FileBrowserScreen(
                     }
                 }
 
-                // 主 FAB 按钮
+                // 主 FAB 按钮（绿色渐变）
                 FloatingActionButton(
                     onClick = { fabExpanded = !fabExpanded },
-                    containerColor = Color.White.copy(alpha = 0.92f),
-                    contentColor = Color(0xFF141413),
+                    containerColor = Color(0xFF20C997),
+                    contentColor = Color.White,
                     shape = CircleShape,
                     modifier = Modifier.size(56.dp),
                 ) {
@@ -447,7 +455,6 @@ private fun FileBrowserTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF5F4ED))
             .statusBarsPadding()
             .padding(horizontal = 4.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -504,10 +511,11 @@ private fun FabMenuItemRow(item: FabMenuItem) {
         // 小圆形图标按钮
         SmallFloatingActionButton(
             onClick = item.onClick,
-            containerColor = Color.White.copy(alpha = 0.92f),
-            contentColor = Color(0xFF141413),
+            containerColor = Color.White,
+            contentColor = Color(0xFF20C997),
             shape = CircleShape,
             modifier = Modifier.size(40.dp),
+            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
         ) {
             Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(20.dp))
         }

@@ -2,11 +2,11 @@ package com.threel.openlist.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,10 +15,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -58,8 +61,7 @@ class ServerSettingsViewModel @Inject constructor(
             ServerItem("https://api.three2.site"),
             ServerItem("https://backup.three.site")
         )
-        val list = defaultServers.map { if (it.url == current) it else it }
-        _state.value = _state.value.copy(currentServer = current, servers = list)
+        _state.value = _state.value.copy(currentServer = current, servers = defaultServers)
     }
 
     fun selectServer(url: String) {
@@ -113,195 +115,210 @@ fun ServerSettingsScreen(
     val state by vm.state.collectAsState()
     val context = LocalContext.current
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("服务器配置", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = vm::autoSelectFastest,
-                        enabled = !state.loading
-                    ) {
-                        if (state.loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = Color(0xFF2A2925)
-                            )
-                        } else {
-                            Icon(Icons.Filled.FlashOn, contentDescription = "自动选择最快", tint = Color(0xFF2A2925))
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFF5F4ED))
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
+                )
             )
-        },
-        containerColor = Color(0xFFF5F4ED),
-    ) { padding ->
-        LazyColumn(
+    ) {
+        // 背景装饰
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            // 当前服务器
-            item {
-                Text(
-                    "当前服务器",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2A2925)
-                )
-                Spacer(Modifier.height(8.dp))
-                ContainerCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Outlined.Public, contentDescription = null, tint = Color(0xFF141413))
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            state.currentServer,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF2A2925),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
+                .offset(x = (-60).dp, y = 600.dp)
+                .size(140.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF20C997).copy(alpha = 0.06f))
+        )
 
-            // 测试连接
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = vm::testConnection,
-                        enabled = !state.testing && state.currentServer.isNotBlank(),
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A2925))
-                    ) {
-                        if (state.testing) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.White
-                            )
-                            Spacer(Modifier.width(8.dp))
-                        }
-                        Text(if (state.testing) "测试中..." else "测试连接", color = Color.White)
-                    }
-
-                    when (state.testResult) {
-                        true -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF34C759))
-                            Spacer(Modifier.width(4.dp))
-                            Text("连接成功", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
-                        }
-                        false -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Filled.Error, contentDescription = null, tint = Color(0xFFFF3B30))
-                            Spacer(Modifier.width(4.dp))
-                            Text("无法连接", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
-                        }
-                        null -> {}
-                    }
-                }
-            }
-
-            // 服务器列表
-            item {
-                Text(
-                    "服务器列表",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2A2925)
-                )
-            }
-
-            items(state.servers) { server ->
-                val isActive = server.url == state.currentServer
-                ContainerCard(
-                    modifier = Modifier.clickable { vm.selectServer(server.url) }
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            if (isActive) Icons.Filled.CheckCircle else Icons.Outlined.Public,
-                            contentDescription = null,
-                            tint = if (isActive) Color(0xFF34C759) else Color(0xFF87867F)
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Text(
-                            server.url,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color(0xFF2A2925),
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (server.ping > 0) {
-                            Text(
-                                "${server.ping}ms",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // 保存按钮
-            item {
-                Spacer(Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        vm.save {
-                            Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
-                            onBack()
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("服务器配置", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
                         }
                     },
-                    enabled = state.currentServer.isNotBlank(),
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF34C759))
-                ) {
-                    Icon(Icons.Filled.Save, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("保存", color = Color.White)
+                    actions = {
+                        IconButton(
+                            onClick = vm::autoSelectFastest,
+                            enabled = !state.loading
+                        ) {
+                            if (state.loading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF20C997)
+                                )
+                            } else {
+                                Icon(Icons.Filled.FlashOn, contentDescription = "自动选择最快", tint = Color(0xFF20C997))
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+            containerColor = Color.Transparent,
+        ) { padding ->
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                // 当前服务器
+                item {
+                    Text(
+                        "当前服务器",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2A2925)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Outlined.Public, contentDescription = null, tint = Color(0xFF20C997))
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                state.currentServer,
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF2A2925),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
                 }
 
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "说明：选择服务器后点击保存，下次启动自动使用。修改后需要重新登录。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF87867F)
-                )
+                // 测试连接
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Button(
+                            onClick = vm::testConnection,
+                            enabled = !state.testing && state.currentServer.isNotBlank(),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            if (state.testing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                                Spacer(Modifier.width(8.dp))
+                            }
+                            Text(if (state.testing) "测试中..." else "测试连接", color = Color.White)
+                        }
+
+                        when (state.testResult) {
+                            true -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF34C759))
+                                Spacer(Modifier.width(4.dp))
+                                Text("连接成功", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
+                            }
+                            false -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Error, contentDescription = null, tint = Color(0xFFFF3B30))
+                                Spacer(Modifier.width(4.dp))
+                                Text("无法连接", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
+                            }
+                            null -> {}
+                        }
+                    }
+                }
+
+                // 服务器列表
+                item {
+                    Text(
+                        "服务器列表",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2A2925)
+                    )
+                }
+
+                items(state.servers) { server ->
+                    val isActive = server.url == state.currentServer
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = if (isActive) 6.dp else 2.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { vm.selectServer(server.url) }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                if (isActive) Icons.Filled.CheckCircle else Icons.Outlined.Public,
+                                contentDescription = null,
+                                tint = if (isActive) Color(0xFF20C997) else Color(0xFFCCCCCC)
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            Text(
+                                server.url,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF2A2925),
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (server.ping > 0) {
+                                Text(
+                                    "${server.ping}ms",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 保存按钮
+                item {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            vm.save {
+                                Toast.makeText(context, "已保存", Toast.LENGTH_SHORT).show()
+                                onBack()
+                            }
+                        },
+                        enabled = state.currentServer.isNotBlank(),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Filled.Save, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text("保存", color = Color.White)
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "说明：选择服务器后点击保存，下次启动自动使用。修改后需要重新登录。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF888888)
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun ContainerCard(
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit
-) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.White, RoundedCornerShape(16.dp))
-            .border(0.5.dp, Color(0xFFE5E5EA), RoundedCornerShape(16.dp))
-            .padding(16.dp)
-    ) {
-        content()
     }
 }
