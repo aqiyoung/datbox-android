@@ -77,6 +77,20 @@ fun ManagementScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             // iOS 26 风格 Tab Row
+            // 错误提示 + 刷新按钮
+            if (state.error != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(state.error!!, color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { vm.loadAll() }) {
+                        Text("刷新", color = Color(0xFF2A2925))
+                    }
+                }
+            }
+
             TabRow(
                 selectedTabIndex = selectedTab.ordinal,
                 containerColor = Color(0xFFF5F4ED),

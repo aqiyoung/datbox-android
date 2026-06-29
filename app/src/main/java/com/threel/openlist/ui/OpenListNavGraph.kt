@@ -24,6 +24,7 @@ import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.FilePreviewScreen
 import com.threel.openlist.ui.screen.LoginScreen
 import com.threel.openlist.ui.screen.ManagementScreen
+import com.threel.openlist.ui.screen.ServerSettingsScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 import com.threel.openlist.util.TelemetryLog
@@ -81,6 +82,7 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     onLogout = { vm.logout() },
                     onAbout = { nav.navigate("about") },
                     onManagement = { nav.navigate("management") },
+                    onServerSettings = { nav.navigate("server_settings") },
                     onPreview = { path, name ->
                         nav.navigate("preview/${URLEncoder.encode(path, "UTF-8")}")
                     }
@@ -103,6 +105,10 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                     }
                 }
                 ManagementScreen(onBack = { nav.popBackStack() })
+            }
+            composable("server_settings") {
+                BackHandler(enabled = true) { nav.popBackStack() }
+                ServerSettingsScreen(onBack = { nav.popBackStack() })
             }
             // 文件预览: path 作为参数 (URL encoded)
             composable("preview/{path}") { backStackEntry ->

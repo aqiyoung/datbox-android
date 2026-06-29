@@ -42,13 +42,20 @@ class ManagementViewModel @Inject constructor(
             val mounts = repo.mountList().getOrNull()
             val shares = repo.shareList().getOrNull()
             val options = repo.optionList().getOrNull()
+            val overview = Overview(
+                userCount = users?.size ?: 0,
+                mountCount = mounts?.size ?: 0,
+                shareCount = shares?.size ?: 0
+            )
+            val hasError = users == null && mounts == null && shares == null
             _state.value = _state.value.copy(
                 users = users ?: emptyList(),
                 mounts = mounts ?: emptyList(),
                 shares = shares ?: emptyList(),
                 options = options ?: emptyList(),
+                overview = if (!hasError) overview else null,
                 loading = false,
-                error = if (users == null && mounts == null && shares == null) "加载失败" else null
+                error = if (hasError) "加载失败，请检查服务器地址和网络连接" else null
             )
         }
     }

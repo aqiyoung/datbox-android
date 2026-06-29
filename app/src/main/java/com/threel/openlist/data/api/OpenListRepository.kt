@@ -46,22 +46,19 @@ class OpenListRepository @Inject constructor(
     /**
      * 测试服务器连通性
      *
-     * 发送空用户名登录, 如果返回 401 (而非连接失败/超时/OPTIONS 405),
-     * 说明服务器可达而且是 OpenList 服务。
+     * 用 GET /api/public/info 探测, 任何 HTTP 响应都算可达
+     * (200/401/403/405 都行, 只有网络超时/DNS 失败才算不可达)
      */
     suspend fun testConnection(serverUrl: String): Boolean {
         return try {
             val url = serverUrl.trimEnd('/')
-            val body = """{"username":"","password":""}"""
-                .toRequestBody("application/json; charset=utf-8".toMediaType())
             val req = Request.Builder()
-                .url("$url/api/auth/login")
-                .post(body)
+                .url("$url/api/public/info")
+                .get()
                 .build()
             client.newCall(req).execute().use { resp ->
-                // 401 = OpenList 返回 "用户名或密码错误" = 服务器可达
-                // 200 也行 (空密码刚好登录成功, 虽然不太可能)
-                resp.code == 401 || resp.code == 200
+                // 任何 HTTP 响应都说明服务器可达
+                resp.code in 200..599
             }
         } catch (e: Exception) {
             false
