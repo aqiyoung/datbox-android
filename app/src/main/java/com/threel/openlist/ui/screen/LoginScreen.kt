@@ -127,10 +127,10 @@ fun LoginScreen(
 
         // ===== 服务器按钮（右上角） =====
         Surface(
+            onClick = { onServerSettings() },
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = 20.dp)
-                .clickable { onServerSettings() },
+                .padding(top = 48.dp, end = 20.dp),
             shape = RoundedCornerShape(30.dp),
             color = Color.White,
             shadowElevation = 6.dp,
