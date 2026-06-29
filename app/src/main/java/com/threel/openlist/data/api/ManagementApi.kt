@@ -79,10 +79,18 @@ data class OptionUpdateRequest(
 )
 
 @Serializable
+data class PageData<T>(
+    val content: List<T> = emptyList(),
+    val total: Int = 0,
+    val page: Int = 1,
+    @SerialName("page_size") val pageSize: Int = 50
+)
+
+@Serializable
 data class IdListResponse<T>(
     val code: Int = 0,
     val message: String = "",
-    val data: List<T> = emptyList()
+    val data: PageData<T> = PageData()
 )
 
 @Serializable

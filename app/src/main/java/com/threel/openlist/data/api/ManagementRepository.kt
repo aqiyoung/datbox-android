@@ -47,7 +47,7 @@ class ManagementRepository @Inject constructor(
     suspend fun userList(): Result<List<User>> = safeApiCall {
         val resp = api.userList()
         if (resp.code != 200) error(resp.message)
-        resp.data
+        resp.data.content
     }
 
     suspend fun userCreate(username: String, password: String, role: Int = 1, permission: Int = 0): Result<User> = safeApiCall {
@@ -70,7 +70,7 @@ class ManagementRepository @Inject constructor(
     suspend fun mountList(): Result<List<Mount>> = safeApiCall {
         val resp = api.mountList()
         if (resp.code != 200) error(resp.message)
-        resp.data
+        resp.data.content
     }
 
     suspend fun mountCreate(driver: String = "Local", mountPath: String, order: Int = 0, remark: String = ""): Result<Mount> = safeApiCall {
@@ -103,7 +103,7 @@ class ManagementRepository @Inject constructor(
     suspend fun shareList(): Result<List<Share>> = safeApiCall {
         val resp = api.shareList()
         if (resp.code != 200) error(resp.message)
-        resp.data
+        resp.data.content
     }
 
     suspend fun shareCreate(files: List<String>, expires: String = "", password: String = ""): Result<Share> = safeApiCall {
@@ -121,7 +121,7 @@ class ManagementRepository @Inject constructor(
     suspend fun optionList(): Result<List<Option>> = safeApiCall {
         val resp = api.optionList()
         if (resp.code != 200) error(resp.message)
-        resp.data
+        resp.data.content
     }
 
     suspend fun optionSave(key: String, value: String): Result<Unit> = safeApiCall {
