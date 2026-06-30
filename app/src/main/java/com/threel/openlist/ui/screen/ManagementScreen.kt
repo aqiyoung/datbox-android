@@ -486,17 +486,5 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
             }
         }
 
-        item {
-            CardItem(
-                modifier = Modifier
-                    .clickable { onBack() }
-            ) {
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = null, tint = Color(0xFF888888))
-                    Spacer(Modifier.width(12.dp))
-                    Text("返回", color = Color(0xFF888888), fontWeight = FontWeight.Medium)
-                }
-            }
-        }
     }
 }
