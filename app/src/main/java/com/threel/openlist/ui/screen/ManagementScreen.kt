@@ -206,7 +206,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                         Column(modifier = Modifier.weight(1f)) {
                             Text(user.username, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
                             Text(
-                                when (user.role) { 0 -> "管理员"; 1 -> "游客"; 2 -> "普通用户"; else -> "未知" },
+                                when (user.role) { 0 -> "普通用户"; 1 -> "游客"; 2 -> "管理员"; else -> "未知" },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF888888)
                             )
@@ -236,7 +236,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
 private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, String, Int, Int) -> Unit) {
     var username by remember { mutableStateOf(user?.username ?: "") }
     var password by remember { mutableStateOf("") }
-    var role by remember { mutableIntStateOf(user?.role ?: 1) }
+    var role by remember { mutableIntStateOf(user?.role ?: 0) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -266,7 +266,7 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, 
                 var expanded by remember { mutableStateOf(false) }
                 ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
                     OutlinedTextField(
-                        value = when (role) { 0 -> "管理员"; 1 -> "游客"; 2 -> "普通用户"; else -> "未知" },
+                        value = when (role) { 0 -> "普通用户"; 1 -> "游客"; 2 -> "管理员"; else -> "未知" },
                         onValueChange = {}, readOnly = true, label = { Text("角色") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(),
@@ -277,9 +277,9 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, 
                         )
                     )
                     ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, containerColor = Color.White) {
-                        DropdownMenuItem(text = { Text("管理员", color = Color(0xFF2A2925)) }, onClick = { role = 0; expanded = false })
+                        DropdownMenuItem(text = { Text("普通用户", color = Color(0xFF2A2925)) }, onClick = { role = 0; expanded = false })
                         DropdownMenuItem(text = { Text("游客", color = Color(0xFF2A2925)) }, onClick = { role = 1; expanded = false })
-                        DropdownMenuItem(text = { Text("普通用户", color = Color(0xFF2A2925)) }, onClick = { role = 2; expanded = false })
+                        DropdownMenuItem(text = { Text("管理员", color = Color(0xFF2A2925)) }, onClick = { role = 2; expanded = false })
                     }
                 }
             }
@@ -492,9 +492,9 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
                     .clickable { onBack() }
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Outlined.Logout, contentDescription = null, tint = Color(0xFFFF3B30))
+                    Icon(Icons.Outlined.ArrowBack, contentDescription = null, tint = Color(0xFF888888))
                     Spacer(Modifier.width(12.dp))
-                    Text("退出登录", color = Color(0xFFFF3B30), fontWeight = FontWeight.Medium)
+                    Text("返回", color = Color(0xFF888888), fontWeight = FontWeight.Medium)
                 }
             }
         }

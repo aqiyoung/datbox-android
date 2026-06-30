@@ -14,6 +14,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -26,9 +27,9 @@ data class PageReq(
 data class UserCreateRequest(
     val username: String,
     val password: String,
-    val role: Int = 1,
+    val role: Int = 0,
     val permission: Int = 0,
-    val base_path: String = "/"
+    @SerialName("base_path") val basePath: String = "/"
 )
 
 @Serializable
@@ -37,7 +38,8 @@ data class UserUpdateRequest(
     val username: String = "",
     val password: String = "",
     val role: Int = -1,
-    val permission: Int = -1
+    val permission: Int = -1,
+    @SerialName("base_path") val basePath: String = "/"
 )
 
 @Serializable
