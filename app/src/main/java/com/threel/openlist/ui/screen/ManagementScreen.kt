@@ -199,6 +199,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             }
         } else {
             items(users) { user ->
+                var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Person, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
@@ -210,12 +211,34 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF888888)
                             )
+                            // 权限标签
+                            if (user.permission != 0) {
+                                Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    if (user.permission and 1 != 0) PermissionTag("可见隐藏")
+                                    if (user.permission and 8 != 0) PermissionTag("上传")
+                                    if (user.permission and 128 != 0) PermissionTag("WebDAV读")
+                                    if (user.permission and 256 != 0) PermissionTag("WebDAV写")
+                                }
+                            } else {
+                                Text("全部权限", style = MaterialTheme.typography.labelSmall, color = Color(0xFF20C997))
+                            }
                         }
-                        IconButton(onClick = { editingUser = user }) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF888888))
-                        }
-                        IconButton(onClick = { vm.deleteUser(user.id) }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30))
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                            }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("编辑", color = Color(0xFF2A2925)) },
+                                    onClick = { showMenu = false; editingUser = user },
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = Color(0xFF888888)) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    onClick = { showMenu = false; vm.deleteUser(user.id) },
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                )
+                            }
                         }
                     }
                 }
@@ -332,6 +355,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
             }
         } else {
             items(mounts) { mount ->
+                var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Storage, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
@@ -339,17 +363,45 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
                         Column(modifier = Modifier.weight(1f)) {
                             Text(mount.mountPath, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
                             Text(
-                                "${mount.driver} · ${mount.path}",
+                                mount.driver,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888888),
-                                maxLines = 1, overflow = TextOverflow.Ellipsis
+                                color = Color(0xFF888888)
                             )
+                            // 状态标签
+                            if (mount.status == "work") {
+                                Text("● 工作中", style = MaterialTheme.typography.labelSmall, color = Color(0xFF34C759))
+                            } else {
+                                Text("● ${mount.status}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9500))
+                            }
                         }
-                        IconButton(onClick = { editingMount = mount }) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "编辑", tint = Color(0xFF888888))
-                        }
-                        IconButton(onClick = { vm.deleteMount(mount.id) }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30))
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                            }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("编辑", color = Color(0xFF2A2925)) },
+                                    onClick = { showMenu = false; editingMount = mount },
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = Color(0xFF888888)) }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("启用", color = Color(0xFF34C759)) },
+                                    onClick = { showMenu = false; vm.enableMount(mount.id) },
+                                    leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null, tint = Color(0xFF34C759)) },
+                                    enabled = mount.disabled
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("禁用", color = Color(0xFFFF9500)) },
+                                    onClick = { showMenu = false; vm.disableMount(mount.id) },
+                                    leadingIcon = { Icon(Icons.Outlined.Pause, contentDescription = null, tint = Color(0xFFFF9500)) },
+                                    enabled = !mount.disabled
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    onClick = { showMenu = false; vm.deleteMount(mount.id) },
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                )
+                            }
                         }
                     }
                 }
@@ -438,6 +490,7 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
             }
         } else {
             items(shares) { share ->
+                var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Share, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
@@ -445,9 +498,21 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
                         Column(modifier = Modifier.weight(1f)) {
                             Text(share.name, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
                             Text(share.path, style = MaterialTheme.typography.bodySmall, color = Color(0xFF888888), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (share.expires.isNotEmpty()) {
+                                Text("过期: ${share.expires}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9500))
+                            }
                         }
-                        IconButton(onClick = { vm.deleteShare(share.id) }) {
-                            Icon(Icons.Outlined.Delete, contentDescription = "删除", tint = Color(0xFFFF3B30))
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                            }
+                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    onClick = { showMenu = false; vm.deleteShare(share.id) },
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                )
+                            }
                         }
                     }
                 }
@@ -486,5 +551,20 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
             }
         }
 
+    }
+}
+
+@Composable
+private fun PermissionTag(label: String) {
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = Color(0xFF20C997).copy(alpha = 0.1f)
+    ) {
+        Text(
+            label,
+            fontSize = 10.sp,
+            color = Color(0xFF20C997),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
