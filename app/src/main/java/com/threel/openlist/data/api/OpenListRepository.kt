@@ -46,24 +46,29 @@ class OpenListRepository @Inject constructor(
     }
 
     /**
-     * 测试服务器连通性
+     * 测试服务器连通性并返回真实延迟(毫秒)
      *
-     * 用 GET /api/public/info 探测, 任何 HTTP 响应都算可达
-     * (200/401/403/405 都行, 只有网络超时/DNS 失败才算不可达)
+     * 用 GET /api/public/info 探测并测量 RTT:
+     * - 返回非 null = 可达, 值为本次请求耗时(ms)
+     * - 返回 null = 不可达(网络超时/DNS 失败/非 2xx~5xx)
      */
-    suspend fun testConnection(serverUrl: String): Boolean {
+    suspend fun testConnection(serverUrl: String): Long? {
         return try {
             val url = serverUrl.trimEnd('/')
             val req = Request.Builder()
                 .url("$url/api/public/info")
                 .get()
                 .build()
-            client.newCall(req).execute().use { resp ->
+            val start = System.nanoTime()
+            val ok = client.newCall(req).execute().use { resp ->
                 // 任何 HTTP 响应都说明服务器可达
                 resp.code in 200..599
             }
+            if (!ok) return null
+            val elapsedMs = (System.nanoTime() - start) / 1_000_000
+            elapsedMs.coerceAtLeast(1L)
         } catch (e: Exception) {
-            false
+            null
         }
     }
 

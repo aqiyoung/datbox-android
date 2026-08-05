@@ -9,6 +9,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -288,7 +289,24 @@ fun FileBrowserScreen(
             )
     ) {
         // 内容区
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    var accX = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { accX = 0f },
+                        onHorizontalDrag = { _, dragAmount -> accX += dragAmount },
+                        onDragEnd = {
+                            // 右滑超过阈值且不在根目录时, 返回上一级
+                            if (accX > 100f && vm.state.value.path != "/") {
+                                vm.load(vm.goUp())
+                            }
+                        },
+                        onDragCancel = { accX = 0f }
+                    )
+                }
+        ) {
             // 顶部栏: 仅退出按钮
             FileBrowserTopBar(
                 path = state.path,
@@ -314,7 +332,7 @@ fun FileBrowserScreen(
                         if (state.path != "/") {
                             item {
                                 FileRow(
-                                    icon = { Icon(Icons.Outlined.Folder, null, tint = Color(0xFF141413)) },
+                                    icon = { Icon(Icons.Outlined.SubdirectoryArrowLeft, null, tint = Color(0xFF5B8DEF)) },
                                     name = "..", size = "", modified = "",
                                     onClick = { vm.load(vm.goUp()) },
                                     onLongClick = null, onMenuClick = null,
@@ -737,23 +755,44 @@ private fun humanSize(b: Long): String = when {
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
 }
 
-private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> = when {
-    isDir -> Icons.Outlined.Folder to Color(0xFF141413)
-    else -> {
-        val ext = name.substringAfterLast('.', "").lowercase()
-        when (ext) {
-            "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst", "iso" -> Icons.Filled.Archive to Color(0xFFD97757)
-            "apk", "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1", "dmg", "deb", "rpm", "jar", "bin", "run" -> Icons.Filled.Apps to Color(0xFFD97757)
-            "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" -> Icons.Filled.Image to Color(0xFFD97757)
-            "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" -> Icons.Filled.Movie to Color(0xFFD97757)
-            "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" -> Icons.Filled.MusicNote to Color(0xFFD97757)
-            "pdf" -> Icons.Filled.PictureAsPdf to Color(0xFFD97757)
-            "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs", "c", "cpp", "cc", "cxx", "h", "hpp", "json", "xml", "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php", "html", "htm", "css", "scss", "sass", "less", "sql" -> Icons.Filled.Code to Color(0xFFD97757)
-            "txt", "md", "markdown", "log", "rst", "tex" -> Icons.Filled.TextSnippet to Color(0xFF141413)
-            "doc", "docx", "rtf", "odt" -> Icons.Filled.Description to Color(0xFFD97757)
-            "xls", "xlsx", "ods", "csv" -> Icons.Filled.GridView to Color(0xFFD97757)
-            "ppt", "pptx", "odp", "key" -> Icons.Filled.Slideshow to Color(0xFFD97757)
-            else -> Icons.Filled.SaveAlt to Color(0xFFD97757)
-        }
+private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> {
+    if (isDir) return Icons.Outlined.Folder to Color(0xFFE0A030)
+    val ext = name.substringAfterLast('.', "").lowercase()
+    return when (ext) {
+        // 压缩包
+        "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst", "iso" ->
+            Icons.Outlined.Archive to Color(0xFF8E7CC3)
+        // 安卓安装包
+        "apk" -> Icons.Outlined.Android to Color(0xFF3DDC84)
+        // 可执行 / 脚本
+        "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1", "dmg", "deb", "rpm", "jar", "bin", "run" ->
+            Icons.Outlined.Terminal to Color(0xFF607D8B)
+        // 图片
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
+            Icons.Outlined.Image to Color(0xFFE0567A)
+        // 视频
+        "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
+            Icons.Outlined.Movie to Color(0xFF5B8DEF)
+        // 音频
+        "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
+            Icons.Outlined.Audiotrack to Color(0xFFF0A030)
+        // PDF
+        "pdf" -> Icons.Outlined.PictureAsPdf to Color(0xFFE03E2F)
+        // 代码
+        "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs", "c", "cpp", "cc", "cxx", "h", "hpp", "json", "xml", "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php", "html", "htm", "css", "scss", "sass", "less", "sql" ->
+            Icons.Outlined.Code to Color(0xFF22B8A6)
+        // 文本
+        "txt", "md", "markdown", "log", "rst", "tex" ->
+            Icons.Outlined.TextSnippet to Color(0xFF9AA0A6)
+        // 文档 Word
+        "doc", "docx", "rtf", "odt" ->
+            Icons.Outlined.Description to Color(0xFF2A7DE1)
+        // 表格
+        "xls", "xlsx", "ods", "csv" ->
+            Icons.Outlined.TableChart to Color(0xFF21A366)
+        // 演示
+        "ppt", "pptx", "odp", "key" ->
+            Icons.Outlined.Slideshow to Color(0xFFED6C30)
+        else -> Icons.Outlined.InsertDriveFile to Color(0xFF9AA0A6)
     }
 }

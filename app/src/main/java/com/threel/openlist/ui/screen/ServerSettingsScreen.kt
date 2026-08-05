@@ -36,14 +36,15 @@ import javax.inject.Inject
 data class ServerItem(
     val url: String,
     val ping: Int = -1,
-    val isPreset: Boolean = false
+    val isPreset: Boolean = false,
+    val tested: Boolean = false
 )
 
 data class ServerSettingsState(
     val currentServer: String = "",
     val servers: List<ServerItem> = emptyList(),
     val testing: Boolean = false,
-    val testResult: Boolean? = null,
+    val testResult: Long? = null,
     val loading: Boolean = false
 )
 
@@ -84,8 +85,8 @@ class ServerSettingsViewModel @Inject constructor(
         if (url.isBlank() || _state.value.testing) return
         _state.value = _state.value.copy(testing = true, testResult = null)
         viewModelScope.launch {
-            val ok = repo.testConnection(url.trim())
-            _state.value = _state.value.copy(testing = false, testResult = ok)
+            val ms = repo.testConnection(url.trim())
+            _state.value = _state.value.copy(testing = false, testResult = ms ?: -1L)
         }
     }
 
@@ -94,11 +95,10 @@ class ServerSettingsViewModel @Inject constructor(
         _state.value = _state.value.copy(loading = true)
         viewModelScope.launch {
             val tested = _state.value.servers.map { server ->
-                val ok = repo.testConnection(server.url.trim())
-                val ping = if (ok) (10..200).random() else 9999
-                server.copy(ping = ping)
+                val ms = repo.testConnection(server.url.trim())
+                server.copy(ping = (ms?.toInt() ?: -1), tested = true)
             }
-            val fastest = tested.minByOrNull { it.ping }
+            val fastest = tested.filter { it.ping >= 0 }.minByOrNull { it.ping }
             _state.value = _state.value.copy(
                 servers = tested,
                 currentServer = fastest?.url ?: _state.value.currentServer,
@@ -332,17 +332,17 @@ fun ServerSettingsScreen(
                         }
 
                         when (state.testResult) {
-                            true -> Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF34C759))
-                                Spacer(Modifier.width(4.dp))
-                                Text("连接成功", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
-                            }
-                            false -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            null -> {}
+                            -1L -> Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.Error, contentDescription = null, tint = Color(0xFFFF3B30))
                                 Spacer(Modifier.width(4.dp))
                                 Text("无法连接", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
                             }
-                            null -> {}
+                            else -> Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF34C759))
+                                Spacer(Modifier.width(4.dp))
+                                Text("连接成功 (${state.testResult}ms)", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
                 }
@@ -383,12 +383,20 @@ fun ServerSettingsScreen(
                                 color = Color(0xFF2A2925),
                                 modifier = Modifier.weight(1f)
                             )
-                            if (server.ping > 0) {
-                                Text(
-                                    "${server.ping}ms",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
-                                )
+                            if (server.tested) {
+                                if (server.ping >= 0) {
+                                    Text(
+                                        "${server.ping}ms",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
+                                    )
+                                } else {
+                                    Text(
+                                        "不可达",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color(0xFFFF3B30)
+                                    )
+                                }
                             }
                             if (!server.isPreset) {
                                 Spacer(Modifier.width(4.dp))
