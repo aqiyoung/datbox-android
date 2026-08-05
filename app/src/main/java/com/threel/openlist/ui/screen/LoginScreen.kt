@@ -137,11 +137,11 @@ fun LoginScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(10f)
-                .padding(top = 44.dp, end = 20.dp)
-                .clickable { onServerSettings() },
+                .padding(top = 44.dp, end = 20.dp),
             horizontalAlignment = Alignment.End
         ) {
             Surface(
+                onClick = { onServerSettings() },
                 shape = RoundedCornerShape(30.dp),
                 color = Color.White,
                 shadowElevation = 6.dp,
