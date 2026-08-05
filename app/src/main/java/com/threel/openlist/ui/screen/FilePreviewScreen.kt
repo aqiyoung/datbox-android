@@ -27,8 +27,9 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.InstallIn
 import coil.compose.AsyncImage
+import com.threel.openlist.data.api.OpenListJson
 import com.threel.openlist.data.api.TokenStore
-import com.threel.openlist.util.AppConfig
+import com.threel.openlist.data.model.FsGetResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -78,8 +79,6 @@ fun FilePreviewScreen(
     )
     val isPdf = ext == "pdf"
 
-    val serverUrl = AppConfig.PUBLIC_BASE_URL.trimEnd('/')
-
     // 预览状态
     var previewUrl by remember { mutableStateOf<String?>(null) }
     var textContent by remember { mutableStateOf<String?>(null) }
@@ -89,6 +88,8 @@ fun FilePreviewScreen(
     val context = LocalContext.current
     val entryPoint = EntryPointAccessors.fromApplication(context, TokenStoreEntryPoint::class.java)
     val authToken = entryPoint.tokenStore().tokenSync()
+    // 用当前登录的服务器地址（不再是写死的公开域名），多服务器/内网也能预览
+    val serverUrl = entryPoint.tokenStore().serverUrlSync().trimEnd('/')
 
     // 获取预览 URL (需要 sign)
     LaunchedEffect(remotePath) {
@@ -164,9 +165,8 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authT
             val sign = client.newCall(getRequest).execute().use { resp ->
                 if (!resp.isSuccessful) throw IllegalStateException("fs/get HTTP ${resp.code}")
                 val body = resp.body?.string() ?: throw IllegalStateException("empty body")
-                val match = Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)
+                OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
                     ?: throw IllegalStateException("no sign in response")
-                match.groupValues[1]
             }
             "$serverUrl/d$remotePath?sign=$sign"
         } catch (e: Exception) {

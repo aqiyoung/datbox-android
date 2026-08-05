@@ -1,7 +1,9 @@
 package com.threel.openlist.data.api
 
 import android.content.Context
+import com.threel.openlist.data.model.FsGetResponse
 import com.threel.openlist.data.model.LoginResponse
+import com.threel.openlist.data.model.Share
 import com.threel.openlist.data.model.UserInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -111,10 +113,8 @@ class OpenListRepository @Inject constructor(
             com.threel.openlist.util.TelemetryLog.i("Repo", "fs/get resp code=${resp.code}")
             if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
             val body = resp.body?.string() ?: error("fs/get empty body")
-            // 简单正则拿 sign (避引入 Json parser 到这里)
-            val match = Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)
+            val sign = OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
                 ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
-            match.groupValues[1]
         }
 
         // 2) 用 sign 下载 (sign 在 query, 不要 Authorization)
@@ -193,10 +193,7 @@ class OpenListRepository @Inject constructor(
             resp.body?.string() ?: error("empty body")
         }
         // 老板 6/14: 改普通字符串 + 转义, 避免 raw string `"""` 被 KSP 词法分析误解析 (188:1 Unclosed comment)
-        val codeMatch = Regex("\"code\"\\s*:\\s*(\\d+)").find(respBody)
-        val code = codeMatch?.groupValues?.get(1)?.toIntOrNull() ?: 0
-        val message = Regex("\"message\"\\s*:\\s*\"([^\"]+)\"").find(respBody)?.groupValues?.get(1) ?: ""
-        FsUploadResponse(code = code, message = message)
+        OpenListJson.decodeFromString<FsUploadResponse>(respBody)
         }
     }
 
@@ -247,7 +244,7 @@ class OpenListRepository @Inject constructor(
             val responseBody = resp.body?.string() ?: error("share/create empty body")
             if (!resp.isSuccessful) error("share/create HTTP ${resp.code}: ${responseBody.take(200)}")
             // 提取 "id" 字段 (手工 regex, 跟项目其它 API 一致)
-            Regex("\"id\"\\s*:\\s*\"([^\"]+)\"").find(responseBody)?.groupValues?.get(1)
+            OpenListJson.decodeFromString<ObjResponse<Share>>(responseBody).data?.id
                 ?: error("share/create 响应里没 id 字段: ${responseBody.take(200)}")
         }
         // 中文文件名 URL encode (OpenList 服务端也接受 raw, 但浏览器分享出去可能被截断)

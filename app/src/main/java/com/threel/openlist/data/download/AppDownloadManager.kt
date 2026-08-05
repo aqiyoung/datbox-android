@@ -8,8 +8,9 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.threel.openlist.MainActivity
+import com.threel.openlist.data.api.OpenListJson
 import com.threel.openlist.data.api.TokenStore
-import com.threel.openlist.util.AppConfig
+import com.threel.openlist.data.model.FsGetResponse
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
@@ -102,8 +103,8 @@ class AppDownloadManager @Inject constructor(
             updateStatus(id, DownloadStatus.DOWNLOADING)
 
             try {
-                // 1. 拿 sign
-                val serverUrl = AppConfig.PUBLIC_BASE_URL.trimEnd('/')
+                // 1. 拿 sign（用当前登录的服务器地址，而不是写死的公开域名）
+                val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
                 val token = tokenStore.tokenSync()
                 val getBody = """{"path":"${task.remotePath}"}"""
                 val getRequest = Request.Builder()
@@ -115,9 +116,8 @@ class AppDownloadManager @Inject constructor(
                 val sign = client.newCall(getRequest).execute().use { resp ->
                     if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
                     val body = resp.body?.string() ?: error("empty body")
-                    val match = Regex("\"sign\"\\s*:\\s*\"([^\"]+)\"").find(body)
+                    OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
                         ?: error("no sign in response")
-                    match.groupValues[1]
                 }
 
                 // 2. 下载文件

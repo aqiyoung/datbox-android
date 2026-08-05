@@ -23,18 +23,27 @@ class TokenStore @Inject constructor(
     private val USERNAME_KEY = stringPreferencesKey("last_username")
     private val PASSWORD_KEY = stringPreferencesKey("last_password")  // v0.3.37: 恢复密码缓存
 
+    // 内存缓存：拦截器每次请求都读 token，runBlocking 读 DataStore 会阻塞 OkHttp 线程。
+    // 登录/登出时更新缓存，避免热路径上的协程阻塞（ANR 风险）。
+    @Volatile private var cachedToken: String? = null
+
     val token: Flow<String> = ctx.dataStore.data.map { it[TOKEN_KEY] ?: "" }
 
     suspend fun saveToken(token: String) {
+        cachedToken = token
         ctx.dataStore.edit { it[TOKEN_KEY] = token }
     }
 
     suspend fun clear() {
+        cachedToken = ""
         ctx.dataStore.edit { it.remove(TOKEN_KEY) }
     }
 
-    /** 同步拿 token（用于 OkHttp interceptor，避免每次都 await） */
-    fun tokenSync(): String = runBlocking { token.first() }
+    /** 同步拿 token（用于 OkHttp interceptor）。优先走内存缓存，未命中再回退到 DataStore。 */
+    fun tokenSync(): String {
+        cachedToken?.let { return it }
+        return runBlocking { token.first() }.also { cachedToken = it }
+    }
 
     val serverUrl: Flow<String> = ctx.dataStore.data.map { it[SERVER_KEY] ?: DEFAULT_SERVER }
 

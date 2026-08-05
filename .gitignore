@@ -1,3 +1,33 @@
-# Keystore (CI 用 GitHub Secret 注入, 不进 git)
+# ===== Build outputs =====
+*.apk
+*.apk.bak
+*.aab
+build/
+app/build/
+.gradle/
+*.log
+build.log
+
+# ===== Local signing & secrets (CI injects via GitHub Secret) =====
 *.jks
 *.keystore
+local.properties
+.openclaw/
+
+# ===== Runtime app data (must NEVER be committed) =====
+# The app writes its working files here at runtime — keep them out of git.
+# 注意：必须锚定到仓库根目录 (/data/)，否则会误伤源码包 app/.../data/
+/data/
+
+# ===== OS / editor noise =====
+.DS_Store
+Thumbs.db
+*.iml
+.idea/
+
+# ===== Capture / generated =====
+captures/
+
+# ===== Dead code (kept on disk, removed from VCS) =====
+# ServerConfig 与 TokenStore 重复且未被任何代码引用，已从版本控制移除。
+app/src/main/java/com/threel/openlist/data/model/ServerConfig.kt
