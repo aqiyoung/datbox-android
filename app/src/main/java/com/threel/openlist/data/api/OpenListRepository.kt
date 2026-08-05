@@ -113,7 +113,7 @@ class OpenListRepository @Inject constructor(
             com.threel.openlist.util.TelemetryLog.i("Repo", "fs/get resp code=${resp.code}")
             if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
             val body = resp.body?.string() ?: error("fs/get empty body")
-            val sign = OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
+            OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
                 ?: error("fs/get 响应里没 sign 字段: ${body.take(200)}")
         }
 
