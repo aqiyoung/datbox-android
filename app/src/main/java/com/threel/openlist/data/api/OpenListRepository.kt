@@ -9,15 +9,41 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.Dns
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.Inet6Address
+import java.net.InetAddress
+import java.net.UnknownHostException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** 双栈测速结果：分别测量 IPv4 / IPv6 可达性与延迟。只要任一栈可达即 reachable=true，bestMs 取可达栈中最小延迟。 */
+data class ServerProbe(
+    val reachable: Boolean,
+    val ipv4Ms: Long? = null,
+    val ipv6Ms: Long? = null,
+    val bestMs: Long? = null
+)
+
+/** 自定义 DNS：只返回指定地址族(A=IPv4 / AAAA=IPv6)的解析结果，用于分栈测速 */
+private class FamilyDns(private val preferV6: Boolean) : Dns {
+    override fun lookup(hostname: String): List<InetAddress> {
+        val all = try {
+            InetAddress.getAllByName(hostname).toList()
+        } catch (e: UnknownHostException) {
+            return emptyList()
+        }
+        return all.filter { (it is Inet6Address) == preferV6 }
+    }
+}
 
 /**
  * 包装 OpenList API，处理认证头 + download/upload 底层。
@@ -36,6 +62,14 @@ class OpenListRepository @Inject constructor(
             .build()
     }
 
+    /** 测速专用客户端：较短超时，避免单次慢连接拖垮整体体验 */
+    private val probeClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(6, TimeUnit.SECONDS)
+            .readTimeout(12, TimeUnit.SECONDS)
+            .build()
+    }
+
     suspend fun login(username: String, password: String, serverUrl: String = tokenStore.serverUrlSync()): Result<String> = runCatching {
         val resp = api.login(LoginRequest(username, password))
         if (resp.code != 200 || resp.data == null) {
@@ -46,31 +80,51 @@ class OpenListRepository @Inject constructor(
     }
 
     /**
-     * 测试服务器连通性并返回真实延迟(毫秒)
+     * 双栈测速：分别探测 IPv4 与 IPv6 地址族的可达性并返回真实 RTT。
      *
-     * 用 GET /api/public/info 探测并测量 RTT:
-     * - 返回非 null = 可达, 值为本次请求耗时(ms)
-     * - 返回 null = 不可达(网络超时/DNS 失败/非 2xx~5xx)
+     * - 用自定义 Dns 强制只解析 A(IPv4) 或 AAAA(IPv6) 记录，对两族并发发
+     *   GET /api/public/info 并测量耗时。
+     * - 只要任一栈可达即 reachable=true；bestMs 取两族中最小的可达延迟。
+     * - 某族无地址/超时/DNS 失败 -> 该族结果为 null，不会误判整体"不可达"。
      */
-    suspend fun testConnection(serverUrl: String): Long? {
-        return try {
-            val url = serverUrl.trimEnd('/')
-            val req = Request.Builder()
-                .url("$url/api/public/info")
-                .get()
-                .build()
-            val start = System.nanoTime()
-            val ok = client.newCall(req).execute().use { resp ->
-                // 任何 HTTP 响应都说明服务器可达
-                resp.code in 200..599
+    suspend fun testConnection(serverUrl: String): ServerProbe {
+        val baseUrl = serverUrl.trimEnd('/')
+        return withContext(Dispatchers.IO) {
+            coroutineScope {
+                val v4 = async { probeFamily(false, baseUrl) }
+                val v6 = async { probeFamily(true, baseUrl) }
+                val ipv4Ms = v4.await()
+                val ipv6Ms = v6.await()
+                val best = listOfNotNull(ipv4Ms, ipv6Ms).minOrNull()
+                ServerProbe(
+                    reachable = best != null,
+                    ipv4Ms = ipv4Ms,
+                    ipv6Ms = ipv6Ms,
+                    bestMs = best
+                )
             }
-            if (!ok) return null
-            val elapsedMs = (System.nanoTime() - start) / 1_000_000
-            elapsedMs.coerceAtLeast(1L)
-        } catch (e: Exception) {
-            null
         }
     }
+
+    /** 仅用指定地址族探测 /api/public/info，返回 RTT(ms) 或 null(不可达/无该族地址)。 */
+    private suspend fun probeFamily(preferV6: Boolean, baseUrl: String): Long? =
+        withContext(Dispatchers.IO) {
+            try {
+                val client = probeClient.newBuilder().dns(FamilyDns(preferV6)).build()
+                val req = Request.Builder()
+                    .url("$baseUrl/api/public/info")
+                    .get()
+                    .build()
+                val start = System.nanoTime()
+                val ok = client.newCall(req).execute().use { resp ->
+                    // 任何 HTTP 响应都说明该地址族可达
+                    resp.code in 200..599
+                }
+                if (!ok) null else ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(1L)
+            } catch (e: Exception) {
+                null
+            }
+        }
 
     suspend fun userInfo(): Result<UserInfo> = runCatching {
         val info = api.userInfo()

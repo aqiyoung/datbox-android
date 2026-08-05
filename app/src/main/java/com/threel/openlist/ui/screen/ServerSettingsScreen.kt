@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.data.api.ServerProbe
 import com.threel.openlist.data.api.TokenStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,16 +36,15 @@ import javax.inject.Inject
 
 data class ServerItem(
     val url: String,
-    val ping: Int = -1,
     val isPreset: Boolean = false,
-    val tested: Boolean = false
+    val probe: ServerProbe? = null  // null = 未测
 )
 
 data class ServerSettingsState(
     val currentServer: String = "",
     val servers: List<ServerItem> = emptyList(),
     val testing: Boolean = false,
-    val testResult: Long? = null,
+    val probe: ServerProbe? = null,  // 当前服务器最新测速结果，null=未测
     val loading: Boolean = false
 )
 
@@ -83,10 +83,10 @@ class ServerSettingsViewModel @Inject constructor(
     fun testConnection() {
         val url = _state.value.currentServer
         if (url.isBlank() || _state.value.testing) return
-        _state.value = _state.value.copy(testing = true, testResult = null)
+        _state.value = _state.value.copy(testing = true, probe = null)
         viewModelScope.launch {
-            val ms = repo.testConnection(url.trim())
-            _state.value = _state.value.copy(testing = false, testResult = ms ?: -1L)
+            val result = repo.testConnection(url.trim())
+            _state.value = _state.value.copy(testing = false, probe = result)
         }
     }
 
@@ -95,10 +95,12 @@ class ServerSettingsViewModel @Inject constructor(
         _state.value = _state.value.copy(loading = true)
         viewModelScope.launch {
             val tested = _state.value.servers.map { server ->
-                val ms = repo.testConnection(server.url.trim())
-                server.copy(ping = (ms?.toInt() ?: -1), tested = true)
+                val p = repo.testConnection(server.url.trim())
+                server.copy(probe = p)
             }
-            val fastest = tested.filter { it.ping >= 0 }.minByOrNull { it.ping }
+            val fastest = tested
+                .filter { it.probe?.reachable == true }
+                .minByOrNull { it.probe?.bestMs ?: Long.MAX_VALUE }
             _state.value = _state.value.copy(
                 servers = tested,
                 currentServer = fastest?.url ?: _state.value.currentServer,
@@ -331,17 +333,30 @@ fun ServerSettingsScreen(
                             Text(if (state.testing) "测试中..." else "测试连接", color = Color.White)
                         }
 
-                        when (state.testResult) {
+                        when (val p = state.probe) {
                             null -> {}
-                            -1L -> Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Error, contentDescription = null, tint = Color(0xFFFF3B30))
-                                Spacer(Modifier.width(4.dp))
-                                Text("无法连接", color = Color(0xFFFF3B30), style = MaterialTheme.typography.bodySmall)
-                            }
                             else -> Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Filled.Check, contentDescription = null, tint = Color(0xFF34C759))
+                                Icon(
+                                    if (p.reachable) Icons.Filled.Check else Icons.Filled.Error,
+                                    contentDescription = null,
+                                    tint = if (p.reachable) Color(0xFF34C759) else Color(0xFFFF3B30)
+                                )
                                 Spacer(Modifier.width(4.dp))
-                                Text("连接成功 (${state.testResult}ms)", color = Color(0xFF34C759), style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    buildString {
+                                        if (p.reachable) {
+                                            append("连接成功")
+                                            val parts = mutableListOf<String>()
+                                            p.ipv4Ms?.let { parts.add("IPv4 ${it}ms") }
+                                            p.ipv6Ms?.let { parts.add("IPv6 ${it}ms") }
+                                            if (parts.isNotEmpty()) append(" (${parts.joinToString(" / ")})")
+                                        } else {
+                                            append("无法连接")
+                                        }
+                                    },
+                                    color = if (p.reachable) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
@@ -383,12 +398,15 @@ fun ServerSettingsScreen(
                                 color = Color(0xFF2A2925),
                                 modifier = Modifier.weight(1f)
                             )
-                            if (server.tested) {
-                                if (server.ping >= 0) {
+                            server.probe?.let { p ->
+                                if (p.reachable) {
                                     Text(
-                                        "${server.ping}ms",
+                                        buildString {
+                                            p.ipv4Ms?.let { append("v4:${it} ") }
+                                            p.ipv6Ms?.let { append("v6:${it}") }
+                                        }.trim(),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
+                                        color = if ((p.bestMs ?: 9999) < 100) Color(0xFF34C759) else Color(0xFFFF9500)
                                     )
                                 } else {
                                     Text(
@@ -434,7 +452,7 @@ fun ServerSettingsScreen(
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "说明：自定义服务器会自动保存，下次打开仍在；长按删除图标可移除自定义服务器（预设不可删）。保存当前服务器后立即生效，返回登录页即可登录（token 与服务器绑定，需重新登录）。",
+                        "说明：自定义服务器会自动保存，下次打开仍在；点击右侧删除图标可移除自定义服务器（预设不可删）。测速同时探测 IPv4/IPv6 双栈，任一可达即视为可连接。保存当前服务器后立即生效，返回登录页即可登录（token 与服务器绑定，需重新登录）。",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF888888)
                     )
