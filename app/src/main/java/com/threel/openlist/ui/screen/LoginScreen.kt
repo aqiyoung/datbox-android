@@ -62,8 +62,12 @@ class LoginViewModel @Inject constructor(
             if (username.isNotEmpty()) {
                 _state.value = _state.value.copy(username = username, password = password)
             }
-            val savedServerUrl = tokenStore.serverUrl.first()
-            _state.value = _state.value.copy(serverUrl = savedServerUrl)
+            // 实时跟随 DataStore 里的服务器地址：从「服务器设置」页返回后自动刷新显示
+            launch {
+                tokenStore.serverUrl.collect { saved ->
+                    _state.value = _state.value.copy(serverUrl = saved)
+                }
+            }
         }
     }
 
@@ -128,25 +132,36 @@ fun LoginScreen(
         )
 
         // ===== 服务器按钮（右上角） =====
-        Surface(
-            onClick = { onServerSettings() },
+        Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 48.dp, end = 20.dp),
-            shape = RoundedCornerShape(30.dp),
-            color = Color.White,
-            shadowElevation = 6.dp,
-            tonalElevation = 0.dp
+                .padding(top = 44.dp, end = 20.dp),
+            horizontalAlignment = Alignment.End
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            Surface(
+                onClick = { onServerSettings() },
+                shape = RoundedCornerShape(30.dp),
+                color = Color.White,
+                shadowElevation = 6.dp,
+                tonalElevation = 0.dp
             ) {
-                Icon(Icons.Filled.Storage, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
-                Text("服务器", fontSize = 13.sp, color = Color(0xFF333333))
-                Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(Icons.Filled.Storage, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+                    Text("服务器", fontSize = 13.sp, color = Color(0xFF333333))
+                    Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+                }
             }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = state.serverUrl.removePrefix("https://").removePrefix("http://").trimEnd('/'),
+                fontSize = 11.sp,
+                color = Color(0xFF999999),
+                maxLines = 1
+            )
         }
 
         // ===== 主内容 =====

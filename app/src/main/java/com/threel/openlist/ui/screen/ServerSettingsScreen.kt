@@ -104,6 +104,28 @@ class ServerSettingsViewModel @Inject constructor(
             onSaved()
         }
     }
+
+    /** 自定义服务器：规范化（自动补 https://、去尾斜杠）后加入列表并选中。 */
+    fun addCustomServer(raw: String) {
+        val url = normalizeServerUrl(raw)
+        if (url.isBlank()) return
+        val current = _state.value.servers
+        val newList = if (current.any { it.url.equals(url, ignoreCase = true) }) {
+            current
+        } else {
+            current + ServerItem(url)
+        }
+        _state.value = _state.value.copy(servers = newList, currentServer = url)
+    }
+
+    private fun normalizeServerUrl(raw: String): String {
+        var u = raw.trim()
+        if (u.isBlank()) return ""
+        if (!u.startsWith("http://", ignoreCase = true) && !u.startsWith("https://", ignoreCase = true)) {
+            u = "https://$u"
+        }
+        return u.trimEnd('/')
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -201,6 +223,62 @@ fun ServerSettingsScreen(
                             )
                         }
                     }
+                }
+
+                // 自定义服务器（可输入自有地址）
+                item {
+                    Text(
+                        "自定义服务器",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2A2925)
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    var customText by remember { mutableStateOf("") }
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp, end = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = customText,
+                                onValueChange = { customText = it },
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("例如 https://192.168.1.100:5244", color = Color(0xFFBBBBBB)) },
+                                singleLine = true,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedBorderColor = Color(0xFF20C997),
+                                    unfocusedBorderColor = Color.Transparent,
+                                    cursorColor = Color(0xFF20C997)
+                                )
+                            )
+                            IconButton(onClick = {
+                                val url = customText.trim()
+                                if (url.isBlank()) {
+                                    Toast.makeText(context, "请输入服务器地址", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    vm.addCustomServer(url)
+                                    customText = ""
+                                    Toast.makeText(context, "已添加并选中", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Icon(Icons.Filled.Add, contentDescription = "添加并使用", tint = Color(0xFF20C997))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "支持 http/https，可填 IP:端口 或域名；省略协议时自动补 https://。",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF888888)
+                    )
                 }
 
                 // 测试连接
@@ -313,7 +391,7 @@ fun ServerSettingsScreen(
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "说明：选择服务器后点击保存，下次启动自动使用。修改后需要重新登录。",
+                        "说明：保存后立即生效，返回登录页即可用新服务器登录（token 与服务器绑定，需重新登录）。",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF888888)
                     )
