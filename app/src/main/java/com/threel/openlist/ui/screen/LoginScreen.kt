@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -135,11 +136,12 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 44.dp, end = 20.dp),
+                .zIndex(10f)
+                .padding(top = 44.dp, end = 20.dp)
+                .clickable { onServerSettings() },
             horizontalAlignment = Alignment.End
         ) {
             Surface(
-                onClick = { onServerSettings() },
                 shape = RoundedCornerShape(30.dp),
                 color = Color.White,
                 shadowElevation = 6.dp,
