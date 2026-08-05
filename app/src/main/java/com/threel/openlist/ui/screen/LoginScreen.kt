@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.threel.openlist.BuildConfig
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -338,7 +339,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "v0.3.7 · 三页札记",
+                "v${BuildConfig.VERSION_NAME} · 三页札记",
                 fontSize = 12.sp,
                 color = Color(0xFFCCCCCC)
             )
