@@ -3,6 +3,7 @@ package com.threel.openlist.data.api
 import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ class TokenStore @Inject constructor(
 ) {
     private val TOKEN_KEY = stringPreferencesKey("jwt_token")
     private val SERVER_KEY = stringPreferencesKey("server_url")
+    private val CUSTOM_SERVERS_KEY = stringSetPreferencesKey("custom_servers")  // 用户自建服务器列表（预设不入库）
     private val USERNAME_KEY = stringPreferencesKey("last_username")
     private val PASSWORD_KEY = stringPreferencesKey("last_password")  // v0.3.37: 恢复密码缓存
 
@@ -52,6 +54,29 @@ class TokenStore @Inject constructor(
     }
 
     fun serverUrlSync(): String = runBlocking { serverUrl.first() }
+
+    /** 用户自建的服务器列表（与 3 个硬编码预设区分开，持久化以便下次打开仍在）。 */
+    val customServers: Flow<Set<String>> =
+        ctx.dataStore.data.map { it[CUSTOM_SERVERS_KEY] ?: emptySet() }
+
+    fun customServersSync(): Set<String> = runBlocking { customServers.first() }
+
+    suspend fun addCustomServer(url: String) {
+        ctx.dataStore.edit { prefs ->
+            val set = prefs[CUSTOM_SERVERS_KEY]?.toMutableSet() ?: mutableSetOf()
+            set.add(url)
+            prefs[CUSTOM_SERVERS_KEY] = set
+        }
+    }
+
+    suspend fun removeCustomServer(url: String) {
+        ctx.dataStore.edit { prefs ->
+            val set = prefs[CUSTOM_SERVERS_KEY] ?: return@edit
+            if (url in set) {
+                prefs[CUSTOM_SERVERS_KEY] = set - url
+            }
+        }
+    }
 
     /** 记住账号 */
     val lastUsername: Flow<String> = ctx.dataStore.data.map { it[USERNAME_KEY] ?: "" }

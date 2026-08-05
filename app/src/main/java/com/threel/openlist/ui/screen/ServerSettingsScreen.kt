@@ -35,7 +35,8 @@ import javax.inject.Inject
 
 data class ServerItem(
     val url: String,
-    val ping: Int = -1
+    val ping: Int = -1,
+    val isPreset: Boolean = false
 )
 
 data class ServerSettingsState(
@@ -54,14 +55,24 @@ class ServerSettingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(ServerSettingsState())
     val state = _state.asStateFlow()
 
+    private val presetServers = listOf(
+        ServerItem("https://<your-server>", isPreset = true),
+        ServerItem("https://api.three2.site", isPreset = true),
+        ServerItem("https://backup.three.site", isPreset = true)
+    )
+
     init {
         val current = tokenStore.serverUrlSync()
-        val defaultServers = listOf(
-            ServerItem("https://<your-server>"),
-            ServerItem("https://api.three2.site"),
-            ServerItem("https://backup.three.site")
-        )
-        _state.value = _state.value.copy(currentServer = current, servers = defaultServers)
+        val custom = tokenStore.customServersSync()
+            .map { ServerItem(it) }
+        val all = presetServers + custom
+        // 若持久化的当前服务器不在列表中（例如被删），回退到首个可用服务器
+        val resolved = if (current.isBlank() || all.none { it.url.equals(current, ignoreCase = true) }) {
+            all.firstOrNull()?.url ?: TokenStore.DEFAULT_SERVER
+        } else {
+            current
+        }
+        _state.value = _state.value.copy(currentServer = resolved, servers = all)
     }
 
     fun selectServer(url: String) {
@@ -105,17 +116,30 @@ class ServerSettingsViewModel @Inject constructor(
         }
     }
 
-    /** 自定义服务器：规范化（自动补 https://、去尾斜杠）后加入列表并选中。 */
+    /** 自定义服务器：规范化（自动补 https://、去尾斜杠）后加入列表并选中，并持久化到 DataStore。 */
     fun addCustomServer(raw: String) {
         val url = normalizeServerUrl(raw)
         if (url.isBlank()) return
         val current = _state.value.servers
-        val newList = if (current.any { it.url.equals(url, ignoreCase = true) }) {
-            current
-        } else {
-            current + ServerItem(url)
+        if (current.any { it.url.equals(url, ignoreCase = true) }) {
+            // 已存在：仅切换选中，不重复入库
+            _state.value = _state.value.copy(currentServer = url)
+            return
         }
-        _state.value = _state.value.copy(servers = newList, currentServer = url)
+        _state.value = _state.value.copy(servers = current + ServerItem(url), currentServer = url)
+        viewModelScope.launch { tokenStore.addCustomServer(url) }
+    }
+
+    /** 删除自定义服务器（预设不可删）。若删掉的是当前选中，回退到首个服务器。 */
+    fun deleteServer(url: String) {
+        viewModelScope.launch { tokenStore.removeCustomServer(url) }
+        val remaining = _state.value.servers.filter { !it.url.equals(url, ignoreCase = true) }
+        val newCurrent = if (_state.value.currentServer.equals(url, ignoreCase = true)) {
+            remaining.firstOrNull()?.url ?: TokenStore.DEFAULT_SERVER
+        } else {
+            _state.value.currentServer
+        }
+        _state.value = _state.value.copy(servers = remaining, currentServer = newCurrent)
     }
 
     private fun normalizeServerUrl(raw: String): String {
@@ -136,6 +160,7 @@ fun ServerSettingsScreen(
 ) {
     val state by vm.state.collectAsState()
     val context = LocalContext.current
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = Modifier
@@ -365,6 +390,16 @@ fun ServerSettingsScreen(
                                     color = if (server.ping < 100) Color(0xFF34C759) else Color(0xFFFF9500)
                                 )
                             }
+                            if (!server.isPreset) {
+                                Spacer(Modifier.width(4.dp))
+                                IconButton(onClick = { pendingDelete = server.url }) {
+                                    Icon(
+                                        Icons.Outlined.Delete,
+                                        contentDescription = "删除服务器",
+                                        tint = Color(0xFFFF3B30)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -391,11 +426,33 @@ fun ServerSettingsScreen(
 
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "说明：保存后立即生效，返回登录页即可用新服务器登录（token 与服务器绑定，需重新登录）。",
+                        "说明：自定义服务器会自动保存，下次打开仍在；长按删除图标可移除自定义服务器（预设不可删）。保存当前服务器后立即生效，返回登录页即可登录（token 与服务器绑定，需重新登录）。",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color(0xFF888888)
                     )
                 }
+            }
+
+            if (pendingDelete != null) {
+                AlertDialog(
+                    onDismissRequest = { pendingDelete = null },
+                    title = { Text("删除服务器") },
+                    text = { Text("确定要删除 $pendingDelete 吗？删除后需重新选择当前服务器。") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            vm.deleteServer(pendingDelete!!)
+                            pendingDelete = null
+                            Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
+                        }) {
+                            Text("删除", color = Color(0xFFFF3B30))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { pendingDelete = null }) {
+                            Text("取消")
+                        }
+                    }
+                )
             }
         }
     }
