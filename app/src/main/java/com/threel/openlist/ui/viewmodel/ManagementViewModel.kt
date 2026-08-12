@@ -11,6 +11,7 @@ import com.threel.openlist.data.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -38,10 +39,15 @@ class ManagementViewModel @Inject constructor(
     fun loadAll() {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            val users = repo.userList().getOrNull()
-            val mounts = repo.mountList().getOrNull()
-            val shares = repo.shareList().getOrNull()
-            val options = repo.optionList().getOrNull()
+            // 四个独立请求并发拉取，缩短管理页首屏等待（原来是串行）
+            val usersDef = async { repo.userList().getOrNull() }
+            val mountsDef = async { repo.mountList().getOrNull() }
+            val sharesDef = async { repo.shareList().getOrNull() }
+            val optionsDef = async { repo.optionList().getOrNull() }
+            val users = usersDef.await()
+            val mounts = mountsDef.await()
+            val shares = sharesDef.await()
+            val options = optionsDef.await()
             val overview = Overview(
                 userCount = users?.size ?: 0,
                 mountCount = mounts?.size ?: 0,

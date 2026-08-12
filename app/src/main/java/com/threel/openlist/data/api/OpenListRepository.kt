@@ -157,7 +157,7 @@ class OpenListRepository @Inject constructor(
      *   没 sign 直接 401; token 在 /d/ 路由完全不检查 (只查 sign)
      */
     suspend fun download(remotePath: String, fileName: String): Result<File> = withContext(Dispatchers.IO) {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "download START (IO): $remotePath")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "download START (IO): ${remotePath.substringAfterLast('/')}")
         runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
@@ -185,7 +185,7 @@ class OpenListRepository @Inject constructor(
             ?: java.io.File(context.filesDir, "Downloads").also { it.mkdirs() }
         if (!downloadsDir.exists()) downloadsDir.mkdirs()
         val outFile = File(downloadsDir, fileName)
-        com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d path: ${req.url.encodedPath} sign=${sign.take(20)}...")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d -> ${remotePath.substringAfterLast('/')}")
         client.newCall(req).execute().use { resp ->
             com.threel.openlist.util.TelemetryLog.i("Repo", "GET /d resp code=${resp.code} size=${resp.body?.contentLength()}")
             if (!resp.isSuccessful) error("HTTP ${resp.code}: ${resp.message}")
@@ -194,7 +194,7 @@ class OpenListRepository @Inject constructor(
                 body.byteStream().use { input -> input.copyTo(out) }
             }
         }
-        com.threel.openlist.util.TelemetryLog.i("Repo", "download DONE: $fileName ${outFile.length()}B -> ${outFile.absolutePath}")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "download DONE: $fileName ${outFile.length()}B")
         outFile
         }
     }
@@ -214,7 +214,7 @@ class OpenListRepository @Inject constructor(
      *   它根本不读 query, 只读 header
      */
     suspend fun upload(remoteDir: String, file: File): Result<FsUploadResponse> = withContext(Dispatchers.IO) {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "upload START (IO): ${file.absolutePath} -> $remoteDir")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "upload START (IO): ${remoteDir.substringAfterLast('/')}")
         runCatching {
         val token = tokenStore.tokenSync()
         val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
@@ -280,11 +280,12 @@ class OpenListRepository @Inject constructor(
      *   拿到链接的人只看到 ID + 文件名, 不知道原路径
      *   限同一个文件可以匿名下载 (限原本权限的 'anyone_with_link')
      *
-     * 实现: POST /api/share/create -> 拿 share_id -> 拼 PUBLIC_BASE_URL/sd/<id>/<name>
+     * 实现: POST /api/share/create -> 拿 share_id -> 拼 serverUrl/sd/<id>/<name>
      */
     suspend fun buildShortShareUrl(remotePath: String): String = withContext(Dispatchers.IO) {
-        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShortShareUrl START: $remotePath")
+        com.threel.openlist.util.TelemetryLog.i("Repo", "buildShortShareUrl START: ${remotePath.substringAfterLast('/')}")
         val token = tokenStore.tokenSync()
+        val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
         val fileName = remotePath.substringAfterLast('/')
         // v0.3.30 修: OpenList 4.x /api/share/create 的 files[] 实际是 "作为子资源进入"
         // 坑: 单文件 share 里, OpenList 会把 files[0] 当成 dir 拼 /sd/<id>/<filename>
@@ -295,7 +296,7 @@ class OpenListRepository @Inject constructor(
         val body = """{"files":["$parentPath"],"expires":"2099-12-31T23:59:59Z","password":""}"""
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val req = Request.Builder()
-            .url("${com.threel.openlist.util.AppConfig.PUBLIC_BASE_URL}/api/share/create")
+            .url("$serverUrl/api/share/create")
             .header("Authorization", token)
             .post(body)
             .build()
@@ -308,6 +309,6 @@ class OpenListRepository @Inject constructor(
         }
         // 中文文件名 URL encode (OpenList 服务端也接受 raw, 但浏览器分享出去可能被截断)
         val encodedName = java.net.URLEncoder.encode(fileName, "UTF-8")
-        "${com.threel.openlist.util.AppConfig.PUBLIC_BASE_URL}/sd/$shareId/$encodedName"
+        "$serverUrl/sd/$shareId/$encodedName"
     }
 }

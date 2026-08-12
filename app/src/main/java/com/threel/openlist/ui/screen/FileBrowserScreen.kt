@@ -168,7 +168,7 @@ class FileBrowserViewModel @Inject constructor(
         return try {
             repo.buildShortShareUrl(remotePath)
         } catch (e: Throwable) {
-            TelemetryLog.e("FileBrowserVM", "buildShareUrl FAIL: $remotePath", e)
+            TelemetryLog.e("FileBrowserVM", "buildShareUrl FAIL: ${remotePath.substringAfterLast('/')}", e)
             throw e
         }
     }

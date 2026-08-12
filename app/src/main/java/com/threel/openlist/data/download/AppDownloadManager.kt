@@ -155,7 +155,7 @@ class AppDownloadManager @Inject constructor(
             } catch (e: CancellationException) {
                 updateStatus(id, DownloadStatus.CANCELLED)
             } catch (e: Exception) {
-                TelemetryLog.e(TAG, "download FAIL: ${task.remotePath}", e)
+                TelemetryLog.e(TAG, "download FAIL: ${task.remotePath.substringAfterLast('/')}", e)
                 updateStatus(id, DownloadStatus.FAILED, error = e.message)
             }
         }
