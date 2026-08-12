@@ -715,7 +715,7 @@ private fun GlassActionDialog(
             // Header
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                 Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(fileColor.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                    Icon(fileIcon, null, tint = fileColor, Modifier.size(24.dp))
+                    Icon(imageVector = fileIcon, contentDescription = null, modifier = Modifier.size(24.dp), tint = fileColor)
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
@@ -748,14 +748,14 @@ private fun GlassActionDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare), color = Color(0xFF20C997)) {
                             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.ContentCopy, null, tint = Color.White, Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(Modifier.width(6.dp))
                                 Text("复制链接", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
                         }
                         Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = { onSystemShare(shareUrl) }), color = Color(0xFF2A2925)) {
                             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.IosShare, null, tint = Color.White, Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                                 Spacer(Modifier.width(6.dp))
                                 Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
