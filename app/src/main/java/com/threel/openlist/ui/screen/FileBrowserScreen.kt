@@ -252,6 +252,8 @@ fun FileBrowserScreen(
     var showMkdirDialog by remember { mutableStateOf(false) }
     var showRenameDialog by remember { mutableStateOf<FsItem?>(null) }
     var showDeleteDialog by remember { mutableStateOf<FsItem?>(null) }
+    var shareSheetUrl by remember { mutableStateOf<String?>(null) }
+    var shareLoading by remember { mutableStateOf(false) }
 
     val pickFileLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -421,22 +423,44 @@ fun FileBrowserScreen(
             }
         }
 
-        // 文件操作弹窗
+        // 文件操作弹窗（底部 Sheet）
         val pending = menuItem
         if (pending != null && menuRemotePath != null) {
+            val (pendingIcon, pendingColor) = fileIconFor(pending.name, pending.isDir)
             GlassActionDialog(
                 fileName = pending.name,
-                onDownload = { vm.downloadFile(menuRemotePath, pending.name) },
-                onShare = {
+                fileIcon = pendingIcon,
+                fileColor = pendingColor,
+                shareUrl = shareSheetUrl,
+                shareLoading = shareLoading,
+                onDownload = {
+                    vm.downloadFile(menuRemotePath, pending.name)
+                    menuItem = null; shareSheetUrl = null; shareLoading = false
+                },
+                onRequestShare = {
                     scope.launch {
-                        val url = vm.buildShareUrl(menuRemotePath)
-                        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, url) }
-                        context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
+                        shareLoading = true
+                        try { shareSheetUrl = vm.buildShareUrl(menuRemotePath) }
+                        catch (e: Exception) {
+                            shareSheetUrl = null
+                            Toast.makeText(context, "生成分享链接失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                        }
+                        shareLoading = false
                     }
+                },
+                onCopyShare = {
+                    val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("分享链接", shareSheetUrl ?: ""))
+                    Toast.makeText(context, "链接已复制", Toast.LENGTH_SHORT).show()
+                },
+                onSystemShare = { url ->
+                    val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, url) }
+                    context.startActivity(Intent.createChooser(intent, "分享 ${pending.name}"))
+                    menuItem = null
                 },
                 onRename = { menuItem = null; showRenameDialog = pending },
                 onDelete = { menuItem = null; showDeleteDialog = pending },
-                onDismiss = { menuItem = null },
+                onDismiss = { menuItem = null; shareSheetUrl = null; shareLoading = false },
             )
         }
 
@@ -656,37 +680,92 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
         }
     }
 
-// ===== 文件操作弹窗 =====
+// ===== 文件操作弹窗（底部 Sheet）=====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GlassActionDialog(
     fileName: String,
+    fileIcon: ImageVector,
+    fileColor: Color,
+    shareUrl: String?,
+    shareLoading: Boolean,
     onDownload: () -> Unit,
-    onShare: () -> Unit,
+    onRequestShare: () -> Unit,
+    onCopyShare: () -> Unit,
+    onSystemShare: (String) -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White.copy(alpha = 0.95f),
-            tonalElevation = 6.dp,
-            shadowElevation = 12.dp,
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = Color(0xFFFBFAF7),
+        dragHandle = {
+            Box(Modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFD8D6CF)))
+            }
+        },
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Column(modifier = Modifier.padding(vertical = 20.dp, horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("文件操作", style = MaterialTheme.typography.labelMedium, color = Color(0xFF87867F), modifier = Modifier.padding(start = 4.dp))
-                Text(fileName, style = MaterialTheme.typography.titleMedium, color = Color(0xFF2A2925), fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-                GlassActionItem(icon = Icons.Outlined.Download, iconTint = Color(0xFF141413), label = "下载到本地", subLabel = "保存到下载目录", onClick = { onDownload(); onDismiss() })
-                GlassActionItem(icon = Icons.Outlined.Share, iconTint = Color(0xFF141413), label = "分享链接", subLabel = "复制 / 发送短链", onClick = { onShare(); onDismiss() })
-                GlassActionItem(icon = Icons.Outlined.Edit, iconTint = Color(0xFF141413), label = "重命名", subLabel = "修改文件名", onClick = onRename)
-                GlassActionItem(icon = Icons.Outlined.Delete, iconTint = Color(0xFFFF3B30), label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
-                Spacer(Modifier.height(4.dp))
-                Surface(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onDismiss() }, color = Color(0xFFF5F4ED).copy(alpha = 0.8f)) {
-                    Text("取消", style = MaterialTheme.typography.bodyLarge, color = Color(0xFF2A2925), fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp))
+            // Header
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
+                Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(fileColor.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                    Icon(fileIcon, null, tint = fileColor, Modifier.size(24.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(fileName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (shareUrl == null) "文件操作" else "分享此文件", fontSize = 12.sp, color = Color(0xFF87867F))
                 }
             }
+            HorizontalDivider(color = Color(0xFFECEAE3))
+            Spacer(Modifier.height(2.dp))
+
+            // 下载
+            GlassActionItem(icon = Icons.Outlined.Download, iconTint = Color(0xFF141413), label = "下载到本地", subLabel = "保存到下载目录", onClick = onDownload)
+
+            // 分享区块
+            when {
+                shareLoading -> {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF20C997))
+                        Spacer(Modifier.width(12.dp))
+                        Text("正在生成分享链接…", fontSize = 14.sp, color = Color(0xFF87867F))
+                    }
+                }
+                shareUrl == null -> {
+                    GlassActionItem(icon = Icons.Outlined.Share, iconTint = Color(0xFF141413), label = "分享链接", subLabel = "获取可分享短链", onClick = onRequestShare)
+                }
+                else -> {
+                    Surface(shape = RoundedCornerShape(14.dp), color = Color(0xFFF1F0EA), modifier = Modifier.fillMaxWidth()) {
+                        Text(shareUrl, fontSize = 12.sp, color = Color(0xFF56544E), modifier = Modifier.fillMaxWidth().padding(14.dp), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare), color = Color(0xFF20C997)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.ContentCopy, null, tint = Color.White, Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("复制链接", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = { onSystemShare(shareUrl) }), color = Color(0xFF2A2925)) {
+                            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Outlined.IosShare, null, tint = Color.White, Modifier.size(18.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+            }
+
+            GlassActionItem(icon = Icons.Outlined.Edit, iconTint = Color(0xFF141413), label = "重命名", subLabel = "修改文件名", onClick = onRename)
+            GlassActionItem(icon = Icons.Outlined.Delete, iconTint = Color(0xFFFF3B30), label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
         }
     }
 }
