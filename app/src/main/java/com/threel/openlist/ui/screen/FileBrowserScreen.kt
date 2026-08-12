@@ -341,9 +341,9 @@ fun FileBrowserScreen(
                         items(displayedItems) { item ->
                             val onMenu = if (!item.isDir) { { menuItem = item } } else null
                             val onLongClick = { menuItem = item }
-                            val (fileIcon, fileColor) = fileIconFor(item.name, item.isDir)
+                            val fileStyle = fileStyleFor(item.name, item.isDir)
                             FileRow(
-                                icon = { Icon(fileIcon, null, tint = fileColor) },
+                                icon = { FileTypeIconBox(fileStyle) },
                                 name = item.name,
                                 size = if (item.isDir) "" else humanSize(item.size),
                                 modified = item.modified.take(10),
@@ -426,11 +426,10 @@ fun FileBrowserScreen(
         // 文件操作弹窗（底部 Sheet）
         val pending = menuItem
         if (pending != null && menuRemotePath != null) {
-            val (pendingIcon, pendingColor) = fileIconFor(pending.name, pending.isDir)
+            val pendingStyle = fileStyleFor(pending.name, pending.isDir)
             GlassActionDialog(
                 fileName = pending.name,
-                fileIcon = pendingIcon,
-                fileColor = pendingColor,
+                fileStyle = pendingStyle,
                 shareUrl = shareSheetUrl,
                 shareLoading = shareLoading,
                 onDownload = {
@@ -685,8 +684,7 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
 @Composable
 private fun GlassActionDialog(
     fileName: String,
-    fileIcon: ImageVector,
-    fileColor: Color,
+    fileStyle: FileStyle,
     shareUrl: String?,
     shareLoading: Boolean,
     onDownload: () -> Unit,
@@ -714,9 +712,7 @@ private fun GlassActionDialog(
         ) {
             // Header
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
-                Box(Modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(fileColor.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                    Icon(imageVector = fileIcon, contentDescription = null, modifier = Modifier.size(24.dp), tint = fileColor)
-                }
+                FileTypeIconBox(fileStyle)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(fileName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -831,44 +827,119 @@ private fun humanSize(b: Long): String = when {
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
 }
 
-private fun fileIconFor(name: String, isDir: Boolean): Pair<ImageVector, Color> {
-    if (isDir) return Icons.Outlined.Folder to Color(0xFFE0A030)
+/**
+ * 文件类型视觉描述：圆角方块底色 + 前景色 + 可选的 1~4 字符短码或 Material 图标。
+ * "letter-avatar" 风格（macOS Finder / Notion / Google Drive 列表同款），
+ * 让 7z vs ISO vs TAR 这类同大类细分类型也能一眼区分。
+ */
+private data class FileStyle(
+    val bg: Color,
+    val fg: Color,
+    val label: String? = null,
+    val icon: ImageVector? = null,
+)
+
+private fun fileStyleFor(name: String, isDir: Boolean): FileStyle {
+    if (isDir) return FileStyle(bg = Color(0xFFFCEEDC), fg = Color(0xFFB0701F), icon = Icons.Outlined.Folder)
     val ext = name.substringAfterLast('.', "").lowercase()
+    if (ext.isEmpty()) return FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), icon = Icons.Outlined.InsertDriveFile)
     return when (ext) {
-        // 压缩包
-        "zip", "7z", "rar", "tar", "gz", "bz2", "xz", "tgz", "tbz2", "txz", "lz", "lzma", "zst", "iso" ->
-            Icons.Outlined.Archive to Color(0xFF8E7CC3)
-        // 安卓安装包
-        "apk" -> Icons.Outlined.Android to Color(0xFF3DDC84)
-        // 可执行 / 脚本
-        "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1", "dmg", "deb", "rpm", "jar", "bin", "run" ->
-            Icons.Outlined.Terminal to Color(0xFF607D8B)
-        // 图片
+        // ---- 压缩包：每种格式一个色相 + 短码 ----
+        "zip" -> FileStyle(bg = Color(0xFFFFEAD3), fg = Color(0xFF9A4F12), label = "ZIP")
+        "7z"  -> FileStyle(bg = Color(0xFFFFE0CC), fg = Color(0xFF8A3F08), label = "7Z")
+        "rar" -> FileStyle(bg = Color(0xFFFFE0CC), fg = Color(0xFF8A3F08), label = "RAR")
+        "jar" -> FileStyle(bg = Color(0xFFFFEAD3), fg = Color(0xFF9A4F12), label = "JAR")
+        "tar", "tgz"   -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "TAR")
+        "gz", "gzip"   -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "GZ")
+        "bz2", "tbz2"  -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "BZ2")
+        "xz", "txz"    -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "XZ")
+        "lz", "lzma", "zst" -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = ext.uppercase().take(3))
+
+        // ---- 碟镜像：深蓝 ----
+        "iso", "img", "dmg" -> FileStyle(bg = Color(0xFFDDE4FB), fg = Color(0xFF2742A0), label = ext.uppercase())
+
+        // ---- Android 包：保留 Android 机器头图标 ----
+        "apk" -> FileStyle(bg = Color(0xFFDCFCE7), fg = Color(0xFF1F8A4D), icon = Icons.Outlined.Android)
+
+        // ---- 可执行 / 脚本：石板灰 + 短码 ----
+        "exe", "msi", "bat", "cmd" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "EXE")
+        "sh", "bash", "zsh", "fish" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "SH")
+        "ps1" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "PS1")
+        "deb" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "DEB")
+        "rpm" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "RPM")
+        "bin", "run" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "BIN")
+
+        // ---- 多媒体：保留通用图标（图 / 胶片 / 音符） ----
         "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
-            Icons.Outlined.Image to Color(0xFFE0567A)
-        // 视频
+            FileStyle(bg = Color(0xFFFCE4EC), fg = Color(0xFFB23155), icon = Icons.Outlined.Image)
         "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
-            Icons.Outlined.Movie to Color(0xFF5B8DEF)
-        // 音频
+            FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), icon = Icons.Outlined.Movie)
         "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
-            Icons.Outlined.Audiotrack to Color(0xFFF0A030)
-        // PDF
-        "pdf" -> Icons.Outlined.PictureAsPdf to Color(0xFFE03E2F)
-        // 代码
-        "kt", "kts", "java", "py", "js", "ts", "jsx", "tsx", "go", "rust", "rs", "c", "cpp", "cc", "cxx", "h", "hpp", "json", "xml", "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "swift", "rb", "php", "html", "htm", "css", "scss", "sass", "less", "sql" ->
-            Icons.Outlined.Code to Color(0xFF22B8A6)
-        // 文本
-        "txt", "md", "markdown", "log", "rst", "tex" ->
-            Icons.Outlined.TextSnippet to Color(0xFF9AA0A6)
-        // 文档 Word
-        "doc", "docx", "rtf", "odt" ->
-            Icons.Outlined.Description to Color(0xFF2A7DE1)
-        // 表格
-        "xls", "xlsx", "ods", "csv" ->
-            Icons.Outlined.TableChart to Color(0xFF21A366)
-        // 演示
-        "ppt", "pptx", "odp", "key" ->
-            Icons.Outlined.Slideshow to Color(0xFFED6C30)
-        else -> Icons.Outlined.InsertDriveFile to Color(0xFF9AA0A6)
+            FileStyle(bg = Color(0xFFFFEED4), fg = Color(0xFF8C5010), icon = Icons.Outlined.MusicNote)
+
+        // ---- PDF：全球通用短码 ----
+        "pdf" -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "PDF")
+
+        // ---- 代码：按语言细分配色，短码即语言名 ----
+        "py"  -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "PY")
+        "js", "jsx" -> FileStyle(bg = Color(0xFFFEF3C7), fg = Color(0xFF854F0B), label = "JS")
+        "ts", "tsx" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), label = "TS")
+        "java" -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "JAVA")
+        "kt", "kts" -> FileStyle(bg = Color(0xFFE0EAFE), fg = Color(0xFF2742A0), label = "KT")
+        "go"  -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "GO")
+        "rs", "rust" -> FileStyle(bg = Color(0xFFFEF3C7), fg = Color(0xFF854F0B), label = "RS")
+        "swift" -> FileStyle(bg = Color(0xFFFCEAD3), fg = Color(0xFF9A4F12), label = "SWIFT")
+        "rb"  -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "RB")
+        "php" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "PHP")
+        "c", "h" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "C")
+        "cpp", "cc", "cxx", "hpp" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "C++")
+        "sql" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "SQL")
+        "json" -> FileStyle(bg = Color(0xFFE6F0E8), fg = Color(0xFF246F44), label = "JSON")
+        "xml" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF2742A0), label = "XML")
+        "yaml", "yml" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "YML")
+        "toml", "ini", "conf" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "CFG")
+        "gradle" -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "GRD")
+        "dart" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), label = "DART")
+        "html", "htm" -> FileStyle(bg = Color(0xFFFCEAD3), fg = Color(0xFF9A4F12), label = "HTML")
+        "css", "scss", "sass", "less" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "CSS")
+
+        // ---- 文本 ----
+        "txt" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "TXT")
+        "md", "markdown" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "MD")
+        "log" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "LOG")
+        "rst", "tex" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = ext.uppercase().take(3))
+
+        // ---- Office 套件：W / X / P 通用约定 ----
+        "doc", "docx", "rtf", "odt" -> FileStyle(bg = Color(0xFFE0EAFE), fg = Color(0xFF1548A0), label = "W")
+        "xls", "xlsx", "ods", "csv" -> FileStyle(bg = Color(0xFFDEF4E8), fg = Color(0xFF126F44), label = "X")
+        "ppt", "pptx", "odp", "key" -> FileStyle(bg = Color(0xFFFCE9DB), fg = Color(0xFF97441A), label = "P")
+
+        // ---- 兜底：未知扩展名也走短码（最多 4 字符） ----
+        else -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = ext.uppercase().take(4))
+    }
+}
+
+/** 渲染文件类型徽章：bg 圆角色块 + 短码文字 或 Material 图标 */
+@Composable
+private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(style.bg),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            style.label != null -> Text(
+                text = style.label,
+                color = style.fg,
+                fontWeight = FontWeight.Bold,
+                fontSize = when (style.label.length) { 1 -> 22.sp; 2 -> 15.sp; else -> 12.sp },
+                maxLines = 1,
+            )
+            style.icon != null -> Icon(
+                imageVector = style.icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = style.fg,
+            )
+        }
     }
 }
