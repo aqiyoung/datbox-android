@@ -96,8 +96,8 @@ jobs:
       - name: Build Release APK (signed)
         if: success()
         run: |
+          set -o pipefail
           ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/build.log | tail -200
-          echo "===exit=== exit=$?"
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
