@@ -3,6 +3,7 @@ package com.threel.openlist.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
@@ -236,6 +237,11 @@ fun FileBrowserScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // 系统返回手势 / 返回键: 子目录内拦截 = 返回上一级; 根目录放行交给系统退出
+    BackHandler(enabled = state.path != "/") {
+        vm.load(vm.goUp())
+    }
+
     var fabExpanded by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
@@ -330,16 +336,6 @@ fun FileBrowserScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f),
                     ) {
-                        if (state.path != "/") {
-                            item {
-                                FileRow(
-                                    icon = { Icon(Icons.Outlined.SubdirectoryArrowLeft, null, tint = Color(0xFF5B8DEF)) },
-                                    name = "..", size = "", modified = "",
-                                    onClick = { vm.load(vm.goUp()) },
-                                    onLongClick = null, onMenuClick = null,
-                                )
-                            }
-                        }
                         items(displayedItems) { item ->
                             val onMenu = if (!item.isDir) { { menuItem = item } } else null
                             val onLongClick = { menuItem = item }
