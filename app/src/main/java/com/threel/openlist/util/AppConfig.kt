@@ -11,7 +11,7 @@ import com.threel.openlist.BuildConfig
  *
  * - versionName / versionCode 真实值 (从 PackageManager)
  * - buildType (debug/beta/release) 从 applicationIdSuffix 反推
- * - changelogUrl / updateCheckUrl (跟 strings.xml 一致)
+ * - 更新检查已统一走 GitHub Release（见 data/update/GitHubUpdateEngine）
  *
  * 用法: AppConfig.currentVersionName(context) / AppConfig.buildType
  */
@@ -25,7 +25,6 @@ object AppConfig {
     const val UPSTREAM_REPO = "https://github.com/OpenListTeam/OpenList"
     const val UPSTREAM_NOTE = "基于官方 OpenList 开发"
     const val CHANGELOG_URL = "https://<your-server>/api/openlist-android/changelog.json"
-    const val UPDATE_CHECK_URL = "https://<your-server>/api/openlist-android/latest.json"
     // v0.3.29 老板 6/14 20:00 拍: '分享链接中间带目录, 能不能隐藏'
     // 修法: 用 OpenList 4.x 官方短链 /sd/<id>/<filename> (不露原路径)
     // 域名必须用 <your-server> (老板公网域名), 不能用 serverUrl (内网 IP 朋友访问不到)

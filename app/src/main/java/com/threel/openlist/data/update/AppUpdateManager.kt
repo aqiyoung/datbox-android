@@ -1,33 +1,40 @@
 package com.threel.openlist.data.update
 
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.util.Log
-import androidx.core.content.FileProvider
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.preferencesDataStore
 import com.threel.openlist.util.AppConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private val Context.updateDataStore by preferencesDataStore("openlist_update_prefs")
+
 /**
- * App 启动检查更新 + 弹窗提示
+ * 统一更新检查（对齐 sanyelive / FeiNiuMusic / synapse 的 app_update_core 引擎）。
  *
- * - latest.json 包含 version / versionCode / apk_url / force_update / min_supported_version
- * - 启动时 (Application onCreate) 异步 fire-and-forget 调用
- * - 如果发现新版本, 回调 onUpdateAvailable, UI 弹窗
+ * - 数据源：GitHub Release（不再依赖自托管 latest.json）。
+ * - 代理链：[gh-llkk.cc → gh-proxy.com → 直连]，国内直连 api.github.com 被墙时自动降级。
+ * - 结论语义：所有源都失败 → checkForUpdate() 返回 null（调用方必须如实报"检查失败"，绝不谎报"已是最新"）。
+ * - 仅当 tag_name 比当前 versionName 更新时才 hasUpdate。
+ * - 启动时是否自动检查可由设置关闭（默认开），手动检查永远执行。
  */
 @Singleton
 class AppUpdateManager @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val TAG = "AppUpdate"
+    private val engine = GitHubUpdateEngine(
+        UpdateConfig(owner = "aqiyoung", repo = "openlist-android"),
+    )
     private val client by lazy {
         OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -35,47 +42,37 @@ class AppUpdateManager @Inject constructor(
             .build()
     }
 
-    /**
-     * 检查更新
-     * @return AppUpdateInfo if new version, null if up-to-date or error
-     */
-    suspend fun checkForUpdate(): AppUpdateInfo? = withContext(Dispatchers.IO) {
-        try {
-            val url = AppConfig.UPDATE_CHECK_URL
-            Log.i(TAG, "checkForUpdate: $url")
-            val req = Request.Builder().url(url).get().build()
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) {
-                    Log.w(TAG, "HTTP ${resp.code}")
-                    return@withContext null
-                }
-                val body = resp.body?.string() ?: return@withContext null
-                val info = parseUpdateInfo(body) ?: return@withContext null
-                val currentCode = AppConfig.versionCode(context)
-                Log.i(TAG, "current=$currentCode, latest=${info.versionCode} (${info.version})")
-                if (info.versionCode > currentCode) info else null
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "checkForUpdate failed: ${e.message}")
-            null
-        }
-    }
+    /** 当前安装版本（来自 PackageManager）。 */
+    val currentVersionName: String get() = AppConfig.versionName(context)
 
-    private fun parseUpdateInfo(json: String): AppUpdateInfo? = try {
-        kotlinx.serialization.json.Json {
-            ignoreUnknownKeys = true
-            coerceInputValues = true
-        }.decodeFromString(AppUpdateInfo.serializer(), json)
-    } catch (e: Exception) {
-        Log.w(TAG, "parse failed: ${e.message}")
-        null
+    /** 启动时是否自动检查更新（设置可关，默认开）。 */
+    val autoCheckEnabled: Flow<Boolean> =
+        context.updateDataStore.data.map { it[AUTO_CHECK_KEY] ?: true }
+
+    suspend fun setAutoCheckEnabled(value: Boolean) {
+        context.updateDataStore.edit { it[AUTO_CHECK_KEY] = value }
     }
 
     /**
-     * 下载 APK 到 cache 目录, 安装 (需要 FileProvider + manifest provider 授权)
-     * 简化: 直接返回 Intent.ACTION_VIEW 让系统浏览器/下载器处理
+     * 检查更新。返回 null = 所有数据源都失败（网络不可达），调用方应提示"检查失败"。
+     * 返回对象但 hasUpdate=false = 确实已是最新。
      */
-    fun apkInstallIntent(apkUrl: String): Intent =
-        Intent(Intent.ACTION_VIEW, Uri.parse(apkUrl))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    suspend fun checkForUpdate(): GitHubUpdateResult? = withContext(Dispatchers.IO) {
+        val current = AppConfig.versionName(context)
+        engine.check(
+            fetch = { url, headers ->
+                val builder = Request.Builder().url(url)
+                headers.forEach { (k, v) -> builder.header(k, v) }
+                val resp = client.newCall(builder.build()).execute()
+                UpdateHttpResponse(resp.code, resp.body?.string().orEmpty())
+            },
+            currentVersion = current,
+        )
+    }
+
+    /** 跳转发布页（GitHub App → 浏览器 → 复制链接）。 */
+    fun openRelease(context: Context, url: String): OpenReleaseResult =
+        engine.openRelease(context, url)
 }
+
+private val AUTO_CHECK_KEY = booleanPreferencesKey("auto_check_updates")

@@ -26,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.threel.openlist.R
-import com.threel.openlist.data.update.AppUpdateInfo
 import com.threel.openlist.data.update.AppUpdateManager
+import com.threel.openlist.data.update.GitHubUpdateResult
 import com.threel.openlist.util.AppConfig
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -42,8 +42,14 @@ import kotlinx.coroutines.withContext
 fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var updateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    var updateInfo by remember { mutableStateOf<GitHubUpdateResult?>(null) }
     var updateChecking by remember { mutableStateOf(false) }
+
+    val updateManager = remember {
+        EntryPointAccessors.fromApplication(context.applicationContext, AppUpdateEntryPoint::class.java)
+            .appUpdateManager()
+    }
+    val autoCheck by updateManager.autoCheckEnabled.collectAsState(initial = true)
 
     Box(
         modifier = Modifier
@@ -145,17 +151,20 @@ fun AboutScreen(onBack: () -> Unit) {
                                 updateChecking = true
                                 scope.launch {
                                     try {
-                                        val manager = EntryPointAccessors.fromApplication(
-                                            context.applicationContext,
-                                            AppUpdateEntryPoint::class.java
-                                        ).appUpdateManager()
-                                        val info = withContext(Dispatchers.IO) { manager.checkForUpdate() }
-                                        updateInfo = info
-                                        if (info == null) {
-                                            Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
-                                        } else {
-                                            showUpdateDialog(context, info)
-                                        }
+                                val manager = EntryPointAccessors.fromApplication(
+                                    context.applicationContext,
+                                    AppUpdateEntryPoint::class.java
+                                ).appUpdateManager()
+                                val result = withContext(Dispatchers.IO) { manager.checkForUpdate() }
+                                updateInfo = result
+                                when {
+                                    result == null ->
+                                        Toast.makeText(context, "检查失败，请稍后重试", Toast.LENGTH_SHORT).show()
+                                    result.hasUpdate ->
+                                        showUpdateDialog(context, manager, result)
+                                    else ->
+                                        Toast.makeText(context, "已是最新版本", Toast.LENGTH_SHORT).show()
+                                }
                                     } catch (e: Exception) {
                                         Toast.makeText(context, "检查失败: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
@@ -216,6 +225,42 @@ fun AboutScreen(onBack: () -> Unit) {
                     }
                 }
 
+                // 启动时自动检查更新开关
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = 4.dp,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "启动时检查更新",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = Color(0xFF2A2925),
+                                )
+                                Text(
+                                    "自动检测 GitHub 上的新版本",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF888888),
+                                )
+                            }
+                            Switch(
+                                checked = autoCheck,
+                                onCheckedChange = { scope.launch { updateManager.setAutoCheckEnabled(it) } },
+                                colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF20C997)),
+                            )
+                        }
+                    }
+                }
+
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
@@ -228,34 +273,27 @@ interface AppUpdateEntryPoint {
     fun appUpdateManager(): AppUpdateManager
 }
 
-private fun showUpdateDialog(context: android.content.Context, info: AppUpdateInfo) {
-    val title = "发现新版本 ${info.version}"
+private fun showUpdateDialog(context: android.content.Context, manager: AppUpdateManager, result: GitHubUpdateResult) {
     val message = buildString {
-        append("当前: ${AppConfig.fullVersionString(context)}\n")
-        append("最新: ${info.version} (build ${info.versionCode})\n")
-        if (info.force_update) append("\n⚠️ 强制更新\n")
-        append("\n是否前往下载？")
-    }
-    android.app.AlertDialog.Builder(context)
-        .setTitle(title)
-        .setMessage(message)
-        .setPositiveButton("下载") { dialog, _ ->
-            runCatching {
-                context.startActivity(
-                    android.content.Intent(
-                        android.content.Intent.ACTION_VIEW,
-                        android.net.Uri.parse(info.apk_url)
-                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-                )
+        append("当前: ${manager.currentVersionName}\n")
+        append("最新: ${result.latestVersion}\n")
+        result.releaseNotes?.let { notes ->
+            // 跳过首行 P0 / critical 标记，展示其余更新内容。
+            val body = notes.lines().drop(1).joinToString("\n").trim()
+            if (body.isNotEmpty()) {
+                append("\n更新内容:\n")
+                append(if (body.length > 400) body.take(400) + "…" else body)
             }
         }
-        .setNeutralButton("复制链接") { _, _ ->
-            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("APK 下载链接", info.apk_url)
-            clipboard.setPrimaryClip(clip)
-            android.widget.Toast.makeText(context, "链接已复制: ${info.apk_url}", android.widget.Toast.LENGTH_LONG).show()
+        if (result.isCritical) append("\n\n⚠️ 关键更新，建议尽快升级")
+    }
+    android.app.AlertDialog.Builder(context)
+        .setTitle("发现新版本 ${result.latestVersion}")
+        .setMessage(message)
+        .setPositiveButton("前往更新") { _, _ ->
+            manager.openRelease(context, result.releaseUrl)
         }
         .setNegativeButton("稍后", null)
-        .setCancelable(!info.force_update)
+        .setCancelable(!result.isCritical)
         .show()
 }

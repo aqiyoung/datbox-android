@@ -56,7 +56,10 @@ class RootViewModel @Inject constructor(
     }
 
     fun logout() {
-        viewModelScope.launch { _loggedIn.value = false }
+        viewModelScope.launch {
+            tokenStore.clear()
+            _loggedIn.value = false
+        }
     }
 
     fun setLoggedIn() {

@@ -85,8 +85,13 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             repo.login(_state.value.username.trim(), _state.value.password, _state.value.serverUrl)
                 .onSuccess {
-                    tokenStore.saveLastCredentials(_state.value.username.trim(), _state.value.password)
-                    _state.value = _state.value.copy(loading = false, success = true)
+                    val st = _state.value
+                    if (st.rememberMe) {
+                        tokenStore.saveLastCredentials(st.username.trim(), st.password)
+                    } else {
+                        tokenStore.clearLastCredentials()
+                    }
+                    _state.value = st.copy(loading = false, success = true)
                 }
                 .onFailure { e ->
                     tokenStore.clear()

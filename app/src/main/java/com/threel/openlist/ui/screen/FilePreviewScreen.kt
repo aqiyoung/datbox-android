@@ -86,20 +86,23 @@ fun FilePreviewScreen(
     var error by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    val entryPoint = EntryPointAccessors.fromApplication(context, TokenStoreEntryPoint::class.java)
-    val authToken = entryPoint.tokenStore().tokenSync()
-    // 用当前登录的服务器地址（不再是写死的公开域名），多服务器/内网也能预览
-    val serverUrl = entryPoint.tokenStore().serverUrlSync().trimEnd('/')
+    // entryPoint 仅取引用；token / serverUrl 的同步读挪到 LaunchedEffect 内，避免主线程 runBlocking
+    val tokenStore = remember {
+        EntryPointAccessors.fromApplication(context, TokenStoreEntryPoint::class.java).tokenStore()
+    }
 
-    // 获取预览 URL (需要 sign)
+    // 获取预览 URL / 文本内容（/d 路由只认 sign 不认 Authorization，必须先 fs/get 拿 sign）
     LaunchedEffect(remotePath) {
+        val serverUrl = withContext(Dispatchers.IO) { tokenStore.serverUrlSync().trimEnd('/') }
+        val authToken = withContext(Dispatchers.IO) { tokenStore.tokenSync() }
         if (isImage || isVideo || isAudio) {
             previewUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
         }
         if (isText) {
             textLoading = true
-            val content = downloadTextContent("$serverUrl/d$remotePath", authToken)
-            textContent = content
+            // 先拿 sign，再用 /d?sign= 拉文本（Authorization 在 /d 路由无效 → 401）
+            val signedUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
+            textContent = if (signedUrl != null) downloadTextContent(signedUrl) else null
             textLoading = false
         }
     }
@@ -175,12 +178,12 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authT
     }
 }
 
-/** 下载文本文件内容 */
-private suspend fun downloadTextContent(url: String, authToken: String): String? {
+/** 下载文本文件内容（url 已带 sign，无需 Authorization） */
+private suspend fun downloadTextContent(url: String): String? {
     return withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
-            val req = Request.Builder().url(url).addHeader("Authorization", authToken).get().build()
+            val req = Request.Builder().url(url).get().build()
             client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code}")
                 resp.body?.string()?.take(100_000) ?: ""  // 限制 100KB
