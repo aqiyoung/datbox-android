@@ -383,44 +383,23 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // 外层液态玻璃背景 (纯白半透明 + blur)
+        // 外层液态玻璃背景 (纯白 + 阴影 + 边框, 不用 blur 兼容低版本)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .blur(20.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White,
-                            Color.White,
-                        )
-                    )
-                )
+                .shadow(8.dp, shape, ambientColor = Color.Black.copy(alpha = 0.08f), spotColor = Color.Black.copy(alpha = 0.08f))
+                .background(Color.White)
                 .border(
                     width = 0.5.dp,
                     brush = Brush.verticalGradient(
                         colors = listOf(
-                            GlassBorder,
-                            GlassBorder.copy(alpha = 0.25f),
+                            Color(0xFFE5E5EA),
+                            Color(0xFFE5E5EA).copy(alpha = 0.25f),
                         )
                     ),
                     shape = shape,
-                )
-                .drawBehind {
-                    // 顶部高光线
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.9f),
-                                Color.White.copy(alpha = 0.0f),
-                            ),
-                            startY = 0f,
-                            endY = 2f,
-                        ),
-                        size = Size(size.width, 2f),
-                    )
-                },
+                ),
         ) {
             // 内层: NavigationBar
             NavigationBar(
