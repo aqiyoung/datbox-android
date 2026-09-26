@@ -64,11 +64,7 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
-                )
-            )
+            .background(Color.White)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // 顶部栏

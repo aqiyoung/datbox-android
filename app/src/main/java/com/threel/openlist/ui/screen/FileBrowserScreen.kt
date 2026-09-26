@@ -305,11 +305,7 @@ fun FileBrowserScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFF5F4ED))
-                )
-            )
+            .background(Color.White)
     ) {
         // 内容区
         Column(
@@ -613,43 +609,22 @@ private fun FileRow(
     onMenuClick: (() -> Unit)? = null,
     selected: Boolean = false,
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = if (selected) Color(0xFFF0EEE6) else Color.Transparent,
+    LiquidGlassRow(
+        cornerRadius = 14.dp,
+        selected = selected,
         onClick = onClick,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            icon()
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF141413),
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (modified.isNotEmpty() || size.isNotEmpty()) {
-                    Text(
-                        text = listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = StoneGray,
-                        maxLines = 1,
-                    )
-                }
-            }
-            if (onMenuClick != null) {
+        onLongClick = onLongClick,
+        leading = icon,
+        title = name,
+        subtitle = if (modified.isNotEmpty() || size.isNotEmpty()) listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · ") else null,
+        trailing = if (onMenuClick != null) {
+            {
                 IconButton(onClick = onMenuClick, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = StoneGray, modifier = Modifier.size(20.dp))
                 }
             }
-        }
-    }
+        } else null,
+    )
 }
 
 @Composable
