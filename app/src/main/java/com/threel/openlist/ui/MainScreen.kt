@@ -6,23 +6,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import com.threel.openlist.ui.component.LiquidGlassBottomBar
+import com.threel.openlist.ui.component.BottomTab
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.FilePreviewScreen
 import com.threel.openlist.ui.screen.ManagementScreen
-import com.threel.openlist.ui.theme.StoneGray
-import com.threel.openlist.ui.theme.WarmIvory
-
-// ===== 底部导航 Tab 定义 =====
-data class BottomTab(
-    val label: String,
-    val icon: ImageVector,
-)
 
 /**
  * 主页面壳 — 底部导航 + 文件预览全屏模式

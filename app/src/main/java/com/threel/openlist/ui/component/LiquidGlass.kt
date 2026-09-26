@@ -54,6 +54,16 @@ import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
 import com.threel.openlist.ui.theme.WarmWhite
 
+// ===== 底部导航 Tab 定义 =====
+/**
+ * 底部导航 Tab
+ * 放在组件库中, MainScreen 和 LiquidGlassBottomBar 共用
+ */
+data class BottomTab(
+    val label: String,
+    val icon: ImageVector,
+)
+
 // ===== iOS 26 风格液态玻璃组件库 =====
 
 /**
