@@ -18,8 +18,8 @@ import com.threel.openlist.ui.screen.ProfileScreen
 /**
  * 主页面壳 — 底部导航 + 文件预览全屏模式
  *
- * 底部常驻 3 个 Tab: 首页/搜索/我的
- * 文件预览时自动隐藏底部栏, 沉浸式全屏。
+ * 底部常驻 2 个 Tab: 首页/我的
+ * 搜索和上传放右上角顶部栏。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,8 +29,6 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var previewPath by remember { mutableStateOf<String?>(null) }
     var previewName by remember { mutableStateOf("") }
-    var searchTrigger by remember { mutableIntStateOf(0) }
-    var uploadTrigger by remember { mutableIntStateOf(0) }
 
     // ── 文件预览全屏模式: 隐藏底部栏 ──
     if (previewPath != null) {
@@ -50,7 +48,6 @@ fun MainScreen(
 
     val tabs = listOf(
         BottomTab("首页", Icons.Outlined.Home),
-        BottomTab("搜索", Icons.Outlined.Search),
         BottomTab("我的", Icons.Outlined.Person),
     )
 
@@ -59,12 +56,7 @@ fun MainScreen(
             LiquidGlassBottomBar(
                 tabs = tabs,
                 selectedIndex = selectedTab,
-                onSelected = { index ->
-                    selectedTab = index
-                    when (index) {
-                        1 -> searchTrigger++
-                    }
-                },
+                onSelected = { selectedTab = it },
             )
         },
     ) { padding ->
@@ -76,11 +68,8 @@ fun MainScreen(
                         previewPath = path
                         previewName = name
                     },
-                    searchTrigger = searchTrigger,
-                    uploadTrigger = uploadTrigger,
                 )
-                1 -> { searchTrigger++; selectedTab = 0 }
-                2 -> ProfileScreen(
+                1 -> ProfileScreen(
                     onBack = { selectedTab = 0 },
                     onLogout = onLogout,
                 )
