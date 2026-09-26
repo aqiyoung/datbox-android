@@ -383,17 +383,16 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // 外层玻璃背景
+        // 外层玻璃背景 (实心半透明, 不用 blur 兼容低版本)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .blur(20.dp)
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.88f),
-                            Color.White.copy(alpha = 0.78f),
+                            Color(0xFFF5F4ED).copy(alpha = 0.96f),
+                            Color(0xFFF5F4ED).copy(alpha = 0.92f),
                         )
                     )
                 )

@@ -226,9 +226,9 @@ data class FabMenuItem(
 @Composable
 fun FileBrowserScreen(
     onLogout: () -> Unit,
-    onAbout: () -> Unit = {},
-    onManagement: () -> Unit = {},
     onPreview: (String, String) -> Unit = { _, _ -> },
+    searchTrigger: Int = 0,
+    uploadTrigger: Int = 0,
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -242,7 +242,6 @@ fun FileBrowserScreen(
         vm.load(vm.goUp())
     }
 
-    var fabExpanded by remember { mutableStateOf(false) }
     var searchActive by remember { mutableStateOf(false) }
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
     val menuRemotePath = menuItem?.let { item ->
@@ -267,6 +266,20 @@ fun FileBrowserScreen(
                 out
             }
             vm.uploadFile(tempFile)
+        }
+    }
+
+    // 搜索触发: 底部导航栏点击搜索
+    LaunchedEffect(searchTrigger) {
+        if (searchTrigger > 0) {
+            searchActive = true
+        }
+    }
+
+    // 上传触发: 底部导航栏点击上传
+    LaunchedEffect(uploadTrigger) {
+        if (uploadTrigger > 0) {
+            pickFileLauncher.launch("*/*")
         }
     }
 
@@ -365,59 +378,10 @@ fun FileBrowserScreen(
             }
         }
 
-        // 悬浮按钮区域 (右下角)
-        Box(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            contentAlignment = Alignment.BottomEnd,
-        ) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                // 展开的子菜单
-                if (fabExpanded) {
-                    val menuItems = listOf(
-                        FabMenuItem(Icons.Outlined.Search, "搜索") { searchActive = true; fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.Refresh, "刷新") { vm.refresh(); fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.CreateNewFolder, "新建文件夹") { showMkdirDialog = true; fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.Upload, "上传文件") { pickFileLauncher.launch("*/*"); fabExpanded = false },
-                    )
-                    menuItems.forEachIndexed { index, item ->
-                        AnimatedVisibility(
-                            visible = fabExpanded,
-                            enter = fadeIn(
-                                animationSpec = tween(
-                                    durationMillis = 200,
-                                    delayMillis = index * 30,
-                                )
-                            ) + slideInVertically(
-                                animationSpec = tween(
-                                    durationMillis = 200,
-                                    delayMillis = index * 30,
-                                ),
-                                initialOffsetY = { it },
-                            ),
-                            exit = fadeOut(animationSpec = tween(150)),
-                        ) {
-                            FabMenuItemRow(item)
-                        }
-                    }
-                }
-
-                // 主 FAB 按钮（绿色渐变）
-                FloatingActionButton(
-                    onClick = { fabExpanded = !fabExpanded },
-                    containerColor = Color(0xFF20C997),
-                    contentColor = Color.White,
-                    shape = CircleShape,
-                    modifier = Modifier.size(56.dp),
-                ) {
-                    Icon(
-                        imageVector = if (fabExpanded) Icons.Filled.Close else Icons.Filled.MoreHoriz,
-                        contentDescription = "菜单",
-                        modifier = Modifier.size(26.dp),
-                    )
-                }
+        // 搜索回调: 从底部导航栏触发
+        LaunchedEffect(Unit) {
+            if (searchActive) {
+                // 搜索弹窗已在上方渲染
             }
         }
 
