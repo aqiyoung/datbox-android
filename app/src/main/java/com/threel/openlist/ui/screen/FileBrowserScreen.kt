@@ -306,7 +306,7 @@ fun FileBrowserScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
+                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFF5F4ED))
                 )
             )
     ) {
@@ -350,7 +350,7 @@ fun FileBrowserScreen(
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.weight(1f),
                     ) {
                         items(displayedItems) { item ->
@@ -460,8 +460,7 @@ private fun FileBrowserTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 返回按钮 (仅非根目录显示)
@@ -470,7 +469,7 @@ private fun FileBrowserTopBar(
                 Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
             }
         } else {
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(8.dp))
         }
 
         // 标题
@@ -493,8 +492,6 @@ private fun FileBrowserTopBar(
         IconButton(onClick = onUpload) {
             Icon(Icons.Outlined.Add, contentDescription = "上传", tint = Color(0xFF141413))
         }
-
-
     }
 }
 
@@ -615,22 +612,43 @@ private fun FileRow(
     onMenuClick: (() -> Unit)? = null,
     selected: Boolean = false,
 ) {
-    LiquidGlassRow(
-        cornerRadius = 16.dp,
-        selected = selected,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) Color(0xFFF0EEE6) else Color.Transparent,
         onClick = onClick,
-        onLongClick = onLongClick,
-        leading = icon,
-        title = name,
-        subtitle = if (modified.isNotEmpty() || size.isNotEmpty()) listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · ") else null,
-        trailing = if (onMenuClick != null) {
-            {
-                IconButton(onClick = onMenuClick, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF87867F), modifier = Modifier.size(20.dp))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            icon()
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF141413),
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (modified.isNotEmpty() || size.isNotEmpty()) {
+                    Text(
+                        text = listOf(modified, size).filter { it.isNotEmpty() }.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StoneGray,
+                        maxLines = 1,
+                    )
                 }
             }
-        } else null,
-    )
+            if (onMenuClick != null) {
+                IconButton(onClick = onMenuClick, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = StoneGray, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
+    }
 }
 
 @Composable
