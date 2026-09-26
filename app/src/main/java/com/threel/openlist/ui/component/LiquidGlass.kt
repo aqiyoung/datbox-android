@@ -24,9 +24,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.BottomNavigation
-import androidx.compose.material3.BottomNavigationItem
-import androidx.compose.material3.BottomNavigationDefaults
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -422,15 +422,15 @@ fun LiquidGlassBottomBar(
                     )
                 },
         ) {
-            // 内层: BottomNavigation
-            BottomNavigation(
+            // 内层: NavigationBar
+            NavigationBar(
                 modifier = Modifier,
                 containerColor = Color.Transparent,
                 contentColor = Color(0xFF141413),
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val selected = index == selectedIndex
-                    BottomNavigationItem(
+                    NavigationBarItem(
                         icon = {
                             Box(contentAlignment = Alignment.Center) {
                                 // 选中时的胶囊指示器
@@ -460,11 +460,12 @@ fun LiquidGlassBottomBar(
                         },
                         selected = selected,
                         onClick = { onSelected(index) },
-                        colors = BottomNavigationDefaults.colors(
+                        colors = NavigationBarDefaults.colors(
                             selectedIconColor = Color(0xFF20C997),
                             unselectedIconColor = StoneGray,
                             selectedTextColor = Color(0xFF141413),
                             unselectedTextColor = StoneGray,
+                            indicatorColor = Color.Transparent,
                         ),
                     )
                 }
