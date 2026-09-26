@@ -63,19 +63,17 @@ class RootViewModel @Inject constructor(
 @Composable
 fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
     val nav = rememberNavController()
-    val loggedIn by vm loggedIn.collectAsState()
+    val loggedIn by vm.loggedIn.collectAsState()
 
-    when (loggedIn) {
-        null -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
+    if (loggedIn == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
-        true -> NavHost(nav, startDestination = "main") {
+    } else if (loggedIn == true) {
+        NavHost(nav, startDestination = "main") {
             composable("main") {
                 MainScreen(onLogout = { vm.logout() })
             }
-            // 登录后不再需要单独的预览路由 — MainScreen 内部管理
             composable("preview/{path}") { backStackEntry ->
                 BackHandler(enabled = true) { nav.popBackStack() }
                 val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
@@ -88,7 +86,8 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
                 )
             }
         }
-        false -> NavHost(nav, startDestination = "login") {
+    } else {
+        NavHost(nav, startDestination = "login") {
             composable("login") {
                 LoginScreen(
                     onLoginSuccess = { vm.setLoggedIn() },
