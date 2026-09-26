@@ -26,7 +26,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarDefaults
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -460,7 +460,7 @@ fun LiquidGlassBottomBar(
                         },
                         selected = selected,
                         onClick = { onSelected(index) },
-                        colors = NavigationBarDefaults.colors(
+                        colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Color(0xFF20C997),
                             unselectedIconColor = StoneGray,
                             selectedTextColor = Color(0xFF141413),
