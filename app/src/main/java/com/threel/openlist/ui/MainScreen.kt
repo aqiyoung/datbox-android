@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
+import com.threel.openlist.ui.component.LiquidGlassBottomBar
 import com.threel.openlist.ui.screen.AboutScreen
 import com.threel.openlist.ui.screen.FileBrowserScreen
 import com.threel.openlist.ui.screen.FilePreviewScreen
@@ -62,26 +63,11 @@ fun MainScreen(
 
     Scaffold(
         bottomBar = {
-            BottomNavigation(
-                modifier = Modifier,
-                containerColor = WarmIvory.copy(alpha = 0.92f),
-                contentColor = Color(0xFF141413),
-            ) {
-                tabs.forEachIndexed { index, tab ->
-                    BottomNavigationItem(
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        colors = BottomNavigationDefaults.colors(
-                            selectedIconColor = Color(0xFF20C997),
-                            unselectedIconColor = StoneGray,
-                            selectedTextColor = Color(0xFF141413),
-                            unselectedTextColor = StoneGray,
-                        ),
-                    )
-                }
-            }
+            LiquidGlassBottomBar(
+                tabs = tabs,
+                selectedIndex = selectedTab,
+                onSelected = { selectedTab = it },
+            )
         },
     ) { padding ->
         Box(modifier = Modifier.padding(padding)) {

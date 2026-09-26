@@ -24,6 +24,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.BottomNavigation
+import androidx.compose.material3.BottomNavigationItem
+import androidx.compose.material3.BottomNavigationDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -340,6 +344,121 @@ fun LiquidGlassFab(
             tint = Color(0xFF141413),
             modifier = Modifier.size(26.dp),
         )
+    }
+}
+
+/**
+ * 液态玻璃底部导航栏 (iOS 26 / Apple Vision Pro 风格)
+ *
+ * 视觉要素:
+ * - 悬浮胶囊形, 距离屏幕左右各 16dp
+ * - 毛玻璃模糊 20dp
+ * - 半透明白底 (0.85 alpha)
+ * - 1px 高光边框 (上白下透明)
+ * - 选中项: 绿色实心胶囊指示器 + 图标放大
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LiquidGlassBottomBar(
+    tabs: List<BottomTab>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        // 外层玻璃背景
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .blur(20.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.88f),
+                            Color.White.copy(alpha = 0.78f),
+                        )
+                    )
+                )
+                .border(
+                    width = 0.5.dp,
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            GlassBorder,
+                            GlassBorder.copy(alpha = 0.25f),
+                        )
+                    ),
+                    shape = shape,
+                )
+                .drawBehind {
+                    // 顶部高光线
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.9f),
+                                Color.White.copy(alpha = 0.0f),
+                            ),
+                            startY = 0f,
+                            endY = 2f,
+                        ),
+                        size = Size(size.width, 2f),
+                    )
+                },
+        ) {
+            // 内层: BottomNavigation
+            BottomNavigation(
+                modifier = Modifier,
+                containerColor = Color.Transparent,
+                contentColor = Color(0xFF141413),
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    val selected = index == selectedIndex
+                    BottomNavigationItem(
+                        icon = {
+                            Box(contentAlignment = Alignment.Center) {
+                                // 选中时的胶囊指示器
+                                if (selected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(width = 32.dp, height = 24.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(Color(0xFF20C997).copy(alpha = 0.12f)),
+                                    )
+                                }
+                                Icon(
+                                    tab.icon,
+                                    contentDescription = tab.label,
+                                    tint = if (selected) Color(0xFF20C997) else StoneGray,
+                                    modifier = Modifier.size(if (selected) 24.dp else 22.dp),
+                                )
+                            }
+                        },
+                        label = {
+                            Text(
+                                tab.label,
+                                color = if (selected) Color(0xFF141413) else StoneGray,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 11.sp,
+                            )
+                        },
+                        selected = selected,
+                        onClick = { onSelected(index) },
+                        colors = BottomNavigationDefaults.colors(
+                            selectedIconColor = Color(0xFF20C997),
+                            unselectedIconColor = StoneGray,
+                            selectedTextColor = Color(0xFF141413),
+                            unselectedTextColor = StoneGray,
+                        ),
+                    )
+                }
+            }
+        }
     }
 }
 
