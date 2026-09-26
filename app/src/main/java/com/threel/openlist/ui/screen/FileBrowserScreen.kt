@@ -381,8 +381,6 @@ fun FileBrowserScreen(
                         FabMenuItem(Icons.Outlined.Refresh, "刷新") { vm.refresh(); fabExpanded = false },
                         FabMenuItem(Icons.Outlined.CreateNewFolder, "新建文件夹") { showMkdirDialog = true; fabExpanded = false },
                         FabMenuItem(Icons.Outlined.Upload, "上传文件") { pickFileLauncher.launch("*/*"); fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.Settings, "管理") { onManagement(); fabExpanded = false },
-                        FabMenuItem(Icons.Outlined.Info, "关于") { onAbout(); fabExpanded = false },
                     )
                     menuItems.forEachIndexed { index, item ->
                         AnimatedVisibility(
