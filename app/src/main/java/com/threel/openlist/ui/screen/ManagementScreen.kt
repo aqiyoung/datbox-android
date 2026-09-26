@@ -50,7 +50,7 @@ fun ManagementScreen(
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(Color(0xFFF7F9FC), Color(0xFFFFFFFF))
+                    colors = listOf(Color.White, Color.White)
                 )
             )
     ) {

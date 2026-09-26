@@ -100,8 +100,8 @@ fun LiquidGlassCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            WarmWhite.copy(alpha = 0.95f),
-                            WarmWhite.copy(alpha = 0.80f),
+                            Color.White,
+                            Color.White,
                         )
                     )
                 )
@@ -149,7 +149,7 @@ fun LiquidGlassRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    val baseAlpha = if (selected) 0.95f else 0.85f
+    val baseAlpha = 1f
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -170,12 +170,12 @@ fun LiquidGlassRow(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = baseAlpha),
-                            Color.White.copy(alpha = baseAlpha * 0.85f),
+                            Color.White,
+                            Color.White,
                         )
                     )
                 )
-                .border(0.5.dp, GlassBorder.copy(alpha = 0.5f), shape)
+                .border(0.5.dp, Color(0xFFE5E5EA), shape)
         )
         // 内层: 内容
         Row(
@@ -392,8 +392,8 @@ fun LiquidGlassBottomBar(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.88f),
-                            Color.White.copy(alpha = 0.78f),
+                            Color.White,
+                            Color.White,
                         )
                     )
                 )
