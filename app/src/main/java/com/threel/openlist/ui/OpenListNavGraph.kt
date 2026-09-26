@@ -42,7 +42,7 @@ class RootViewModel @Inject constructor(
         viewModelScope.launch {
             val serverUrl = tokenStore.serverUrl.first()
             TelemetryLog.i("NavGraph", "saved serverUrl=$serverUrl")
-            val isLogin = repo isLoggedIn()
+            val isLogin = repo.isLoggedIn()
             TelemetryLog.i("NavGraph", "isLoggedIn=$isLogin")
             _loggedIn.value = isLogin
         }
