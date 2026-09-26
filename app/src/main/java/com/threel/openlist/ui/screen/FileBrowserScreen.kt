@@ -334,6 +334,7 @@ fun FileBrowserScreen(
                 path = state.path,
                 onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                 onLogout = onLogout,
+                onUpload = { pickFileLauncher.launch("*/*") },
             )
 
             // 文件列表
@@ -451,6 +452,7 @@ private fun FileBrowserTopBar(
     path: String,
     onBack: (() -> Unit)?,
     onLogout: () -> Unit,
+    onUpload: () -> Unit = {},
 ) {
     val title = if (path == "/") "三页云盘" else path.substringAfterLast('/')
     Row(
@@ -479,6 +481,11 @@ private fun FileBrowserTopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+
+        // 上传按钮 (右上角加号)
+        IconButton(onClick = onUpload) {
+            Icon(Icons.Outlined.Add, contentDescription = "上传", tint = Color(0xFF141413))
+        }
 
         // 退出按钮
         IconButton(onClick = onLogout) {
