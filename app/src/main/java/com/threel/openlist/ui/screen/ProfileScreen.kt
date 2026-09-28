@@ -66,115 +66,116 @@ fun ProfileScreen(
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             // 顶部栏
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
+                    }
+                    Text(
+                        text = "我的",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF141413),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                Text(
-                    text = "我的",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFF141413),
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
-                )
             }
 
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                // 用户信息卡片
-                item {
-                    LiquidGlassCard(
-                        cornerRadius = 20.dp,
-                        contentPadding = 20.dp,
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(Color(0xFF20C997).copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    Icons.Outlined.Person,
-                                    contentDescription = null,
-                                    tint = Color(0xFF20C997),
-                                    modifier = Modifier.size(28.dp),
-                                )
-                            }
-                            Spacer(Modifier.width(14.dp))
-                            Column {
-                                Text(
-                                    "admin",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp,
-                                    color = Color(0xFF141413),
-                                )
-                                Text(
-                                    "管理员",
-                                    fontSize = 12.sp,
-                                    color = StoneGray,
-                                )
-                            }
+            // 用户信息卡片
+            item {
+                LiquidGlassCard(
+                    cornerRadius = 20.dp,
+                    contentPadding = 20.dp,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF20C997).copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Outlined.Person,
+                                contentDescription = null,
+                                tint = Color(0xFF20C997),
+                                modifier = Modifier.size(28.dp),
+                            )
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column {
+                            Text(
+                                "admin",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF141413),
+                            )
+                            Text(
+                                "管理员",
+                                fontSize = 12.sp,
+                                color = StoneGray,
+                            )
                         }
                     }
                 }
+            }
 
-                // 菜单项
-                items(menuItems.size) { index ->
-                    val item = menuItems[index]
-                    LiquidGlassRow(
-                        cornerRadius = 16.dp,
-                        onClick = item.onClick,
-                        leading = {
-                            Icon(
-                                item.icon,
-                                contentDescription = null,
-                                tint = Color(0xFF141413),
-                                modifier = Modifier.size(22.dp),
-                            )
-                        },
-                        title = item.title,
-                        subtitle = item.subtitle,
-                        trailing = {
-                            Icon(
-                                Icons.Outlined.ChevronRight,
-                                contentDescription = null,
-                                tint = StoneGray,
-                                modifier = Modifier.size(20.dp),
-                            )
-                        },
-                    )
-                }
+            // 菜单项
+            items(menuItems.size) { index ->
+                val item = menuItems[index]
+                LiquidGlassRow(
+                    cornerRadius = 16.dp,
+                    onClick = item.onClick,
+                    leading = {
+                        Icon(
+                            item.icon,
+                            contentDescription = null,
+                            tint = Color(0xFF141413),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    },
+                    title = item.title,
+                    subtitle = item.subtitle,
+                    trailing = {
+                        Icon(
+                            Icons.Outlined.ChevronRight,
+                            contentDescription = null,
+                            tint = StoneGray,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
+                )
+            }
 
-                // 退出登录
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    LiquidGlassRow(
-                        cornerRadius = 16.dp,
-                        onClick = onLogout,
-                        leading = {
-                            Icon(
-                                Icons.Outlined.Logout,
-                                contentDescription = null,
-                                tint = Color(0xFFFF3B30),
-                                modifier = Modifier.size(22.dp),
-                            )
-                        },
-                        title = "退出登录",
-                        subtitle = "退出当前账号",
-                    )
-                }
+            // 退出登录
+            item {
+                Spacer(Modifier.height(4.dp))
+                LiquidGlassRow(
+                    cornerRadius = 16.dp,
+                    onClick = onLogout,
+                    leading = {
+                        Icon(
+                            Icons.Outlined.Logout,
+                            contentDescription = null,
+                            tint = Color(0xFFFF3B30),
+                            modifier = Modifier.size(22.dp),
+                        )
+                    },
+                    title = "退出登录",
+                    subtitle = "退出当前账号",
+                )
             }
         }
     }
