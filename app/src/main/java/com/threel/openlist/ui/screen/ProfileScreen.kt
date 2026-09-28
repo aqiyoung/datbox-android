@@ -64,13 +64,12 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .background(Color.White)
     ) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 0.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 顶部栏
