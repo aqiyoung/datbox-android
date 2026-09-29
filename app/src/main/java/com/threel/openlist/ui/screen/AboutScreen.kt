@@ -94,7 +94,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                item { Spacer(Modifier.height(8.dp)) }
+                item { Spacer(Modifier.height(0.dp)) }
 
                 // 紧凑品牌区（不套大卡）
                 item {
