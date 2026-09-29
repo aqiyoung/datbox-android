@@ -64,7 +64,6 @@ fun ProfileScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .background(Color.White)
     ) {
         LazyColumn(
@@ -75,7 +74,9 @@ fun ProfileScreen(
             // 顶部栏
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
