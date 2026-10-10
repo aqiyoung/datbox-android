@@ -362,93 +362,158 @@ fun LiquidGlassFab(
 }
 
 /**
- * 液态玻璃底部导航栏 (iOS 26 / Apple Vision Pro 风格)
+ * 液态玻璃底部导航栏 (iOS 26 / BitChord 风格)
+ *
+ * 布局 (参考 BitChord 的 pill + standaloneTab):
+ * - 左侧玻璃胶囊: 首页 / 我的 两个分段, 选中项绿色玻璃胶囊
+ * - 右侧独立圆形玻璃搜索按钮 (standaloneTab), 点击打开搜索
+ * - 半透明白玻璃 + 顶部高光 + 发丝边 + 柔和投影, 整体居中悬浮
  *
  * 视觉要素:
- * - 悬浮胶囊, 距屏幕左右各 28dp, 悬在导航栏上方
- * - 半透明白玻璃 (0.88→0.72) + 顶部高光 + 发丝边 + 柔和投影
+ * - 悬浮胶囊, 距屏幕左右各 24dp, 悬在导航栏上方
+ * - 半透明白玻璃 (0.88→0.70) + 顶部高光 + 发丝边 + 柔和投影
  * - 选中项: 绿色玻璃胶囊 (图标+文字一体), 未选中仅图标+灰字
+ * - 搜索按钮激活时: 图标转品牌绿 + 玻璃微微提亮
  */
 @Composable
 fun LiquidGlassBottomBar(
     tabs: List<BottomTab>,
     selectedIndex: Int,
     onSelected: (Int) -> Unit,
+    onSearchClick: () -> Unit,
+    searchActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val barShape = RoundedCornerShape(28.dp)
+    val pillShape = RoundedCornerShape(28.dp)
+    val circleShape = CircleShape
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 28.dp, vertical = 10.dp),
+            .padding(horizontal = 24.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(58.dp)
-                .clip(barShape)
-                .shadow(
-                    elevation = 10.dp,
-                    shape = barShape,
-                    ambientColor = Color.Black.copy(alpha = 0.10f),
-                    spotColor = Color.Black.copy(alpha = 0.08f),
-                )
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.88f),
-                            Color.White.copy(alpha = 0.70f),
-                        )
-                    )
-                )
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                GlassHighlight,
-                                Color.White.copy(alpha = 0.0f),
-                            ),
-                            startY = 0f,
-                            endY = 3f,
-                        ),
-                        size = Size(size.width, 3f),
-                    )
-                }
-                .border(0.5.dp, GlassBorder, barShape),
-            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
         ) {
-            tabs.forEachIndexed { index, tab ->
-                val selected = index == selectedIndex
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            if (selected) Color(0xFF20C997).copy(alpha = 0.14f)
-                            else Color.Transparent
+            // ── 玻璃胶囊: 首页 / 我的 ──
+            Row(
+                modifier = Modifier
+                    .height(58.dp)
+                    .clip(pillShape)
+                    .shadow(
+                        elevation = 10.dp,
+                        shape = pillShape,
+                        ambientColor = Color.Black.copy(alpha = 0.10f),
+                        spotColor = Color.Black.copy(alpha = 0.08f),
+                    )
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.88f),
+                                Color.White.copy(alpha = 0.70f),
+                            )
                         )
-                        .clickable(
-                            interactionSource = MutableInteractionSource(),
-                            indication = null,
-                        ) { onSelected(index) }
-                        .padding(horizontal = 18.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        tab.icon,
-                        contentDescription = tab.label,
-                        tint = if (selected) Color(0xFF20C997) else StoneGray,
-                        modifier = Modifier.size(if (selected) 22.dp else 20.dp),
                     )
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        tab.label,
-                        color = if (selected) Color(0xFF141413) else StoneGray,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                        fontSize = 13.sp,
-                    )
+                    .drawBehind {
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    GlassHighlight,
+                                    Color.White.copy(alpha = 0.0f),
+                                ),
+                                startY = 0f,
+                                endY = 3f,
+                            ),
+                            size = Size(size.width, 3f),
+                        )
+                    }
+                    .border(0.5.dp, GlassBorder, pillShape),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                tabs.forEachIndexed { index, tab ->
+                    val selected = index == selectedIndex
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (selected) Color(0xFF20C997).copy(alpha = 0.14f)
+                                else Color.Transparent
+                            )
+                            .clickable(
+                                interactionSource = MutableInteractionSource(),
+                                indication = null,
+                            ) { onSelected(index) }
+                            .padding(horizontal = 22.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            tab.icon,
+                            contentDescription = tab.label,
+                            tint = if (selected) Color(0xFF20C997) else StoneGray,
+                            modifier = Modifier.size(if (selected) 22.dp else 20.dp),
+                        )
+                        Spacer(Modifier.width(7.dp))
+                        Text(
+                            tab.label,
+                            color = if (selected) Color(0xFF141413) else StoneGray,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                            fontSize = 13.sp,
+                        )
+                    }
                 }
+            }
+
+            Spacer(Modifier.width(14.dp))
+
+            // ── 独立圆形搜索按钮 (BitChord standaloneTab 风格) ──
+            val searchTint = if (searchActive) Color(0xFF20C997) else Color(0xFF141413)
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(circleShape)
+                    .shadow(
+                        elevation = 10.dp,
+                        shape = circleShape,
+                        ambientColor = Color.Black.copy(alpha = 0.10f),
+                        spotColor = Color.Black.copy(alpha = 0.08f),
+                    )
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = if (searchActive) 0.92f else 0.88f),
+                                Color.White.copy(alpha = if (searchActive) 0.74f else 0.70f),
+                            )
+                        )
+                    )
+                    .drawBehind {
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    GlassHighlight,
+                                    Color.White.copy(alpha = 0.0f),
+                                ),
+                                startY = 0f,
+                                endY = 3f,
+                            ),
+                            size = Size(size.width, 3f),
+                        )
+                    }
+                    .border(0.5.dp, GlassBorder, circleShape)
+                    .clickable(
+                        interactionSource = MutableInteractionSource(),
+                        indication = null,
+                    ) { onSearchClick() },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.Search,
+                    contentDescription = "搜索",
+                    tint = searchTint,
+                    modifier = Modifier.size(24.dp),
+                )
             }
         }
     }
