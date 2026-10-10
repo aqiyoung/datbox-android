@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.theme.StoneGray
@@ -61,11 +62,7 @@ fun ProfileScreen(
         MenuItem("关于", Icons.Outlined.Info, "版本信息与更新") { showAbout = true },
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
+    GlassDecorBackground {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 0.dp),
@@ -96,21 +93,28 @@ fun ProfileScreen(
             item {
                 LiquidGlassCard(
                     cornerRadius = 20.dp,
-                    contentPadding = 20.dp,
+                    contentPadding = 18.dp,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(54.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF20C997).copy(alpha = 0.12f)),
+                                .background(
+                                    Brush.linearGradient(
+                                        colors = listOf(
+                                            Color(0xFF20C997).copy(alpha = 0.18f),
+                                            Color(0xFF3A7BD5).copy(alpha = 0.14f),
+                                        )
+                                    )
+                                ),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Outlined.Person,
                                 contentDescription = null,
                                 tint = Color(0xFF20C997),
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(30.dp),
                             )
                         }
                         Spacer(Modifier.width(14.dp))
@@ -118,9 +122,10 @@ fun ProfileScreen(
                             Text(
                                 "admin",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
+                                fontSize = 18.sp,
                                 color = Color(0xFF141413),
                             )
+                            Spacer(Modifier.height(2.dp))
                             Text(
                                 "管理员",
                                 fontSize = 12.sp,
