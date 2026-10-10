@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import com.threel.openlist.R
 import com.threel.openlist.data.update.AppUpdateManager
 import com.threel.openlist.data.update.GitHubUpdateResult
+import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.util.AppConfig
 import dagger.hilt.EntryPoint
@@ -61,19 +62,7 @@ fun AboutScreen(onBack: () -> Unit) {
     }
     val autoCheck by updateManager.autoCheckEnabled.collectAsState(initial = true)
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, Color.White)
-                )
-            )
-    ) {
-        // 背景装饰
-        Box(Modifier.offset(x = (-60).dp, y = 560.dp).size(170.dp).clip(CircleShape).background(Color(0xFF20C997).copy(alpha = 0.05f)))
-        Box(Modifier.offset(x = 250.dp, y = 110.dp).size(120.dp).clip(CircleShape).background(Color(0xFF20C997).copy(alpha = 0.04f)))
-
+    GlassDecorBackground {
         Scaffold(
             topBar = {
                 TopAppBar(

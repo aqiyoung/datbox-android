@@ -26,10 +26,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -49,6 +46,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import com.threel.openlist.ui.theme.BorderLight
 import com.threel.openlist.ui.theme.GlassBorder
 import com.threel.openlist.ui.theme.GlassHighlight
@@ -94,7 +94,7 @@ fun LiquidGlassCard(
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     Box(modifier = modifier) {
-        // 外层: 玻璃背景
+        // 外层: 玻璃背景（半透明，让彩色背景透出来）
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -103,8 +103,8 @@ fun LiquidGlassCard(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White,
-                            Color.White,
+                            Color.White.copy(alpha = 0.78f),
+                            Color.White.copy(alpha = 0.58f),
                         )
                     )
                 )
@@ -152,7 +152,6 @@ fun LiquidGlassRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    val baseAlpha = 1f
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -164,7 +163,7 @@ fun LiquidGlassRow(
                 onLongClick = onLongClick,
             ),
     ) {
-        // 外层: 玻璃背景
+        // 外层: 玻璃背景（半透明，让彩色背景透出来）
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -173,8 +172,8 @@ fun LiquidGlassRow(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.White,
-                            Color.White,
+                            Color.White.copy(alpha = 0.78f),
+                            Color.White.copy(alpha = 0.58f),
                         )
                     )
                 )
@@ -365,13 +364,10 @@ fun LiquidGlassFab(
  * 液态玻璃底部导航栏 (iOS 26 / Apple Vision Pro 风格)
  *
  * 视觉要素:
- * - 悬浮胶囊形, 距离屏幕左右各 16dp
- * - 毛玻璃模糊 20dp
- * - 半透明白底 (0.85 alpha)
- * - 1px 高光边框 (上白下透明)
- * - 选中项: 绿色实心胶囊指示器 + 图标放大
+ * - 悬浮胶囊, 距屏幕左右各 28dp, 悬在导航栏上方
+ * - 半透明白玻璃 (0.88→0.72) + 顶部高光 + 发丝边 + 柔和投影
+ * - 选中项: 绿色玻璃胶囊 (图标+文字一体), 未选中仅图标+灰字
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiquidGlassBottomBar(
     tabs: List<BottomTab>,
@@ -379,76 +375,77 @@ fun LiquidGlassBottomBar(
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    val barShape = RoundedCornerShape(28.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        contentAlignment = Alignment.Center,
+            .navigationBarsPadding()
+            .padding(horizontal = 28.dp, vertical = 10.dp),
     ) {
-        // 外层液态玻璃背景 (纯白 + 阴影 + 边框, 不用 blur 兼容低版本)
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(shape)
-                .shadow(8.dp, shape, ambientColor = Color.Black.copy(alpha = 0.08f), spotColor = Color.Black.copy(alpha = 0.08f))
-                .background(Color.White)
-                .border(
-                    width = 0.5.dp,
-                    brush = Brush.verticalGradient(
+                .height(58.dp)
+                .clip(barShape)
+                .shadow(
+                    elevation = 10.dp,
+                    shape = barShape,
+                    ambientColor = Color.Black.copy(alpha = 0.10f),
+                    spotColor = Color.Black.copy(alpha = 0.08f),
+                )
+                .background(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFFE5E5EA),
-                            Color(0xFFE5E5EA).copy(alpha = 0.25f),
+                            Color.White.copy(alpha = 0.88f),
+                            Color.White.copy(alpha = 0.70f),
                         )
-                    ),
-                    shape = shape,
-                ),
-        ) {
-            // 内层: NavigationBar
-            NavigationBar(
-                modifier = Modifier,
-                containerColor = Color.Transparent,
-                contentColor = Color(0xFF141413),
-            ) {
-                tabs.forEachIndexed { index, tab ->
-                    val selected = index == selectedIndex
-                    NavigationBarItem(
-                        icon = {
-                            Box(contentAlignment = Alignment.Center) {
-                                // 选中时的胶囊指示器
-                                if (selected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(width = 32.dp, height = 24.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(Color(0xFF20C997).copy(alpha = 0.12f)),
-                                    )
-                                }
-                                Icon(
-                                    tab.icon,
-                                    contentDescription = tab.label,
-                                    tint = if (selected) Color(0xFF20C997) else StoneGray,
-                                    modifier = Modifier.size(if (selected) 24.dp else 22.dp),
-                                )
-                            }
-                        },
-                        label = {
-                            Text(
-                                tab.label,
-                                color = if (selected) Color(0xFF141413) else StoneGray,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                fontSize = 11.sp,
-                            )
-                        },
-                        selected = selected,
-                        onClick = { onSelected(index) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF20C997),
-                            unselectedIconColor = StoneGray,
-                            selectedTextColor = Color(0xFF141413),
-                            unselectedTextColor = StoneGray,
-                            indicatorColor = Color.Transparent,
+                    )
+                )
+                .drawBehind {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                GlassHighlight,
+                                Color.White.copy(alpha = 0.0f),
+                            ),
+                            startY = 0f,
+                            endY = 3f,
                         ),
+                        size = Size(size.width, 3f),
+                    )
+                }
+                .border(0.5.dp, GlassBorder, barShape),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            tabs.forEachIndexed { index, tab ->
+                val selected = index == selectedIndex
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            if (selected) Color(0xFF20C997).copy(alpha = 0.14f)
+                            else Color.Transparent
+                        )
+                        .clickable(
+                            interactionSource = MutableInteractionSource(),
+                            indication = null,
+                        ) { onSelected(index) }
+                        .padding(horizontal = 18.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        tab.icon,
+                        contentDescription = tab.label,
+                        tint = if (selected) Color(0xFF20C997) else StoneGray,
+                        modifier = Modifier.size(if (selected) 22.dp else 20.dp),
+                    )
+                    Spacer(Modifier.width(7.dp))
+                    Text(
+                        tab.label,
+                        color = if (selected) Color(0xFF141413) else StoneGray,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        fontSize = 13.sp,
                     )
                 }
             }
@@ -533,7 +530,14 @@ fun LiquidGlassSurface(
                 .matchParentSize()
                 .clip(shape)
                 .blur(8.dp)
-                .background(Color.White.copy(alpha = 0.9f))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.84f),
+                            Color.White.copy(alpha = 0.68f),
+                        )
+                    )
+                )
                 .drawBehind {
                     drawRect(
                         brush = Brush.verticalGradient(
@@ -577,4 +581,95 @@ fun LiquidGlassAlertDialog(
         shape = shape,
         containerColor = Color.White.copy(alpha = 0.92f),
     )
+}
+
+/**
+ * 玻璃页面装饰背景
+ *
+ * 玻璃要有"透"的感觉，背后必须有色彩。此背景提供:
+ * 1. 极淡的垂直渐变底 (淡绿 → 白 → 暖灰)
+ * 2. 数个径向渐变彩色光斑 (绿/蓝)，压在玻璃卡后面
+ *
+ * 用法: 作为页面最外层容器，内容叠在其上。
+ */
+@Composable
+fun GlassDecorBackground(
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFE9F6F0),  // 淡绿
+                        Color(0xFFFDFDFC),  // 近白
+                        Color(0xFFF5F3EC),  // 暖灰
+                    )
+                )
+            )
+    ) {
+        // 光斑: 左上大绿斑
+        Box(
+            modifier = Modifier
+                .offset(x = (-90).dp, y = (-70).dp)
+                .size(300.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF20C997).copy(alpha = 0.20f),
+                            Color(0xFF20C997).copy(alpha = 0.0f),
+                        )
+                    )
+                )
+        )
+        // 光斑: 右侧蓝斑
+        Box(
+            modifier = Modifier
+                .offset(x = 240.dp, y = 240.dp)
+                .size(230.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF3A7BD5).copy(alpha = 0.12f),
+                            Color(0xFF3A7BD5).copy(alpha = 0.0f),
+                        )
+                    )
+                )
+        )
+        // 光斑: 左下绿斑
+        Box(
+            modifier = Modifier
+                .offset(x = (-70).dp, y = 600.dp)
+                .size(320.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF20C997).copy(alpha = 0.14f),
+                            Color(0xFF20C997).copy(alpha = 0.0f),
+                        )
+                    )
+                )
+        )
+        // 光斑: 右下小绿斑
+        Box(
+            modifier = Modifier
+                .offset(x = 270.dp, y = 700.dp)
+                .size(170.dp)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF20C997).copy(alpha = 0.10f),
+                            Color(0xFF20C997).copy(alpha = 0.0f),
+                        )
+                    )
+                )
+        )
+        content()
+    }
 }
