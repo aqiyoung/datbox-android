@@ -275,10 +275,7 @@ fun LiquidGlassFab(
  * 关键: 真正的"玻璃感"来自对背后色彩的实时模糊 (RenderEffect / Modifier.blur, API31+),
  * 而不是单纯半透明白板。玻璃 = 模糊的彩色底 + 磨砂白纱 + 顶部高光 + 发丝边 + 柔和投影。
  *
- * 布局 (参考 BitChord 的 pill + standaloneTab):
- * - 左侧玻璃胶囊: 首页 / 我的 两个分段, 选中项绿色玻璃胶囊
- * - 右侧独立圆形玻璃搜索按钮 (standaloneTab), 点击打开搜索
- * - 整体居中悬浮于导航栏上方
+ * 布局: 单条玻璃底栏, 内含 [首页 / 我的] 分段 + 右侧搜索按钮, 一体悬浮 (不再分离成胶囊+圆钮两层)。
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -290,7 +287,6 @@ fun LiquidGlassBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val pillShape = RoundedCornerShape(28.dp)
-    val circleShape = CircleShape
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -298,17 +294,20 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 24.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
+        // ── 单条玻璃底栏: 分段(首页/我的) + 右侧搜索, 一体悬浮 ──
+        FrostedGlass(
+            shape = pillShape,
+            modifier = Modifier.height(58.dp),
         ) {
-            // ── 玻璃胶囊: 首页 / 我的 ──
-            FrostedGlass(
-                shape = pillShape,
-                modifier = Modifier.height(58.dp),
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                // 分段: 首页 / 我的
                 Row(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -325,7 +324,7 @@ fun LiquidGlassBottomBar(
                                     interactionSource = MutableInteractionSource(),
                                     indication = null,
                                 ) { onSelected(index) }
-                                .padding(horizontal = 22.dp, vertical = 8.dp),
+                                .padding(horizontal = 18.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Icon(
@@ -344,32 +343,35 @@ fun LiquidGlassBottomBar(
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.width(14.dp))
-
-            // ── 独立圆形搜索按钮 (BitChord standaloneTab 风格) ──
-            val searchTint = if (searchActive) Color(0xFF20C997) else Color(0xFF141413)
-            FrostedGlass(
-                shape = circleShape,
-                modifier = Modifier.size(54.dp),
-                tintGradient = if (searchActive) {
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFFB9EBD7), Color(0xFFD7F0E6))
-                    )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFFE4F2EC), Color(0xFFEAF1FB))
-                    )
-                },
-                onClick = onSearchClick,
-            ) {
-                Icon(
-                    Icons.Outlined.Search,
-                    contentDescription = "搜索",
-                    tint = searchTint,
-                    modifier = Modifier.size(24.dp),
+                // 分隔线
+                Box(
+                    Modifier
+                        .width(1.dp)
+                        .height(26.dp)
+                        .background(GlassBorder.copy(alpha = 0.55f)),
                 )
+                // 右侧搜索按钮 (同一条栏内, 激活时绿色高亮)
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (searchActive) Color(0xFF20C997).copy(alpha = 0.16f)
+                            else Color.Transparent
+                        )
+                        .clickable(
+                            interactionSource = MutableInteractionSource(),
+                            indication = null,
+                        ) { onSearchClick() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Search,
+                        contentDescription = "搜索",
+                        tint = if (searchActive) Color(0xFF20C997) else Color(0xFF141413),
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
     }
