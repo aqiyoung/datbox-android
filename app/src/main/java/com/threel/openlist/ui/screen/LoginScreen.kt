@@ -31,6 +31,7 @@ import androidx.lifecycle.viewModelScope
 import com.threel.openlist.BuildConfig
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
+import com.threel.openlist.ui.component.LiquidGlassSurface
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -146,12 +147,10 @@ fun LoginScreen(
                 .padding(top = 44.dp, end = 20.dp),
             horizontalAlignment = Alignment.End
         ) {
-            Surface(
+            LiquidGlassSurface(
                 onClick = { onServerSettings() },
                 shape = RoundedCornerShape(30.dp),
-                color = Color.White,
-                shadowElevation = 6.dp,
-                tonalElevation = 0.dp
+                modifier = Modifier,
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -182,11 +181,9 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Logo 卡片
-            Surface(
+            LiquidGlassSurface(
                 shape = RoundedCornerShape(18.dp),
-                color = Color.White,
-                shadowElevation = 8.dp,
-                modifier = Modifier.size(72.dp)
+                modifier = Modifier.size(72.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
@@ -218,12 +215,9 @@ fun LoginScreen(
             Spacer(Modifier.height(32.dp))
 
             // ===== 登录卡片 =====
-            Surface(
+            LiquidGlassSurface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color.White,
-                shadowElevation = 12.dp,
-                tonalElevation = 0.dp,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),

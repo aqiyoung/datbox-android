@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.threel.openlist.data.model.Mount
+import com.threel.openlist.ui.component.LiquidGlassAlertDialog
+import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.data.model.Option
 import com.threel.openlist.data.model.Overview
 import com.threel.openlist.data.model.Share
@@ -150,12 +152,9 @@ private fun CardItem(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
+    LiquidGlassSurface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 4.dp,
-        tonalElevation = 0.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), content = content)
     }
@@ -261,9 +260,8 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, 
     var password by remember { mutableStateOf("") }
     var role by remember { mutableIntStateOf(user?.role ?: 0) }
 
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
         title = { Text(if (user == null) "添加用户" else "编辑用户", color = Color(0xFF2A2925)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -424,9 +422,8 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
     var mountPath by remember { mutableStateOf(mount?.mountPath ?: "") }
     var remark by remember { mutableStateOf("") }
 
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = Color.White,
         title = { Text(if (mount == null) "添加挂载" else "编辑挂载", color = Color(0xFF2A2925)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
