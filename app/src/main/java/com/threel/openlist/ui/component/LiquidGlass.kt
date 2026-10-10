@@ -383,6 +383,7 @@ fun LiquidGlassBottomBar(
  * - 白纱: 把色彩"奶"化, 更接近真实玻璃
  * 低于 API31 退化: 不模糊, 直接半透明彩色底, 与旧版视觉一致、不崩。
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FrostedGlass(
     shape: CornerBasedShape,
