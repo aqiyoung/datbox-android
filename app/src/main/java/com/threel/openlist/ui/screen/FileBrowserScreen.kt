@@ -43,9 +43,11 @@ import com.threel.openlist.data.api.ManagementRepository
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.download.AppDownloadManager
 import com.threel.openlist.data.model.FsItem
+import com.threel.openlist.ui.component.LiquidGlassAlertDialog
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
 import com.threel.openlist.ui.component.LiquidGlassRow
+import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -500,10 +502,8 @@ private fun FabMenuItemRow(item: FabMenuItem) {
         horizontalArrangement = Arrangement.End,
     ) {
         // 标签
-        Surface(
+        LiquidGlassSurface(
             shape = RoundedCornerShape(12.dp),
-            color = Color.White.copy(alpha = 0.92f),
-            shadowElevation = 4.dp,
         ) {
             Text(
                 text = item.label,
@@ -540,7 +540,7 @@ private fun SearchDialog(
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("搜索文件", color = Color(0xFF141413)) },
         text = {
@@ -705,7 +705,10 @@ private fun GlassActionDialog(
                     GlassActionItem(icon = Icons.Outlined.Share, iconTint = Color(0xFF141413), label = "分享链接", subLabel = "获取可分享短链", onClick = onRequestShare)
                 }
                 else -> {
-                    Surface(shape = RoundedCornerShape(14.dp), color = Color(0xFFF1F0EA), modifier = Modifier.fillMaxWidth()) {
+                    LiquidGlassSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
                         Text(shareUrl, fontSize = 12.sp, color = Color(0xFF56544E), modifier = Modifier.fillMaxWidth().padding(14.dp), maxLines = 3, overflow = TextOverflow.Ellipsis)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -735,7 +738,11 @@ private fun GlassActionDialog(
 
 @Composable
 private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, subLabel: String, onClick: () -> Unit) {
-    Surface(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable(onClick = onClick), color = Color(0xFFFAF9F5).copy(alpha = 0.8f)) {
+    LiquidGlassSurface(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+    ) {
         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(iconTint.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
                 Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
@@ -754,7 +761,7 @@ private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, s
 @Composable
 private fun MkdirDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
     var name by remember { mutableStateOf("") }
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("新建文件夹") },
         text = { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("文件夹名称") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
@@ -766,7 +773,7 @@ private fun MkdirDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
 @Composable
 private fun RenameDialog(currentName: String, onDismiss: () -> Unit, onRename: (String) -> Unit) {
     var name by remember { mutableStateOf(currentName) }
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("重命名") },
         text = { OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("新名称") }, singleLine = true, modifier = Modifier.fillMaxWidth()) },
@@ -777,7 +784,7 @@ private fun RenameDialog(currentName: String, onDismiss: () -> Unit, onRename: (
 
 @Composable
 private fun DeleteDialog(fileName: String, onDismiss: () -> Unit, onDelete: () -> Unit) {
-    AlertDialog(
+    LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("删除文件") },
         text = { Text("确认删除「$fileName」？此操作不可撤销。") },

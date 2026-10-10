@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import com.threel.openlist.R
 import com.threel.openlist.data.update.AppUpdateManager
 import com.threel.openlist.data.update.GitHubUpdateResult
+import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.util.AppConfig
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -178,11 +179,9 @@ fun AboutScreen(onBack: () -> Unit) {
 
                 // 设置卡
                 item {
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = Color.White,
-                        shadowElevation = 6.dp,
+                    LiquidGlassSurface(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -206,11 +205,9 @@ fun AboutScreen(onBack: () -> Unit) {
 
                 // 开源信息卡
                 item {
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = Color.White,
-                        shadowElevation = 6.dp,
+                    LiquidGlassSurface(
                         modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                             Text("开源信息", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
@@ -262,12 +259,10 @@ private fun ActionCard(
     showProgress: Boolean = false,
     onClick: () -> Unit,
 ) {
-    Surface(
+    LiquidGlassSurface(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 4.dp,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -299,11 +294,9 @@ private fun UpdateFoundDialog(
     onDismiss: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color.White,
-            shadowElevation = 8.dp,
+        LiquidGlassSurface(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 // 图标 + 标题

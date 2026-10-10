@@ -26,6 +26,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.OpenListRepository
+import com.threel.openlist.ui.component.LiquidGlassAlertDialog
+import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.data.api.ServerProbe
 import com.threel.openlist.data.api.TokenStore
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -229,11 +231,9 @@ fun ServerSettingsScreen(
                         color = Color(0xFF2A2925)
                     )
                     Spacer(Modifier.height(8.dp))
-                    Surface(
+                    LiquidGlassSurface(
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -262,11 +262,9 @@ fun ServerSettingsScreen(
                     )
                     Spacer(Modifier.height(8.dp))
                     var customText by remember { mutableStateOf("") }
-                    Surface(
+                    LiquidGlassSurface(
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = 4.dp,
-                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp, end = 6.dp),
@@ -374,13 +372,10 @@ fun ServerSettingsScreen(
 
                 items(state.servers) { server ->
                     val isActive = server.url == state.currentServer
-                    Surface(
+                    LiquidGlassSurface(
+                        onClick = { vm.selectServer(server.url) },
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = Color.White,
-                        shadowElevation = if (isActive) 6.dp else 2.dp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { vm.selectServer(server.url) }
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -460,7 +455,7 @@ fun ServerSettingsScreen(
             }
 
             if (pendingDelete != null) {
-                AlertDialog(
+                LiquidGlassAlertDialog(
                     onDismissRequest = { pendingDelete = null },
                     title = { Text("删除服务器") },
                     text = { Text("确定要删除 $pendingDelete 吗？删除后需重新选择当前服务器。") },

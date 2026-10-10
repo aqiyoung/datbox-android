@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -506,4 +508,73 @@ fun LiquidGlassPrimaryButton(
             fontFamily = MiSansFamily,
         )
     }
+}
+
+/**
+ * 玻璃 Surface（替代 M3 中性白 Surface 卡）
+ *
+ * 与 LiquidGlassCard 同源：白玻璃背景 + 顶部高光 + 0.5dp 玻璃边框。
+ * 支持 onClick（可点击卡片），内容由调用方自行 padding。
+ */
+@Composable
+fun LiquidGlassSurface(
+    modifier: Modifier = Modifier,
+    shape: CornerBasedShape = RoundedCornerShape(16.dp),
+    onClick: (() -> Unit)? = null,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(shape)
+                .blur(8.dp)
+                .background(Color.White.copy(alpha = 0.9f))
+                .drawBehind {
+                    drawRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(GlassHighlight, Color.White.copy(alpha = 0.0f)),
+                            startY = 0f,
+                            endY = 3f,
+                        ),
+                        size = Size(size.width, 3f),
+                    )
+                }
+                .border(0.5.dp, GlassBorder, shape)
+        )
+        content()
+    }
+}
+
+/**
+ * 玻璃 AlertDialog（替代裸 M3 AlertDialog）
+ *
+ * 容器改为半透明白玻璃（0.92 alpha），其余参数与 M3 AlertDialog 对齐。
+ */
+@Composable
+fun LiquidGlassAlertDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    dismissButton: @Composable (() -> Unit)? = null,
+    icon: @Composable (() -> Unit)? = null,
+    title: @Composable (() -> Unit)? = null,
+    text: @Composable (() -> Unit)? = null,
+    shape: CornerBasedShape = RoundedCornerShape(20.dp),
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = confirmButton,
+        dismissButton = dismissButton,
+        icon = icon,
+        title = title,
+        text = text,
+        modifier = modifier,
+        shape = shape,
+        containerColor = Color.White.copy(alpha = 0.92f),
+    )
 }
