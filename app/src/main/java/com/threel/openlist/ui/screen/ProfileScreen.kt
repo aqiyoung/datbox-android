@@ -25,7 +25,6 @@ import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.theme.StoneGray
-import com.threel.openlist.ui.theme.WarmIvory
 
 /**
  * "我的"页面 — 合并管理 + 关于 + 上传
