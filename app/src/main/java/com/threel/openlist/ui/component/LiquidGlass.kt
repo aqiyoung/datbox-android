@@ -1,5 +1,6 @@
 package com.threel.openlist.ui.component
 
+import android.os.Build
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.shadow
@@ -366,16 +367,13 @@ fun LiquidGlassFab(
 /**
  * 液态玻璃底部导航栏 (iOS 26 / BitChord 风格)
  *
+ * 关键: 真正的"玻璃感"来自对背后色彩的实时模糊 (RenderEffect / Modifier.blur, API31+),
+ * 而不是单纯半透明白板。玻璃 = 模糊的彩色底 + 磨砂白纱 + 顶部高光 + 发丝边 + 柔和投影。
+ *
  * 布局 (参考 BitChord 的 pill + standaloneTab):
  * - 左侧玻璃胶囊: 首页 / 我的 两个分段, 选中项绿色玻璃胶囊
  * - 右侧独立圆形玻璃搜索按钮 (standaloneTab), 点击打开搜索
- * - 半透明白玻璃 + 顶部高光 + 发丝边 + 柔和投影, 整体居中悬浮
- *
- * 视觉要素:
- * - 悬浮胶囊, 距屏幕左右各 24dp, 悬在导航栏上方
- * - 半透明白玻璃 (0.88→0.70) + 顶部高光 + 发丝边 + 柔和投影
- * - 选中项: 绿色玻璃胶囊 (图标+文字一体), 未选中仅图标+灰字
- * - 搜索按钮激活时: 图标转品牌绿 + 玻璃微微提亮
+ * - 整体居中悬浮于导航栏上方
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -400,70 +398,45 @@ fun LiquidGlassBottomBar(
             horizontalArrangement = Arrangement.Center,
         ) {
             // ── 玻璃胶囊: 首页 / 我的 ──
-            Row(
-                modifier = Modifier
-                    .height(58.dp)
-                    .clip(pillShape)
-                    .shadow(
-                        elevation = 10.dp,
-                        shape = pillShape,
-                        ambientColor = Color.Black.copy(alpha = 0.10f),
-                        spotColor = Color.Black.copy(alpha = 0.08f),
-                    )
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.88f),
-                                Color.White.copy(alpha = 0.70f),
-                            )
-                        )
-                    )
-                    .drawBehind {
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    GlassHighlight,
-                                    Color.White.copy(alpha = 0.0f),
-                                ),
-                                startY = 0f,
-                                endY = 3f,
-                            ),
-                            size = Size(size.width, 3f),
-                        )
-                    }
-                    .border(0.5.dp, GlassBorder, pillShape),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+            FrostedGlass(
+                shape = pillShape,
+                modifier = Modifier.height(58.dp),
             ) {
-                tabs.forEachIndexed { index, tab ->
-                    val selected = index == selectedIndex
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (selected) Color(0xFF20C997).copy(alpha = 0.14f)
-                                else Color.Transparent
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        val selected = index == selectedIndex
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(
+                                    if (selected) Color(0xFF20C997).copy(alpha = 0.16f)
+                                    else Color.Transparent
+                                )
+                                .clickable(
+                                    interactionSource = MutableInteractionSource(),
+                                    indication = null,
+                                ) { onSelected(index) }
+                                .padding(horizontal = 22.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                tab.icon,
+                                contentDescription = tab.label,
+                                tint = if (selected) Color(0xFF20C997) else StoneGray,
+                                modifier = Modifier.size(if (selected) 22.dp else 20.dp),
                             )
-                            .clickable(
-                                interactionSource = MutableInteractionSource(),
-                                indication = null,
-                            ) { onSelected(index) }
-                            .padding(horizontal = 22.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            tab.icon,
-                            contentDescription = tab.label,
-                            tint = if (selected) Color(0xFF20C997) else StoneGray,
-                            modifier = Modifier.size(if (selected) 22.dp else 20.dp),
-                        )
-                        Spacer(Modifier.width(7.dp))
-                        Text(
-                            tab.label,
-                            color = if (selected) Color(0xFF141413) else StoneGray,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            fontSize = 13.sp,
-                        )
+                            Spacer(Modifier.width(7.dp))
+                            Text(
+                                tab.label,
+                                color = if (selected) Color(0xFF141413) else StoneGray,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 13.sp,
+                            )
+                        }
                     }
                 }
             }
@@ -472,43 +445,19 @@ fun LiquidGlassBottomBar(
 
             // ── 独立圆形搜索按钮 (BitChord standaloneTab 风格) ──
             val searchTint = if (searchActive) Color(0xFF20C997) else Color(0xFF141413)
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(circleShape)
-                    .shadow(
-                        elevation = 10.dp,
-                        shape = circleShape,
-                        ambientColor = Color.Black.copy(alpha = 0.10f),
-                        spotColor = Color.Black.copy(alpha = 0.08f),
+            FrostedGlass(
+                shape = circleShape,
+                modifier = Modifier.size(54.dp),
+                tintGradient = if (searchActive) {
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFFB9EBD7), Color(0xFFD7F0E6))
                     )
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = if (searchActive) 0.92f else 0.88f),
-                                Color.White.copy(alpha = if (searchActive) 0.74f else 0.70f),
-                            )
-                        )
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(Color(0xFFE4F2EC), Color(0xFFEAF1FB))
                     )
-                    .drawBehind {
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    GlassHighlight,
-                                    Color.White.copy(alpha = 0.0f),
-                                ),
-                                startY = 0f,
-                                endY = 3f,
-                            ),
-                            size = Size(size.width, 3f),
-                        )
-                    }
-                    .border(0.5.dp, GlassBorder, circleShape)
-                    .clickable(
-                        interactionSource = MutableInteractionSource(),
-                        indication = null,
-                    ) { onSearchClick() },
-                contentAlignment = Alignment.Center,
+                },
+                onClick = onSearchClick,
             ) {
                 Icon(
                     Icons.Outlined.Search,
@@ -520,6 +469,75 @@ fun LiquidGlassBottomBar(
         }
     }
 }
+
+/**
+ * 真·液态玻璃填充层 (底部栏胶囊 / 圆形搜索按钮 / 后续玻璃件共用)
+ *
+ * 玻璃 = 模糊的彩色底 (RenderEffect, API31+) + 磨砂白纱 + 顶部高光 + 发丝边 + 投影。
+ * 低于 API31 退化: 直接半透明彩色底 (无模糊), 与旧版视觉一致、不崩。
+ */
+@Composable
+private fun FrostedGlass(
+    shape: CornerBasedShape,
+    modifier: Modifier = Modifier,
+    tintGradient: Brush = Brush.verticalGradient(
+        colors = listOf(Color(0xFFE4F2EC), Color(0xFFEAF1FB))
+    ),
+    onClick: (() -> Unit)? = null,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val useBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = 10.dp,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = 0.10f),
+                spotColor = Color.Black.copy(alpha = 0.08f),
+            )
+            .clip(shape)
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        interactionSource = MutableInteractionSource(),
+                        indication = null,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        // 1) 模糊的彩色底: 让玻璃"透"出背后色彩 (API31+ 真·玻璃效果)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .then(if (useBlur) Modifier.blur(GLASS_FROST_BLUR) else Modifier)
+                .background(tintGradient),
+        )
+        // 2) 磨砂白纱: 把彩色底"奶"化, 更接近真实玻璃
+        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = 0.42f)))
+        // 3) 顶部高光线
+        Box(
+            Modifier.matchParentSize().drawBehind {
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(GlassHighlight, Color.White.copy(alpha = 0.0f)),
+                        startY = 0f,
+                        endY = 3f,
+                    ),
+                    size = Size(size.width, 3f),
+                )
+            }
+        )
+        // 4) 内容 (图标 / 分段)
+        content()
+        // 5) 发丝边
+        Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
+    }
+}
+
+private val GLASS_FROST_BLUR = 16.dp
 
 /**
  * 玻璃主操作按钮
