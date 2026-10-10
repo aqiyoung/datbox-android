@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -64,17 +63,6 @@ fun AboutScreen(onBack: () -> Unit) {
 
     GlassDecorBackground {
         Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("关于", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-                )
-            },
             containerColor = Color.Transparent,
         ) { padding ->
             LazyColumn(
@@ -84,7 +72,25 @@ fun AboutScreen(onBack: () -> Unit) {
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                item { Spacer(Modifier.height(0.dp)) }
+                // 顶部返回 + 标题（内联，避免透明 TopAppBar 预留空白）
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
+                        }
+                        Text(
+                            text = "关于",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF2A2925),
+                        )
+                    }
+                }
 
                 // 紧凑品牌区（不套大卡）
                 item {
