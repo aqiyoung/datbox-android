@@ -48,6 +48,7 @@ import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.component.LiquidGlassSurface
+import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -305,10 +306,8 @@ fun FileBrowserScreen(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
+    GlassDecorBackground(
+        modifier = Modifier.fillMaxSize()
     ) {
         // 内容区
         Column(
