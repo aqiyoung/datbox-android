@@ -232,6 +232,8 @@ fun FileBrowserScreen(
     onPreview: (String, String) -> Unit = { _, _ -> },
     searchTrigger: Int = 0,
     uploadTrigger: Int = 0,
+    searchActive: Boolean = false,
+    onSearchActiveChange: (Boolean) -> Unit = {},
     vm: FileBrowserViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -245,7 +247,6 @@ fun FileBrowserScreen(
         vm.load(vm.goUp())
     }
 
-    var searchActive by remember { mutableStateOf(false) }
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
     val menuRemotePath = menuItem?.let { item ->
         if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
@@ -275,7 +276,7 @@ fun FileBrowserScreen(
     // 搜索触发: 底部导航栏点击搜索
     LaunchedEffect(searchTrigger) {
         if (searchTrigger > 0) {
-            searchActive = true
+            onSearchActiveChange(true)
         }
     }
 
@@ -300,7 +301,7 @@ fun FileBrowserScreen(
             onQueryChange = vm::updateSearchQuery,
             onSortSelected = { mode -> vm.updateSortMode(mode) },
             sortMode = state.sortMode,
-            onDismiss = { searchActive = false; vm.updateSearchQuery("") },
+            onDismiss = { onSearchActiveChange(false); vm.updateSearchQuery("") },
         )
     }
 
@@ -328,12 +329,11 @@ fun FileBrowserScreen(
                     )
                 }
         ) {
-            // 顶部栏: 仅退出按钮
+            // 顶部栏: 仅退出按钮 + 上传 (搜索已移至底部导航栏)
             FileBrowserTopBar(
                 path = state.path,
                 onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                 onLogout = onLogout,
-                onSearch = { searchActive = true },
                 onUpload = { pickFileLauncher.launch("*/*") },
             )
 
@@ -376,13 +376,6 @@ fun FileBrowserScreen(
                         }
                     }
                 }
-            }
-        }
-
-        // 搜索回调: 从底部导航栏触发
-        LaunchedEffect(Unit) {
-            if (searchActive) {
-                // 搜索弹窗已在上方渲染
             }
         }
 
@@ -446,13 +439,12 @@ fun FileBrowserScreen(
     }
 }
 
-// ===== 顶部栏: 仅退出 =====
+// ===== 顶部栏: 仅退出 + 上传 =====
 @Composable
 private fun FileBrowserTopBar(
     path: String,
     onBack: (() -> Unit)?,
     onLogout: () -> Unit,
-    onSearch: () -> Unit = {},
     onUpload: () -> Unit = {},
 ) {
     val title = if (path == "/") "三页云盘" else path.substringAfterLast('/')
@@ -481,11 +473,6 @@ private fun FileBrowserTopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-
-        // 搜索按钮 (右上角)
-        IconButton(onClick = onSearch) {
-            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = Color(0xFF141413))
-        }
 
         // 上传按钮 (右上角加号)
         IconButton(onClick = onUpload) {

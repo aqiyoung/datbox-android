@@ -18,8 +18,10 @@ import com.threel.openlist.ui.screen.ProfileScreen
 /**
  * 主页面壳 — 底部导航 + 文件预览全屏模式
  *
- * 底部常驻 2 个 Tab: 首页/我的
- * 搜索和上传放右上角顶部栏。
+ * 底部导航 (BitChord 风格):
+ * - 玻璃胶囊: 首页 / 我的
+ * - 独立圆形搜索按钮 (打开搜索弹窗)
+ * 顶部的搜索已移除, 搜索入口统一到底部导航栏。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +31,8 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var previewPath by remember { mutableStateOf<String?>(null) }
     var previewName by remember { mutableStateOf("") }
+    var searchTrigger by remember { mutableIntStateOf(0) }
+    var searchActive by remember { mutableStateOf(false) }
 
     // ── 文件预览全屏模式: 隐藏底部栏 ──
     if (previewPath != null) {
@@ -57,6 +61,12 @@ fun MainScreen(
                 tabs = tabs,
                 selectedIndex = selectedTab,
                 onSelected = { selectedTab = it },
+                onSearchClick = {
+                    if (selectedTab != 0) selectedTab = 0
+                    searchActive = true
+                    searchTrigger++
+                },
+                searchActive = searchActive,
             )
         },
     ) { padding ->
@@ -68,6 +78,9 @@ fun MainScreen(
                         previewPath = path
                         previewName = name
                     },
+                    searchTrigger = searchTrigger,
+                    searchActive = searchActive,
+                    onSearchActiveChange = { searchActive = it },
                 )
                 1 -> ProfileScreen(
                     onBack = { selectedTab = 0 },
