@@ -59,7 +59,6 @@ import com.threel.openlist.ui.theme.GlassHighlight
 import com.threel.openlist.ui.theme.GlassShadow
 import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
-import com.threel.openlist.ui.theme.WarmWhite
 import com.threel.openlist.ui.theme.StoneGray
 
 // ===== 底部导航 Tab 定义 =====
@@ -97,38 +96,7 @@ fun LiquidGlassCard(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    Box(modifier = modifier) {
-        // 外层: 玻璃背景（半透明，让彩色背景透出来）
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-                .blur(8.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.78f),
-                            Color.White.copy(alpha = 0.58f),
-                        )
-                    )
-                )
-                // 顶部高光线
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                GlassHighlight,
-                                Color.White.copy(alpha = 0.0f),
-                            ),
-                            startY = 0f,
-                            endY = 3f,
-                        ),
-                        size = Size(size.width, 3f),
-                    )
-                }
-                .border(0.5.dp, GlassBorder, shape)
-        )
-        // 内层: 内容
+    FrostedGlass(shape = shape, modifier = modifier, veilAlpha = 0.40f) {
         Box(modifier = Modifier.padding(contentPadding)) { content() }
     }
 }
@@ -156,36 +124,20 @@ fun LiquidGlassRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .combinedClickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            ),
+    FrostedGlass(
+        shape = shape,
+        modifier = modifier.fillMaxWidth(),
+        tintGradient = if (selected) {
+            Brush.verticalGradient(colors = listOf(Color(0xFFCDEFE1), Color(0xFFE0F1EA)))
+        } else {
+            Brush.verticalGradient(colors = listOf(Color(0xFFE4F2EC), Color(0xFFEAF1FB)))
+        },
+        veilAlpha = if (selected) 0.34f else 0.44f,
+        onClick = onClick,
+        onLongClick = onLongClick,
     ) {
-        // 外层: 玻璃背景（半透明，让彩色背景透出来）
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-                .blur(6.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.78f),
-                            Color.White.copy(alpha = 0.58f),
-                        )
-                    )
-                )
-                .border(0.5.dp, Color(0xFFE5E5EA), shape)
-        )
-        // 内层: 内容
         Row(
-            modifier = Modifier.padding(contentPadding),
+            modifier = Modifier.padding(contentPadding).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (leading != null) {
@@ -247,46 +199,13 @@ fun LiquidGlassTopBar(
             blurRadius = 1f,
         ),
     )
-    Box(modifier = Modifier.fillMaxWidth()) {
-        // 外层玻璃背景
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(topBarShape)
-                .blur(8.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            WarmWhite.copy(alpha = 0.9f),
-                            WarmWhite.copy(alpha = 0.75f),
-                        )
-                    )
-                )
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                GlassHighlight,
-                                Color.White.copy(alpha = 0.0f),
-                            ),
-                            startY = 0f,
-                            endY = 3f,
-                        ),
-                        size = Size(size.width, 3f),
-                    )
-                }
-                .border(
-                    width = 0.5.dp,
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            GlassBorder,
-                            GlassBorder.copy(alpha = 0.3f),
-                        )
-                    ),
-                    shape = topBarShape,
-                )
-        )
-        // 内层: TopAppBar
+    FrostedGlass(
+        shape = topBarShape,
+        modifier = Modifier.fillMaxWidth(),
+        tintGradient = Brush.verticalGradient(colors = listOf(Color(0xFFEAF1FB), Color(0xFFE4F2EC))),
+        veilAlpha = 0.50f,
+        withShadow = false,
+    ) {
         TopAppBar(
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -334,32 +253,18 @@ fun LiquidGlassFab(
     size: Dp = 56.dp,
     enabled: Boolean = true,
 ) {
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (enabled) 0.9f else 0.5f),
-                        Color.White.copy(alpha = if (enabled) 0.7f else 0.3f),
-                    )
-                )
-            )
-            .border(1.dp, GlassBorder, CircleShape)
-            .clickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null,
-                enabled = enabled,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
+    FrostedGlass(
+        shape = CircleShape,
+        modifier = Modifier.size(size),
+        tintGradient = Brush.verticalGradient(colors = listOf(Color(0xFFEAF1FB), Color(0xFFE4F2EC))),
+        veilAlpha = if (enabled) 0.50f else 0.66f,
+        onClick = if (enabled) onClick else null,
     ) {
         Icon(
             icon,
             contentDescription = null,
-            tint = Color(0xFF141413),
-            modifier = Modifier.size(26.dp),
+            tint = Color(0xFF141413).copy(alpha = if (enabled) 1f else 0.4f),
+            modifier = Modifier.size(26.dp).align(Alignment.Center),
         )
     }
 }
@@ -471,10 +376,12 @@ fun LiquidGlassBottomBar(
 }
 
 /**
- * 真·液态玻璃填充层 (底部栏胶囊 / 圆形搜索按钮 / 后续玻璃件共用)
+ * 真·液态玻璃填充层 (所有玻璃件共用: 卡片 / 行 / 底部栏 / FAB / 按钮 / 顶栏)
  *
- * 玻璃 = 模糊的彩色底 (RenderEffect, API31+) + 磨砂白纱 + 顶部高光 + 发丝边 + 投影。
- * 低于 API31 退化: 直接半透明彩色底 (无模糊), 与旧版视觉一致、不崩。
+ * 玻璃 = 模糊的彩色底 (含内部柔和光斑, RenderEffect, API31+) + 磨砂白纱 + 顶部高光 + 发丝边 + (可选)投影。
+ * - 模糊底色 + 内部光斑: 让 blur 真正可见, 形成"磨砂云", 而非纯色板
+ * - 白纱: 把色彩"奶"化, 更接近真实玻璃
+ * 低于 API31 退化: 不模糊, 直接半透明彩色底, 与旧版视觉一致、不崩。
  */
 @Composable
 private fun FrostedGlass(
@@ -483,40 +390,83 @@ private fun FrostedGlass(
     tintGradient: Brush = Brush.verticalGradient(
         colors = listOf(Color(0xFFE4F2EC), Color(0xFFEAF1FB))
     ),
+    veilAlpha: Float = 0.42f,
+    withShadow: Boolean = true,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val useBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     Box(
         modifier = modifier
-            .shadow(
-                elevation = 10.dp,
-                shape = shape,
-                ambientColor = Color.Black.copy(alpha = 0.10f),
-                spotColor = Color.Black.copy(alpha = 0.08f),
+            .then(
+                if (withShadow) {
+                    Modifier.shadow(
+                        elevation = 10.dp,
+                        shape = shape,
+                        ambientColor = Color.Black.copy(alpha = 0.10f),
+                        spotColor = Color.Black.copy(alpha = 0.08f),
+                    )
+                } else {
+                    Modifier
+                }
             )
             .clip(shape)
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(
+                if (onClick != null || onLongClick != null) {
+                    Modifier.combinedClickable(
                         interactionSource = MutableInteractionSource(),
                         indication = null,
-                        onClick = onClick,
+                        onClick = { onClick?.invoke() },
+                        onLongClick = onLongClick,
                     )
                 } else {
                     Modifier
                 }
             )
     ) {
-        // 1) 模糊的彩色底: 让玻璃"透"出背后色彩 (API31+ 真·玻璃效果)
+        // 1) 模糊的彩色底 (含内部柔和光斑 -> blur 真正可见 = 磨砂云)
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .then(if (useBlur) Modifier.blur(GLASS_FROST_BLUR) else Modifier)
-                .background(tintGradient),
-        )
+        ) {
+            Box(Modifier.matchParentSize().background(tintGradient))
+            // 内部光斑: 左上绿
+            Box(
+                Modifier
+                    .align(Alignment.TopStart)
+                    .offset((-26).dp, (-18).dp)
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF20C997).copy(alpha = 0.55f),
+                                Color(0xFF20C997).copy(alpha = 0.0f),
+                            )
+                        )
+                    )
+            )
+            // 内部光斑: 右下蓝
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(22.dp, 20.dp)
+                    .size(100.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF3A7BD5).copy(alpha = 0.45f),
+                                Color(0xFF3A7BD5).copy(alpha = 0.0f),
+                            )
+                        )
+                    )
+            )
+        }
         // 2) 磨砂白纱: 把彩色底"奶"化, 更接近真实玻璃
-        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = 0.42f)))
+        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
         // 3) 顶部高光线
         Box(
             Modifier.matchParentSize().drawBehind {
@@ -530,7 +480,7 @@ private fun FrostedGlass(
                 )
             }
         )
-        // 4) 内容 (图标 / 分段)
+        // 4) 内容 (图标 / 文字 / 分段)
         content()
         // 5) 发丝边
         Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
@@ -556,40 +506,30 @@ fun LiquidGlassPrimaryButton(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(16.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = if (enabled) 0.9f else 0.5f),
-                        Color.White.copy(alpha = if (enabled) 0.7f else 0.3f),
-                    )
-                )
-            )
-            .border(0.5.dp, GlassBorder, shape)
-            .clickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null,
-                enabled = enabled,
-                onClick = onClick,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
+    FrostedGlass(
+        shape = shape,
+        modifier = modifier.fillMaxWidth().height(48.dp),
+        tintGradient = Brush.verticalGradient(colors = listOf(Color(0xFFEAF1FB), Color(0xFFE4F2EC))),
+        veilAlpha = if (enabled) 0.52f else 0.70f,
+        onClick = if (enabled) onClick else null,
     ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = Color(0xFF141413).copy(alpha = if (enabled) 1f else 0.5f),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = MiSansFamily,
+            )
         }
-        Text(
-            text = text,
-            color = Color(0xFF141413),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = MiSansFamily,
-        )
     }
 }
 
@@ -606,36 +546,12 @@ fun LiquidGlassSurface(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+    FrostedGlass(
+        shape = shape,
+        modifier = modifier,
+        veilAlpha = 0.42f,
+        onClick = onClick,
     ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .clip(shape)
-                .blur(8.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.84f),
-                            Color.White.copy(alpha = 0.68f),
-                        )
-                    )
-                )
-                .drawBehind {
-                    drawRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(GlassHighlight, Color.White.copy(alpha = 0.0f)),
-                            startY = 0f,
-                            endY = 3f,
-                        ),
-                        size = Size(size.width, 3f),
-                    )
-                }
-                .border(0.5.dp, GlassBorder, shape)
-        )
         content()
     }
 }
