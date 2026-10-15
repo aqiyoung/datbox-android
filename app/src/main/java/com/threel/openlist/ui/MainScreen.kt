@@ -8,7 +8,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -68,23 +67,24 @@ fun MainScreen(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            // 内容层: 录制进 GraphicsLayer 供 Dock 玻璃取景 (backdrop), 再原样绘制 —
+            // 玻璃取景层: 只录制给 Dock 折射采样用; 主内容直接绘制 (drawContent) —
+            // 主画面不经过任何 effect, shader/管线异常只可能影响 dock 药丸区, 拖不垮整屏;
             // 内容从 dock 玻璃下方滚过, shader 才有真实画面可折射 (对齐 FlClash backdrop 机制)
-            val backdrop = rememberGraphicsLayer()
+            val glassLayer = rememberGraphicsLayer()
             var backdropOrigin by remember { mutableStateOf(Offset.Zero) }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .onGloballyPositioned { backdropOrigin = it.positionInRoot() }
                     .drawWithContent {
-                        backdrop.record(
+                        glassLayer.record(
                             density = this@drawWithContent,
                             layoutDirection = layoutDirection,
                             size = IntSize(size.width.toInt(), size.height.toInt()),
                         ) {
                             this@drawWithContent.drawContent()
                         }
-                        drawLayer(backdrop)
+                        drawContent()
                     },
             ) {
                 when (selectedTab) {
@@ -120,7 +120,7 @@ fun MainScreen(
                     }
                 },
                 searchActive = searchActive,
-                backdrop = backdrop,
+                backdrop = glassLayer,
                 backdropOrigin = backdropOrigin,
                 modifier = Modifier.align(Alignment.BottomCenter),
             )

@@ -331,24 +331,29 @@ fun LiquidGlassBottomBar(
     val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
     val lensClear = 1f - 0.5f * mLift // 抬升时镜片转清 (FlClash: 升起后是清玻璃)
 
-    // backdrop 折射管线 (见 [LiquidGlassBackdrop]): 录制的内容层 + AGSL 光学 shader。
+    // backdrop 折射管线 (见 [LiquidGlassBackdrop]): 取景层 + AGSL 光学 shader。
     // 仅 API 33+ (AGSL); 以下回落 v3 平玻璃 (不挂 effect, shader 亦不参与)。
+    // 全部构造加兜底: shader 编译/挂载失败 → 管线关闭 → 平玻璃, 绝不拖垮启动。
     var pillPos by remember { mutableStateOf(Offset.Zero) }
     val glassShader = remember {
-        if (Build.VERSION.SDK_INT >= 33) android.graphics.RuntimeShader(LiquidGlassBackdrop.SHADER) else null
-    }
-    val backdropEffect = remember {
-        if (Build.VERSION.SDK_INT >= 33 && glassShader != null) {
-            LiquidGlassBackdrop.createGlassEffect(glassShader)
+        if (Build.VERSION.SDK_INT >= 33) {
+            runCatching { android.graphics.RuntimeShader(LiquidGlassBackdrop.SHADER) }.getOrNull()
         } else {
             null
         }
     }
-    // effect 挂在整层上 (renderEffect 是 GraphicsLayer 属性, 作用于该层的每次绘制):
-    // 主内容层常规绘制经 shader 时在药丸外逐像素透传, 画面不变; Dock 再裁剪补画药丸区。
+    val backdropEffect = remember {
+        if (glassShader != null) {
+            runCatching { LiquidGlassBackdrop.createGlassEffect(glassShader) }.getOrNull()
+        } else {
+            null
+        }
+    }
+    // effect 挂在取景层上 (renderEffect 是 GraphicsLayer 属性): 只有 Dock 的裁剪绘制
+    // 经过 shader; 主内容层不挂 effect, 异常影响面收敛在 dock 药丸区内。
     SideEffect {
         if (backdrop != null && backdropEffect != null && backdrop.renderEffect !== backdropEffect) {
-            backdrop.renderEffect = backdropEffect
+            runCatching { backdrop.renderEffect = backdropEffect }
         }
     }
 

@@ -14,15 +14,13 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
  * 交给 fragment shader, shader 在药丸 SDF 的边缘法线上做折射偏移采样。
  * 我们在 Android 侧用等价管线还原:
  *
- *   页面内容 Modifier.drawWithContent → GraphicsLayer.record 录制
- *   GraphicsLayer.renderEffect = createRuntimeShaderEffect(shader, "uTexture")
+ *   页面内容 Modifier.drawWithContent → GraphicsLayer.record 录制 (取景层)
+ *   取景层 GraphicsLayer.renderEffect = createRuntimeShaderEffect(shader, "uTexture")
  *   → shader 的 uTexture 就是被绘制的 layer 内容 = 真实 backdrop;
- *     每次 drawLayer 时 RenderEffect 以 layer 局部坐标执行,
- *     因此 uOrigin/uPill 只需按"纹理像素"表达药丸几何。
- *
- * 注意: effect 挂在整层上, 主内容层的常规绘制也会经过 shader —— 所以
- * shader 对药丸 SDF 之外 (或 uniforms 未初始化) 的像素做逐像素透传,
- * 保证全屏画面与无 effect 时一致; Dock 再裁剪药丸形补画一次 (取新 uniforms)。
+ *     只有 Dock 的裁剪绘制经过该层, 主内容不挂 effect —— 任何 shader 异常
+ *     (编译失败 / uniforms 异常) 的影响面收敛在 dock 药丸区, 不可能拖垮整屏;
+ *     构造与挂载全部 runCatching 兜底, 失败即回落 v3 平玻璃。
+ *   RenderEffect 以 layer 局部坐标执行, uOrigin/uPill 按纹理像素表达药丸几何。
  *
  * shader 内 (对照 liquid_glass.frag 的公式重新实现, 未复制其代码):
  * 1. 圆角矩形 SDF → 内缩距离 inset + 外法线 normal
@@ -80,9 +78,10 @@ internal object LiquidGlassBackdrop {
         }
 
         half4 main(float2 coord) {
-            // uniforms 未初始化 (首帧) → 透传
-            if (uPill.x <= 0.0 || uPill.y <= 0.0) {
-                return sample(uTexture, coord / uTexSize);
+            // uniforms 未初始化/纹理尺寸非法 → 返回透明 (不覆盖下层内容)。
+            // 注意不能在这里 sample: uTexSize<=0 时 coord/uTexSize = Inf → 采样未定义。
+            if (uTexSize.x <= 0.0 || uTexSize.y <= 0.0 || uPill.x <= 0.0 || uPill.y <= 0.0) {
+                return half4(0.0);
             }
             float2 local = coord - uOrigin;
             float2 halfSize = uPill * 0.5;
