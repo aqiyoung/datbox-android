@@ -48,7 +48,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -89,19 +88,18 @@ data class BottomTab(
 // ===== iOS 26/27 风格液态玻璃组件库 =====
 
 /**
- * 玻璃卡 (iOS 27 Clear Glass 风格)
+ * 玻璃卡 (FlClash 平玻璃风格)
  *
- * 视觉要素 (自下而上):
- * 1. 中性白 → 浅灰竖向渐变底 (玻璃自身不带颜色)
- * 2. 顶部环境光 + 高光发丝 (白 0.95 → 0)
- * 3. 底部内侧暗影 (透镜边缘的折射感)
- * 4. 0.5dp 玻璃发丝边 (黑 7% alpha, 纯白背景上可见)
- * 5. 内容区 (清晰)
+ * 视觉要素 (自下而上, v3 平玻璃):
+ * 1. 平染色玻璃体 (单层平涂, 无立体渐变层)
+ * 2. 白纱 veil 磨砂浓度 + 顶部柔光带 (环境光渐隐)
+ * 3. 0.5dp 单层发丝边 (均匀定义边 + 极淡受光白边)
+ * 4. 内容区 (清晰)
  *
- * iOS 27 特征:
+ * 特征:
  * - 大圆角 24dp
  * - 玻璃无自身色彩, 颜色全部来自背后 (当前背景是纯色 → 玻璃即近白磨砂)
- * - 边界靠发丝边 + 柔和投影定义, 不靠色块
+ * - 边界靠发丝边 + 柔和投影定义, 不靠色块、不靠厚度
  */
 @Composable
 fun LiquidGlassCard(
@@ -111,7 +109,7 @@ fun LiquidGlassCard(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    FrostedGlass(shape = shape, modifier = modifier, veilAlpha = 0.40f) {
+    FrostedGlass(shape = shape, modifier = modifier, veilAlpha = 0.48f) {
         Box(modifier = Modifier.padding(contentPadding)) { content() }
     }
 }
@@ -141,7 +139,7 @@ fun LiquidGlassRow(
     FrostedGlass(
         shape = shape,
         modifier = modifier.fillMaxWidth(),
-        veilAlpha = if (selected) 0.56f else 0.44f,
+        veilAlpha = if (selected) 0.62f else 0.50f,
         onClick = onClick,
         onLongClick = onLongClick,
     ) {
@@ -210,7 +208,7 @@ fun LiquidGlassTopBar(
     FrostedGlass(
         shape = topBarShape,
         modifier = Modifier.fillMaxWidth(),
-        veilAlpha = 0.50f,
+        veilAlpha = 0.55f,
         withShadow = false,
     ) {
         TopAppBar(
@@ -263,7 +261,7 @@ fun LiquidGlassFab(
     FrostedGlass(
         shape = CircleShape,
         modifier = Modifier.size(size),
-        veilAlpha = if (enabled) 0.50f else 0.66f,
+        veilAlpha = if (enabled) 0.55f else 0.70f,
         onClick = if (enabled) onClick else null,
     ) {
         Icon(
@@ -339,17 +337,17 @@ fun LiquidGlassBottomBar(
                         if (abs(p - pitch) > 0.01f) pitch = p
                     },
             ) {
-                // 1) 条体: 中性透明玻璃药丸 (低白纱 + 低染, 透明感靠发丝边与投影定义)
+                // 1) 条体: 平染色玻璃药丸 — FlClash pill 配方 (#F4F4F4 平涂), 无内部立体层
                 FrostedGlass(
                     shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp),
-                    veilAlpha = 0.14f,
+                    veilAlpha = 0f,
                     tintGradient = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.48f),
-                            Color(0xFFF4F4F4).copy(alpha = 0.32f),
+                            Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                            Color(0xFFF4F4F4).copy(alpha = 0.50f),
                         )
                     ),
                 ) {}
@@ -684,13 +682,15 @@ private class PillSquashModel {
 /**
  * 真·液态玻璃填充层 (所有玻璃件共用: 卡片 / 行 / 底部栏 / FAB / 按钮 / 顶栏)
  *
- * iOS 27 Clear Glass: 玻璃自身不带颜色, "玻璃感"由折射几何构成:
- * 1. 中性白 → 浅灰的竖向渐变体 (页面背景是纯色, 玻璃即近白磨砂)
- * 2. 顶部环境光 + 顶部中央径向受光池 (穹顶聚光)
- * 3. 白纱 veil 控制磨砂浓度
- * 4. 底部透镜厚度: 内侧暗影 (玻璃下缘最厚, 折射积影)
- * 5. 边缘 = 均匀定义发丝 + 方向性折射边(左上受光 → 右下背光)
- * 6. 底缘内侧反光发丝, 与暗影构成透镜"双线"
+ * v3 平玻璃 (对齐 FlClash liquid_glass 的形态):
+ * FlClash 的玻璃是"单层平染色 + shader 折射" — 内部没有任何立体层;
+ * 我们没有 shader, 因此把此前画进图层的立体元素全部移除 (底缘厚度带、
+ * 反光双线、方向性暗斜边、穹顶聚光池), 只保留:
+ * 1. 平染色玻璃体 (调用方 tint, 单层平涂)
+ * 2. 白纱 veil 控制磨砂浓度
+ * 3. 顶部柔光带 (一条极淡的环境光渐隐, 非穹顶)
+ * 4. 单层发丝边界: 均匀定义边 + 极淡受光白边
+ * 5. 外部柔投影 (FlClash dockShadows 配方: 浅而散, 只画在形状之外)
  *
  * [veilAlpha] = 磨砂浓度 (白纱): 越大越实、越遮背后的內容。
  * 不画彩色光斑、不加背景色 —— 颜色只能来自页面背景 (当前是纯色)。
@@ -713,11 +713,12 @@ private fun FrostedGlass(
         modifier = modifier
             .then(
                 if (withShadow) {
+                    // FlClash dockShadows 配方: 浅而散的浮影 (只在形状外, 不制造厚度感)
                     Modifier.shadow(
-                        elevation = 10.dp,
+                        elevation = 12.dp,
                         shape = shape,
-                        ambientColor = Color.Black.copy(alpha = 0.10f),
-                        spotColor = Color.Black.copy(alpha = 0.08f),
+                        ambientColor = Color.Black.copy(alpha = 0.08f),
+                        spotColor = Color.Black.copy(alpha = 0.05f),
                     )
                 } else {
                     Modifier
@@ -737,79 +738,37 @@ private fun FrostedGlass(
                 }
             )
     ) {
-        // 1) 中性玻璃体: 白 → 浅灰竖向渐变 (无色彩)
+        // 1) 平染色玻璃体: 单层平涂 (FlClash: tint 单色, 内部无立体渐变层)
         Box(Modifier.matchParentSize().background(tintGradient))
-        // 2) 顶部环境光: 上缘受光, 向下渐隐
+        // 2) 磨砂白纱: 整体浓度 (调用方控制)
+        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
+        // 3) 顶部柔光带: 极淡的环境光渐隐 (玻璃受光, 非穹顶聚光)
         Box(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.55f),
+                        Color.White.copy(alpha = 0.30f),
                         Color.White.copy(alpha = 0.0f),
                     )
                 )
             )
         )
-        // 3) 磨砂白纱: 控制整体磨砂浓度
-        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
-        // 4) 底部透镜厚度: 内侧暗影 —— 玻璃下缘最厚, 折射积影
-        Box(
-            Modifier
-                .align(Alignment.BottomEnd)
-                .fillMaxWidth()
-                .height(10.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.07f),
-                        )
-                    )
-                )
-        )
-        // 5) 内容 (图标 / 文字 / 分段)
+        // 4) 内容 (图标 / 文字 / 分段)
         content()
-        // 6) 玻璃边缘: 均匀定义发丝(黑 7%) + 方向性折射边叠加
+        // 5) 单层发丝边界: 均匀定义边 (GlassBorder, 纯白背景上可见) + 极淡受光白边。
+        //    不再叠加方向性暗斜边与底缘厚度双线 — 那是"立体感"的来源, FlClash 由 shader 承担
         Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
         Box(
             Modifier.matchParentSize().border(
                 width = 0.5.dp,
-                // 液态玻璃的"受光方向": 左上直接受光(亮白) → 右下背光(折射暗边),
-                // 斜向渐变沿整个轮廓走, 圆角处随形状自然弯折
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.95f),
-                        Color.Black.copy(alpha = 0.03f),
-                        Color.Black.copy(alpha = 0.13f),
+                        Color.White.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = 0.10f),
                     ),
                 ),
                 shape = shape,
             )
-        )
-        // 7) 顶部受光池: 顶部中央的径向光斑(玻璃穹顶聚光), 取代原来的 3px 直线高光
-        Box(
-            Modifier.matchParentSize().drawBehind {
-                val pool = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.7f),
-                        Color.White.copy(alpha = 0f),
-                    ),
-                    center = Offset(size.width / 2f, 0f),
-                    radius = size.width / 2.2f,
-                )
-                drawRect(brush = pool)
-            }
-        )
-        // 8) 底缘内侧反光发丝: 与 4) 的暗影构成透镜"双线" —— 玻璃底边的迎光面
-        Box(
-            Modifier.matchParentSize().drawBehind {
-                drawLine(
-                    color = Color.White.copy(alpha = 0.3f),
-                    start = Offset(0f, size.height - 2f),
-                    end = Offset(size.width, size.height - 2f),
-                    strokeWidth = 1f,
-                )
-            }
         )
     }
 }
@@ -834,7 +793,7 @@ fun LiquidGlassPrimaryButton(
     FrostedGlass(
         shape = shape,
         modifier = modifier.fillMaxWidth().height(48.dp),
-        veilAlpha = if (enabled) 0.52f else 0.70f,
+        veilAlpha = if (enabled) 0.56f else 0.72f,
         onClick = if (enabled) onClick else null,
     ) {
         Row(
@@ -873,7 +832,7 @@ fun LiquidGlassSurface(
     FrostedGlass(
         shape = shape,
         modifier = modifier,
-        veilAlpha = 0.42f,
+        veilAlpha = 0.50f,
         onClick = onClick,
     ) {
         content()
