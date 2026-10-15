@@ -279,8 +279,6 @@ data class FabMenuItem(
 fun FileBrowserScreen(
     onLogout: () -> Unit,
     onPreview: (String, String) -> Unit = { _, _ -> },
-    searchTrigger: Int = 0,
-    uploadTrigger: Int = 0,
     searchActive: Boolean = false,
     onSearchActiveChange: (Boolean) -> Unit = {},
     vm: FileBrowserViewModel = hiltViewModel(),
@@ -327,24 +325,10 @@ fun FileBrowserScreen(
         }
     }
 
-    // 搜索触发: 底部导航栏点击搜索
-    LaunchedEffect(searchTrigger) {
-        if (searchTrigger > 0) {
-            onSearchActiveChange(true)
-        }
-    }
-
     // 搜索态退出 (dock toggle / 外部关闭) 时清查询与结果, 与返回箭头路径一致
     LaunchedEffect(searchActive) {
         if (!searchActive && state.searchQuery.isNotEmpty()) {
             vm.closeSearch()
-        }
-    }
-
-    // 上传触发: 底部导航栏点击上传
-    LaunchedEffect(uploadTrigger) {
-        if (uploadTrigger > 0) {
-            pickFileLauncher.launch("*/*")
         }
     }
 

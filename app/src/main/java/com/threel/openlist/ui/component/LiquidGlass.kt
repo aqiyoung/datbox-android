@@ -83,6 +83,7 @@ import com.threel.openlist.ui.theme.GlassBorder
 import com.threel.openlist.ui.theme.GlassShadow
 import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
+import com.threel.openlist.ui.theme.NearBlack
 import com.threel.openlist.ui.theme.StoneGray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -456,8 +457,8 @@ fun LiquidGlassBottomBar(
                         .height(DOCK_BAR_HEIGHT.dp)
                         .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
                 ) {
-                    // 选中染色盘 (FlClash _Lens platter 式): 主题绿浅调, 边缘渐隐, 抬升转清 —
-                    // 让"选中在哪一格"一眼可辨 (此前只有折射光斑, 选中感太弱)
+                    // 选中胶囊 (透明提亮式): 白色半透染色, 边缘渐隐, 抬升转清 —
+                    // 在浅玻璃条体上"提亮"选中格, 无彩色, iOS 式安静指示
                     Box(
                         Modifier
                             .align(Alignment.TopStart)
@@ -468,8 +469,8 @@ fun LiquidGlassBottomBar(
                                 Brush.horizontalGradient(
                                     colorStops = arrayOf(
                                         0f to Color.Transparent,
-                                        0.18f to DockAccent.copy(alpha = 0.14f * lensClear),
-                                        0.82f to DockAccent.copy(alpha = 0.14f * lensClear),
+                                        0.18f to Color.White.copy(alpha = 0.55f * lensClear),
+                                        0.82f to Color.White.copy(alpha = 0.55f * lensClear),
                                         1f to Color.Transparent,
                                     )
                                 )
@@ -542,7 +543,7 @@ private fun DockTabItem(
         targetValue = if (tinted) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    val tint = lerp(StoneGray, DockAccent, t)
+    val tint = lerp(StoneGray, NearBlack, t)
     Column(
         modifier = modifier.clickable(
             interactionSource = MutableInteractionSource(),
@@ -569,9 +570,6 @@ private fun DockTabItem(
 }
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
-
-/** 选中强调色: 全应用 accent 绿 — 染色盘与选中条目同源 */
-private val DockAccent = Color(0xFF20C997)
 
 /** 条目最大宽度: 条宽 = 条目数×86 + 内边距×4, 屏内居中 */
 private const val DOCK_ITEM_MAX = 86f
