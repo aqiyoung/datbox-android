@@ -293,7 +293,7 @@ fun LiquidGlassFab(
  * 设计参数参照 aqiyoung/FlClash@dev 的 NavigationDock (GPL-3.0, fork of chen08209/FlClash),
  * 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
- * - 条宽 = 条目数×86 + 16, 屏内居中, 左右边距 21
+ * - 条宽 = 条目数×66 + 16, 屏内居中, 左右边距 21
  * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
@@ -557,8 +557,8 @@ private fun DockTabItem(
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
 
-/** 条目最大宽度: 条宽 = 条目数×86 + 内边距×4, 屏内居中 */
-private const val DOCK_ITEM_MAX = 86f
+/** 条目最大宽度: 条宽 = 条目数×66 + 内边距×4, 屏内居中 (86→66: dock 项少后整体收紧) */
+private const val DOCK_ITEM_MAX = 66f
 
 /** 条内边距: 滑镜静止时悬出条目每侧 4 */
 private const val DOCK_BAR_PADDING = 4f
