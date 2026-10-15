@@ -288,7 +288,7 @@ fun LiquidGlassBottomBar(
     // 每个 Tab 的实测宽度: 液态滑镜据此计算起点与宽度。首帧为空 → 镜片从 0 滑入
     val tabWidths = remember { mutableStateMapOf<Int, Dp>() }
     val tabsRowStart = 8.dp
-    val targetX = tabsRowStart + (0 until selectedIndex).mapNotNull { tabWidths[it] }.sumOf { it.value }.dp
+    val targetX = tabsRowStart + (0 until selectedIndex).fold(0f) { acc, i -> acc + (tabWidths[i]?.value ?: 0f) }.dp
     val targetW = tabWidths[selectedIndex] ?: 0.dp
     // 位置用弹簧 (滑行带回弹), 宽度用补间 (略滞后) → 行进中被拉长、落位时回弹 = 液态
     val lensX = animateDpAsState(targetX, spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow), label = "lensX").value
