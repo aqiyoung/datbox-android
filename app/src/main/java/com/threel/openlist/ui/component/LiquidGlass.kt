@@ -1,5 +1,6 @@
 package com.threel.openlist.ui.component
 
+import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -41,19 +42,33 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RoundRect
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -63,7 +78,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.navigationBarsPadding
 import com.threel.openlist.ui.theme.BorderLight
 import com.threel.openlist.ui.theme.GlassBorder
 import com.threel.openlist.ui.theme.GlassShadow
@@ -284,7 +298,9 @@ fun LiquidGlassFab(
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
  * - 搜索是条内第三个条目 (此前独立摆放的搜索屡被报告丢失)
- * 简化 (相对 FlClash): 无 shader 折射/色差、无悬停磁吸与按压辉光; 玻璃材质沿用 FrostedGlass v2。
+ * backdrop 折射 (API 33+): 内容层经 [LiquidGlassBackdrop] 的 AGSL shader —
+ * 边缘 bevel 折射 + 滑镜 raised-lens 折射 + 磨砂 + 色散 + 暗边线;
+ * 以下系统或 backdrop 缺省时回落 v3 平玻璃材质。
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -293,6 +309,8 @@ fun LiquidGlassBottomBar(
     onSelected: (Int) -> Unit,
     onSearchClick: () -> Unit,
     searchActive: Boolean = false,
+    backdrop: GraphicsLayer? = null,
+    backdropOrigin: Offset = Offset.Zero,
     modifier: Modifier = Modifier,
 ) {
     // 滑镜运动学: 位置弹簧(带回弹) + 点按抬升(充气) + 加速液体形变, 逐帧驱动
@@ -310,12 +328,35 @@ fun LiquidGlassBottomBar(
     val density = LocalDensity.current
     var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
     val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
+    val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
     val lensClear = 1f - 0.5f * mLift // 抬升时镜片转清 (FlClash: 升起后是清玻璃)
+
+    // backdrop 折射管线 (见 [LiquidGlassBackdrop]): 录制的内容层 + AGSL 光学 shader。
+    // 仅 API 33+ (AGSL); 以下回落 v3 平玻璃 (不挂 effect, shader 亦不参与)。
+    var pillPos by remember { mutableStateOf(Offset.Zero) }
+    val glassShader = remember {
+        if (Build.VERSION.SDK_INT >= 33) android.graphics.RuntimeShader(LiquidGlassBackdrop.SHADER) else null
+    }
+    val backdropEffect = remember {
+        if (Build.VERSION.SDK_INT >= 33 && glassShader != null) {
+            LiquidGlassBackdrop.createGlassEffect(glassShader)
+        } else {
+            null
+        }
+    }
+    // effect 挂在整层上 (renderEffect 是 GraphicsLayer 属性, 作用于该层的每次绘制):
+    // 主内容层常规绘制经 shader 时在药丸外逐像素透传, 画面不变; Dock 再裁剪补画药丸区。
+    SideEffect {
+        if (backdrop != null && backdropEffect != null && backdrop.renderEffect !== backdropEffect) {
+            backdrop.renderEffect = backdropEffect
+        }
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
+            // 不再加 navigationBarsPadding: Scaffold content padding 已含导航栏 inset,
+            // Dock 改为悬浮在 content Box 内, 再加会双重内边距把胶囊顶高
             .padding(horizontal = DOCK_EDGE_MARGIN.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -335,21 +376,71 @@ fun LiquidGlassBottomBar(
                         val w = with(density) { size.width.toDp().value }
                         val p = (w - DOCK_ITEM_INSET * 2) / count
                         if (abs(p - pitch) > 0.01f) pitch = p
+                    }
+                    .onGloballyPositioned { coords -> pillPos = coords.positionInRoot() }
+                    // backdrop 层: 把录制的页面内容折射后画在药丸形内 (先于材质层, 垫底)
+                    .drawBehind {
+                        // 读取滑镜几何 → 写 shader uniforms (每次重绘刷新;
+                        // 即便内容未变, 滑镜动画也通过本绘制触发药丸区重绘)
+                        val layer = backdrop ?: return@drawBehind
+                        if (backdropEffect == null) return@drawBehind
+                        val texW = layer.size.width.toFloat()
+                        val texH = layer.size.height.toFloat()
+                        if (texW <= 0f || texH <= 0f) return@drawBehind
+                        val pillPath = Path().apply {
+                            addRoundRect(
+                                RoundRect(
+                                    rect = Rect(Offset.Zero, Size(size.width, size.height)),
+                                    cornerRadius = CornerRadius(size.height / 2f),
+                                )
+                            )
+                        }
+                        glassShader?.apply {
+                            setFloatUniform("uTexSize", texW, texH)
+                            setFloatUniform("uOrigin", pillPos.x - backdropOrigin.x, pillPos.y - backdropOrigin.y)
+                            setFloatUniform("uPill", size.width, size.height)
+                            setFloatUniform("uRadius", size.height / 2f)
+                            setFloatUniform("uBevel", with(density) { 20.dp.toPx() })
+                            setFloatUniform("uRefraction", with(density) { 60.dp.toPx() })
+                            setFloatUniform("uBlur", with(density) { 2.5.dp.toPx() } * 1.7f)
+                            setFloatUniform("uRim", 0.6f)
+                            setFloatUniform("uDispersion", 0.08f)
+                            setFloatUniform("uLine", with(density) { 0.67.dp.toPx() })
+                            setFloatUniform("uLensX", with(density) { lensX.dp.toPx() })
+                            setFloatUniform("uLensW", with(density) { lensW.dp.toPx() })
+                            setFloatUniform("uLensBevel", with(density) { 11.2.dp.toPx() })
+                            setFloatUniform("uLensDepth", with(density) { 30.dp.toPx() })
+                            // #F4F4F4 @0.42 平涂染色 (straight alpha)
+                            setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.42f)
+                        }
+                        clipPath(pillPath) {
+                            translate(
+                                left = backdropOrigin.x - pillPos.x,
+                                top = backdropOrigin.y - pillPos.y,
+                            ) {
+                                drawLayer(layer)
+                            }
+                        }
                     },
             ) {
-                // 1) 条体: 平染色玻璃药丸 — FlClash pill 配方 (#F4F4F4 平涂), 无内部立体层
+                // 1) 条体: backdrop 折射开启时体色交给 shader 内的平涂染色,
+                //    这里只留顶部柔光/发丝边/投影; 降级设备回落 v3 平玻璃体
                 FrostedGlass(
                     shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp),
                     veilAlpha = 0f,
-                    tintGradient = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFFF4F4F4).copy(alpha = 0.50f),
-                            Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                    tintGradient = if (backdropEffect != null) {
+                        Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                                Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                            )
                         )
-                    ),
+                    },
                 ) {}
                 // 2) 液态滑镜: 全高横向渐变光斑 — 边缘渐隐、无自身轮廓, 与药丸同高同裁剪,
                 //    不再是嵌套的第二枚胶囊; 抬升时经 lensClear 转清
@@ -359,7 +450,6 @@ fun LiquidGlassBottomBar(
                         .height(DOCK_BAR_HEIGHT.dp)
                         .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
                 ) {
-                    val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
                     Box(
                         Modifier
                             .align(Alignment.TopStart)
@@ -370,7 +460,7 @@ fun LiquidGlassBottomBar(
                                 Brush.horizontalGradient(
                                     colorStops = arrayOf(
                                         0f to Color.Transparent,
-                                        0.5f to Color.Black.copy(alpha = 0.10f * lensClear),
+                                        0.5f to Color.Black.copy(alpha = 0.06f * lensClear),
                                         1f to Color.Transparent,
                                     )
                                 )

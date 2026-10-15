@@ -64,7 +64,7 @@ fun ProfileScreen(
     GlassDecorBackground {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 0.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 顶部栏

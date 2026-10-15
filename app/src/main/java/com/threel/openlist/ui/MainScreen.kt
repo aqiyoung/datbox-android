@@ -6,7 +6,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import com.threel.openlist.ui.component.LiquidGlassBottomBar
@@ -55,38 +62,68 @@ fun MainScreen(
         BottomTab("我的", Icons.Outlined.Person),
     )
 
-    Scaffold(
-        bottomBar = {
+    Scaffold { padding ->
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
+        ) {
+            // 内容层: 录制进 GraphicsLayer 供 Dock 玻璃取景 (backdrop), 再原样绘制 —
+            // 内容从 dock 玻璃下方滚过, shader 才有真实画面可折射 (对齐 FlClash backdrop 机制)
+            val backdrop = rememberGraphicsLayer()
+            var backdropOrigin by remember { mutableStateOf(Offset.Zero) }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { backdropOrigin = it.positionInRoot() }
+                    .drawWithContent {
+                        backdrop.record(
+                            density = this@drawWithContent,
+                            layoutDirection = layoutDirection,
+                            size = IntSize(size.width.toInt(), size.height.toInt()),
+                        ) {
+                            this@drawWithContent.drawContent()
+                        }
+                        drawLayer(backdrop)
+                    },
+            ) {
+                when (selectedTab) {
+                    0 -> FileBrowserScreen(
+                        onLogout = onLogout,
+                        onPreview = { path, name ->
+                            previewPath = path
+                            previewName = name
+                        },
+                        searchTrigger = searchTrigger,
+                        searchActive = searchActive,
+                        onSearchActiveChange = { searchActive = it },
+                    )
+                    1 -> ProfileScreen(
+                        onBack = { selectedTab = 0 },
+                        onLogout = onLogout,
+                    )
+                }
+            }
+            // Dock 悬浮于内容之上 (不再由 Scaffold 预留空间)
             LiquidGlassBottomBar(
                 tabs = tabs,
                 selectedIndex = selectedTab,
                 onSelected = { selectedTab = it },
                 onSearchClick = {
-                    if (selectedTab != 0) selectedTab = 0
-                    searchActive = true
-                    searchTrigger++
+                    if (searchActive) {
+                        // 再点搜索 = 关闭搜索回首页 (toggle)
+                        searchActive = false
+                    } else {
+                        if (selectedTab != 0) selectedTab = 0
+                        searchActive = true
+                        searchTrigger++
+                    }
                 },
                 searchActive = searchActive,
+                backdrop = backdrop,
+                backdropOrigin = backdropOrigin,
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
-        },
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
-            when (selectedTab) {
-                0 -> FileBrowserScreen(
-                    onLogout = onLogout,
-                    onPreview = { path, name ->
-                        previewPath = path
-                        previewName = name
-                    },
-                    searchTrigger = searchTrigger,
-                    searchActive = searchActive,
-                    onSearchActiveChange = { searchActive = it },
-                )
-                1 -> ProfileScreen(
-                    onBack = { selectedTab = 0 },
-                    onLogout = onLogout,
-                )
-            }
         }
     }
 }

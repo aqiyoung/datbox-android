@@ -336,6 +336,13 @@ fun FileBrowserScreen(
         }
     }
 
+    // 搜索态退出 (dock toggle / 外部关闭) 时清查询与结果, 与返回箭头路径一致
+    LaunchedEffect(searchActive) {
+        if (!searchActive && state.searchQuery.isNotEmpty()) {
+            vm.closeSearch()
+        }
+    }
+
     // 上传触发: 底部导航栏点击上传
     LaunchedEffect(uploadTrigger) {
         if (uploadTrigger > 0) {
@@ -419,7 +426,7 @@ fun FileBrowserScreen(
                 )
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), // bottom: dock 悬浮区留白 (内容从玻璃下滚过)
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.weight(1f),
                     ) {
@@ -720,7 +727,7 @@ private fun SearchResultsList(
         state.searchError != null -> CenterMessage("搜索失败: ${state.searchError}", "重试", onRetry)
         state.searchResults.isEmpty() -> CenterMessage("没有找到「${state.searchQuery.trim()}」")
         else -> LazyColumn(
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), // bottom: dock 悬浮区留白 (内容从玻璃下滚过)
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = modifier,
         ) {
