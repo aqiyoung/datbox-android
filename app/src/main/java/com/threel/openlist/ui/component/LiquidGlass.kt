@@ -83,7 +83,6 @@ import com.threel.openlist.ui.theme.GlassBorder
 import com.threel.openlist.ui.theme.GlassShadow
 import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
-import com.threel.openlist.ui.theme.NearBlack
 import com.threel.openlist.ui.theme.StoneGray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -316,7 +315,9 @@ fun LiquidGlassBottomBar(
     // 滑镜运动学: 位置弹簧(带回弹) + 点按抬升(充气) + 加速液体形变, 逐帧驱动
     val scope = rememberCoroutineScope()
     val motion = remember { LensMotion(scope, selectedIndex) }
-    LaunchedEffect(selectedIndex) { motion.animateTo(selectedIndex) }
+    // 搜索是独立条目: 激活时滑镜随"选中"一起移过去, 否则镜片停在首页造成双高亮感
+    val lensTarget = if (searchActive) tabs.size else selectedIndex
+    LaunchedEffect(lensTarget) { motion.animateTo(lensTarget) }
     val mPos = motion.position
     val mLift = motion.lift
     val mSquash = motion.squash
@@ -455,6 +456,25 @@ fun LiquidGlassBottomBar(
                         .height(DOCK_BAR_HEIGHT.dp)
                         .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
                 ) {
+                    // 选中染色盘 (FlClash _Lens platter 式): 主题绿浅调, 边缘渐隐, 抬升转清 —
+                    // 让"选中在哪一格"一眼可辨 (此前只有折射光斑, 选中感太弱)
+                    Box(
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = lensX.dp)
+                            .width(lensW.dp)
+                            .fillMaxHeight()
+                            .background(
+                                Brush.horizontalGradient(
+                                    colorStops = arrayOf(
+                                        0f to Color.Transparent,
+                                        0.18f to DockAccent.copy(alpha = 0.14f * lensClear),
+                                        0.82f to DockAccent.copy(alpha = 0.14f * lensClear),
+                                        1f to Color.Transparent,
+                                    )
+                                )
+                            )
+                    )
                     Box(
                         Modifier
                             .align(Alignment.TopStart)
@@ -484,7 +504,8 @@ fun LiquidGlassBottomBar(
                         DockTabItem(
                             icon = tab.icon,
                             label = tab.label,
-                            tinted = index == selectedIndex,
+                            // 搜索激活时 Tab 全部熄灭: 选中概念整体交给搜索条目 (互斥高亮)
+                            tinted = index == selectedIndex && !searchActive,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
@@ -521,7 +542,7 @@ private fun DockTabItem(
         targetValue = if (tinted) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    val tint = lerp(StoneGray, NearBlack, t)
+    val tint = lerp(StoneGray, DockAccent, t)
     Column(
         modifier = modifier.clickable(
             interactionSource = MutableInteractionSource(),
@@ -548,6 +569,9 @@ private fun DockTabItem(
 }
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
+
+/** 选中强调色: 全应用 accent 绿 — 染色盘与选中条目同源 */
+private val DockAccent = Color(0xFF20C997)
 
 /** 条目最大宽度: 条宽 = 条目数×86 + 内边距×4, 屏内居中 */
 private const val DOCK_ITEM_MAX = 86f
