@@ -12,7 +12,9 @@ data class User(
     val role: Int = 0,  // 0=普通用户, 1=游客, 2=管理员
     val disabled: Boolean = false,
     val permission: Int = 0,
-    @SerialName("sso_id") val ssoId: String = ""
+    @SerialName("sso_id") val ssoId: String = "",
+    // 2FA/passkey 绑定。上游 /api/admin/user/update 是整结构体覆盖, 不回传就等于清空
+    val authn: String = "[]"
 )
 
 @Serializable
@@ -23,7 +25,24 @@ data class Mount(
     val status: String = "work",
     val order: Int = 0,
     val remark: String = "",
-    val disabled: Boolean = false
+    val disabled: Boolean = false,
+    // —— 以下字段编辑时必须原样回传 ——
+    // 上游 UpdateStorage 是全字段覆盖(op.UpdateStorage → db.UpdateStorage)，
+    // body 里缺哪个字段哪个就被清零：addition 是驱动配置(token/密钥/根目录)，
+    // 丢了整个挂载就废了；disabled/order/remark 等同理。客户端就 POST 整个 Mount。
+    @SerialName("cache_expiration") val cacheExpiration: Int = 0,
+    @SerialName("custom_cache_policies") val customCachePolicies: String = "",
+    val addition: String = "",
+    @SerialName("disable_index") val disableIndex: Boolean = false,
+    @SerialName("enable_sign") val enableSign: Boolean = false,
+    @SerialName("order_by") val orderBy: String = "",
+    @SerialName("order_direction") val orderDirection: String = "",
+    @SerialName("extract_folder") val extractFolder: String = "",
+    @SerialName("web_proxy") val webProxy: Boolean = false,
+    @SerialName("webdav_policy") val webdavPolicy: String = "",
+    @SerialName("proxy_range") val proxyRange: Boolean = false,
+    @SerialName("down_proxy_url") val downProxyUrl: String = "",
+    @SerialName("disable_proxy_sign") val disableProxySign: Boolean = false,
 ) {
     val path: String get() = mountPath
 }

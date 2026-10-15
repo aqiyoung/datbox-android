@@ -27,15 +27,15 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.InstallIn
 import coil.compose.AsyncImage
+import com.threel.openlist.data.api.FsGetRequest
 import com.threel.openlist.data.api.OpenListJson
 import com.threel.openlist.data.api.TokenStore
+import com.threel.openlist.data.api.toJsonRequestBody
 import com.threel.openlist.data.model.FsGetResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.util.concurrent.TimeUnit
 
@@ -95,7 +95,7 @@ fun FilePreviewScreen(
     LaunchedEffect(remotePath) {
         val serverUrl = withContext(Dispatchers.IO) { tokenStore.serverUrlSync().trimEnd('/') }
         val authToken = withContext(Dispatchers.IO) { tokenStore.tokenSync() }
-        if (isImage || isVideo || isAudio) {
+        if (isImage || isVideo || isAudio || isPdf) {
             previewUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
         }
         if (isText) {
@@ -157,9 +157,7 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authT
         try {
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
             // 1. 拿 sign
-            val getBody = """{"path":"$remotePath"}"""
-            val mediaType = "application/json; charset=utf-8".toMediaType()
-            val requestBody = getBody.toRequestBody(mediaType)
+            val requestBody = FsGetRequest(remotePath).toJsonRequestBody()
             val getRequest = Request.Builder()
                 .url("$serverUrl/api/fs/get")
                 .addHeader("Authorization", authToken)

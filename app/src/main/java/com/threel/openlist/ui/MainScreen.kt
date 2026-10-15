@@ -16,12 +16,12 @@ import com.threel.openlist.ui.screen.FilePreviewScreen
 import com.threel.openlist.ui.screen.ProfileScreen
 
 /**
- * 主页面壳 — 底部导航 + 文件预览全屏模式
+ * 主页面壳 — 底部 Dock + 文件预览全屏模式
  *
- * 底部导航 (BitChord 风格):
- * - 玻璃胶囊: 首页 / 我的
- * - 独立圆形搜索按钮 (打开搜索弹窗)
- * 顶部的搜索已移除, 搜索入口统一到底部导航栏。
+ * 底部 Dock (iOS 27 悬浮胶囊):
+ * - 宽度贴合内容、水平居中的玻璃胶囊, 内含 [首页 / 我的] + 搜索
+ * - 玻璃无自身颜色, 选中态是中性"液态镜片"补间动画
+ * 顶部的搜索已移除, 搜索入口统一到底部 Dock。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

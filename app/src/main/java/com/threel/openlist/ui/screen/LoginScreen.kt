@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -84,7 +83,7 @@ class LoginViewModel @Inject constructor(
         if (_state.value.loading) return
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            repo.login(_state.value.username.trim(), _state.value.password, _state.value.serverUrl)
+            repo.login(_state.value.username.trim(), _state.value.password)
                 .onSuccess {
                     val st = _state.value
                     if (st.rememberMe) {
@@ -117,27 +116,8 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, Color.White)
-                )
-            )
+            .background(Color.White)
     ) {
-        // ===== 背景装饰圆形 =====
-        Box(
-            modifier = Modifier
-                .offset(x = 120.dp, y = (-80).dp)
-                .size(160.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF20C997).copy(alpha = 0.08f))
-        )
-        Box(
-            modifier = Modifier
-                .offset(x = (-60).dp, y = 600.dp)
-                .size(140.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF4285F4).copy(alpha = 0.06f))
-        )
 
         // ===== 服务器按钮（右上角） =====
         Column(

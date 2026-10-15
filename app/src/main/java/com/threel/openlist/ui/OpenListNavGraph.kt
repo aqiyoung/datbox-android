@@ -16,6 +16,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import android.util.Log
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.ui.screen.FilePreviewScreen
@@ -23,10 +24,12 @@ import com.threel.openlist.ui.screen.LoginScreen
 import com.threel.openlist.ui.screen.ServerSettingsScreen
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,8 +44,10 @@ class RootViewModel @Inject constructor(
         TelemetryLog.i("NavGraph", "OpenListNavGraph init, isLoggedIn check...")
         viewModelScope.launch {
             val serverUrl = tokenStore.serverUrl.first()
-            TelemetryLog.i("NavGraph", "saved serverUrl=$serverUrl")
-            val isLogin = repo.isLoggedIn()
+            // 服务器地址是用户隐私，TelemetryLog 会 POST 到远端 → 只走本地 logcat
+            Log.i("NavGraph", "saved serverUrl=$serverUrl")
+            // tokenSync 冷启动未命中内存缓存时会 runBlocking 读 DataStore, 不能在主线程
+            val isLogin = withContext(Dispatchers.IO) { repo.isLoggedIn() }
             TelemetryLog.i("NavGraph", "isLoggedIn=$isLogin")
             _loggedIn.value = isLogin
         }
@@ -62,7 +67,6 @@ class RootViewModel @Inject constructor(
 
 @Composable
 fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
-    val nav = rememberNavController()
     val loggedIn by vm.loggedIn.collectAsState()
 
     if (loggedIn == null) {
@@ -70,6 +74,9 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else if (loggedIn == true) {
+        // 每个 NavHost 各自持有 NavController: 之前登录/登出两个 NavHost 共用同一个
+        // controller, 切换登录态时 setGraph 会带着旧 backstack(如 server_settings) 残留
+        val nav = rememberNavController()
         NavHost(nav, startDestination = "main") {
             composable("main") {
                 MainScreen(onLogout = { vm.logout() })
@@ -87,16 +94,18 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             }
         }
     } else {
-        NavHost(nav, startDestination = "login") {
+        // 登录态分支: 独立 NavController (登录/服务器设置两级), 不与主图共用
+        val loginNav = rememberNavController()
+        NavHost(loginNav, startDestination = "login") {
             composable("login") {
                 LoginScreen(
                     onLoginSuccess = { vm.setLoggedIn() },
-                    onServerSettings = { nav.navigate("server_settings") }
+                    onServerSettings = { loginNav.navigate("server_settings") }
                 )
             }
             composable("server_settings") {
-                BackHandler(enabled = true) { nav.popBackStack() }
-                ServerSettingsScreen(onBack = { nav.popBackStack() })
+                BackHandler(enabled = true) { loginNav.popBackStack() }
+                ServerSettingsScreen(onBack = { loginNav.popBackStack() })
             }
         }
     }

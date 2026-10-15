@@ -2,18 +2,25 @@ package com.threel.openlist.util
 
 import android.content.Context
 import android.util.Log
+import com.threel.openlist.data.api.toJsonRequestBody
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaType
+import kotlinx.serialization.Serializable
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+
+@Serializable
+private data class TelemetryLogBody(
+    val level: String,
+    val tag: String,
+    val msg: String,
+)
 
 /**
  * 老板 6/14 11:35 拍: APP 端实时日志 → Telegram
@@ -29,13 +36,11 @@ import java.util.concurrent.TimeUnit
 object TelemetryLog {
     private const val TAG = "Telemetry"
     private const val ENDPOINT = "https://fn.threel.site/api/openlist-android/log"
-    private val JSON = "application/json; charset=utf-8".toMediaType()
     private val client = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(5, TimeUnit.SECONDS)
         .build()
     private val scope = CoroutineScope(Dispatchers.IO)
-    private val timeFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.CHINA)
     @Volatile private var logFile: File? = null
 
     /** 老板 6/14 11:56 反馈 '失败' 装 v0.3.10 收不到 log - 补落盘兜底 */
@@ -66,25 +71,25 @@ object TelemetryLog {
     }
 
     private fun sendAsync(level: String, tag: String, msg: String) {
-        // 1. 落盘 (同步 I/O 不在主线程, 错了也就算了)
-        try {
-            logFile?.let { f ->
-                val line = "${timeFmt.format(Date())} ${level}/${tag}: ${msg}\n"
-                f.appendText(line)
-                // 保持只后 2000 行
-                if (f.length() > 500_000) {
-                    val lines = f.readLines().takeLast(2000)
-                    f.writeText(lines.joinToString("\n") + "\n")
-                }
-            }
-        } catch (_: Throwable) {
-        }
-        // 2. 推 server + Telegram
+        // 全部挪进 IO 协程: 之前落盘在调用线程(常常是主线程), 触发裁剪时还会整文件重读重写
         scope.launch {
+            // 1. 落盘 (网络不通时的兜底)
             try {
-                val safeMsg = msg.replace("\"", "\\\"").replace("\n", " ").take(800)
-                val body = """{"level":"$level","tag":"${tag.take(40)}","msg":"$safeMsg"}"""
-                    .toRequestBody(JSON)
+                logFile?.let { f ->
+                    val timeFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.CHINA)  // 局部新建: IO 协程可能多线程并发
+                    val line = "${timeFmt.format(Date())} ${level}/${tag}: ${msg}\n"
+                    f.appendText(line)
+                    // 保持只后 2000 行
+                    if (f.length() > 500_000) {
+                        val lines = f.readLines().takeLast(2000)
+                        f.writeText(lines.joinToString("\n") + "\n")
+                    }
+                }
+            } catch (_: Throwable) {
+            }
+            // 2. 推 server + Telegram (JSON 交给序列化器转义; 之前手拼, 消息里带 \ 或引号就产出非法 JSON)
+            try {
+                val body = TelemetryLogBody(level, tag.take(40), msg.take(800)).toJsonRequestBody()
                 val req = Request.Builder().url(ENDPOINT).post(body).build()
                 client.newCall(req).execute().close()
             } catch (_: Throwable) {

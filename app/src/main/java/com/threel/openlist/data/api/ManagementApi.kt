@@ -32,14 +32,21 @@ data class UserCreateRequest(
     @SerialName("base_path") val basePath: String = "/"
 )
 
+/** 上游 UpdateUser 是整结构体绑定 + 全量落库（见 OpenList server/handles/user.go UpdateUser），
+ *  未出现在 body 里的字段会被置零：permission→0(无任何权限)、base_path→"/"、disabled→false(解禁)、
+ *  authn/sso_id→清空。所以这里必须把 list 拿到的字段原样回传，不能用 -1/"  " 之类的"不改"哨兵。 */
 @Serializable
 data class UserUpdateRequest(
     val id: Int,
     val username: String = "",
+    /** 空串 = 服务端保留原密码（上游显式处理），不是重置 */
     val password: String = "",
-    val role: Int = -1,
-    val permission: Int = -1,
-    @SerialName("base_path") val basePath: String = "/"
+    val role: Int = 0,
+    val permission: Int = 0,
+    @SerialName("base_path") val basePath: String = "/",
+    val disabled: Boolean = false,
+    @SerialName("sso_id") val ssoId: String = "",
+    val authn: String = "[]"
 )
 
 @Serializable
@@ -54,18 +61,8 @@ data class MountCreateRequest(
     val down_proxy_url: String = ""
 )
 
-@Serializable
-data class MountUpdateRequest(
-    val id: Int,
-    val driver: String = "Local",
-    val mount_path: String = "",
-    val order: Int = -1,
-    val remark: String = "",
-    val cache_expiration: Int = -1,
-    val web_proxy: Boolean = false,
-    val webdav_policy: String = "",
-    val down_proxy_url: String = ""
-)
+// MountUpdateRequest 已删除: 上游 UpdateStorage 把 body 直接 bind 成完整的 model.Storage 做全字段覆盖，
+// 客户端直接 POST 整个 [Mount]（含 addition 驱动配置/disabled/order 等），漏字段就会被清零。
 
 @Serializable
 data class ShareCreateRequest(
@@ -79,6 +76,28 @@ data class OptionUpdateRequest(
     val key: String,
     val value: String
 )
+
+// ===== 文件操作请求体 (字段已按上游 server/handles/fsmanage.go 逐一核对) =====
+
+/** fs/mkdir: 上游 MkdirOrLinkReq 只收完整的新目录路径，没有 name 字段 */
+@Serializable
+data class FsMkdirRequest(val path: String)
+
+/** fs/rename: 同目录改名 (RenameReq{path=完整路径, name=新名}) */
+@Serializable
+data class FsRenameRequest(val path: String, val name: String)
+
+/** fs/move: 批量移动 (MoveCopyReq{src_dir, dst_dir, names}) */
+@Serializable
+data class FsMoveRequest(
+    @SerialName("src_dir") val srcDir: String,
+    @SerialName("dst_dir") val dstDir: String,
+    val names: List<String>,
+)
+
+/** fs/remove: (RemoveReq{dir, names}) */
+@Serializable
+data class FsRemoveRequest(val dir: String, val names: List<String>)
 
 @Serializable
 data class PageData<T>(
@@ -135,7 +154,7 @@ interface ManagementApi {
     suspend fun mountCreate(@Body req: MountCreateRequest): ObjResponse<Mount>
 
     @POST("api/admin/storage/update")
-    suspend fun mountUpdate(@Body req: MountUpdateRequest): ManagementResponse
+    suspend fun mountUpdate(@Body req: Mount): ManagementResponse
 
     @POST("api/admin/storage/delete")
     suspend fun mountDelete(@Query("id") id: Int): ManagementResponse

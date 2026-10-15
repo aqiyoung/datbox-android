@@ -23,7 +23,7 @@ data class UserInfo(
     val username: String = "",
     val password: String = "",
     @SerialName("base_path") val basePath: String = "/",
-    val role: Int = 2,  // 0=admin 1=guest 2=normal
+    val role: Int = 2,  // 0=普通用户 1=游客 2=管理员 (OpenList internal/model/user.go: GENERAL/GUEST/ADMIN)
     val permission: Int = 0,
     val disabled: Boolean = false,
     @SerialName("sso_id") val ssoId: String = ""
