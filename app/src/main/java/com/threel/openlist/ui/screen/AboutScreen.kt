@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -291,31 +293,31 @@ private fun UpdateFoundDialog(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
         ) {
-            Column(modifier = Modifier.padding(24.dp)) {
-                // 图标 + 标题
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color(0xFF20C997).copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.SystemUpdate,
-                            contentDescription = null,
-                            tint = Color(0xFF20C997),
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Column {
-                        Text("发现新版本", fontSize = 13.sp, color = Color(0xFF888888))
-                        Text(
-                            text = result.latestVersion,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2A2925),
-                        )
-                    }
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // 图标 + 标题 (居中式弹窗头)
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(0xFF20C997).copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.SystemUpdate,
+                        contentDescription = null,
+                        tint = Color(0xFF20C997),
+                        modifier = Modifier.size(26.dp),
+                    )
                 }
+                Spacer(Modifier.height(12.dp))
+                Text("发现新版本", fontSize = 13.sp, color = Color(0xFF888888))
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = result.latestVersion,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2A2925),
+                )
 
                 Spacer(Modifier.height(20.dp))
 
@@ -366,6 +368,11 @@ private fun UpdateFoundDialog(
                             text = if (body.length > 400) body.take(400) + "…" else body,
                             fontSize = 13.sp,
                             color = Color(0xFF4A4A4A),
+                            // 超长更新说明在弹窗内滚动, 不把弹窗撑出屏幕
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 200.dp)
+                                .verticalScroll(rememberScrollState()),
                         )
                     }
                 }
