@@ -12,7 +12,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Dns
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.Inet6Address
 import java.net.InetAddress
 import java.net.UnknownHostException
@@ -70,7 +69,8 @@ class OpenListRepository @Inject constructor(
             .build()
     }
 
-    suspend fun login(username: String, password: String, serverUrl: String = tokenStore.serverUrlSync()): Result<String> = runCatching {
+    // serverUrl 由 DynamicServerInterceptor 按 DataStore 动态改写, 这里不接地址参数
+    suspend fun login(username: String, password: String): Result<String> = runCatching {
         val resp = api.login(LoginRequest(username, password))
         if (resp.code != 200 || resp.data == null) {
             error("登录失败: ${resp.message}")
@@ -166,7 +166,7 @@ class OpenListRepository @Inject constructor(
         val getReq = Request.Builder()
             .url("$serverUrl/api/fs/get")
             .header("Authorization", token)
-            .post("""{"path":"$remotePath"}""".toRequestBody("application/json; charset=utf-8".toMediaType()))
+            .post(FsGetRequest(remotePath).toJsonRequestBody())
             .build()
         val sign = client.newCall(getReq).execute().use { resp ->
             com.threel.openlist.util.TelemetryLog.i("Repo", "fs/get resp code=${resp.code}")
@@ -293,8 +293,11 @@ class OpenListRepository @Inject constructor(
         // 修法: 分享父目录而不是文件本身, URL 仍拼 /sd/<id>/<filename> (parent 是 dir 才是合法路径)
         var parentPath = remotePath.substringBeforeLast('/')
         if (parentPath.isEmpty()) parentPath = "/"
-        val body = """{"files":["$parentPath"],"expires":"2099-12-31T23:59:59Z","password":""}"""
-            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val body = ShareCreateRequest(
+            files = listOf(parentPath),
+            expires = "2099-12-31T23:59:59Z",
+            password = "",
+        ).toJsonRequestBody()
         val req = Request.Builder()
             .url("$serverUrl/api/share/create")
             .header("Authorization", token)

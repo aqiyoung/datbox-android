@@ -11,6 +11,7 @@ import com.threel.openlist.data.model.UserInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -56,8 +57,21 @@ class ManagementRepository @Inject constructor(
         resp.data
     }
 
-    suspend fun userUpdate(id: Int, username: String = "", password: String = "", role: Int = -1, permission: Int = -1): Result<Unit> = safeApiCall {
-        val resp = api.userUpdate(UserUpdateRequest(id, username, password, role, permission))
+    suspend fun userUpdate(user: User, password: String = ""): Result<Unit> = safeApiCall {
+        // 全字段回传: 只改要改的, 其余保持 list 拿到的原值 (否则被服务端置零)
+        val resp = api.userUpdate(
+            UserUpdateRequest(
+                id = user.id,
+                username = user.username,
+                password = password,
+                role = user.role,
+                permission = user.permission,
+                basePath = user.basePath,
+                disabled = user.disabled,
+                ssoId = user.ssoId,
+                authn = user.authn
+            )
+        )
         if (resp.code != 200) error(resp.message)
     }
 
@@ -79,8 +93,9 @@ class ManagementRepository @Inject constructor(
         resp.data
     }
 
-    suspend fun mountUpdate(id: Int, driver: String = "Local", mountPath: String = "", order: Int = -1, remark: String = ""): Result<Unit> = safeApiCall {
-        val resp = api.mountUpdate(MountUpdateRequest(id, driver, mountPath, order, remark))
+    /** 编辑挂载: POST 整个 Mount。上游是全字段覆盖, 只传改动字段会把 addition(驱动配置)/disabled/order 等清零 */
+    suspend fun mountUpdate(mount: Mount): Result<Unit> = safeApiCall {
+        val resp = api.mountUpdate(mount)
         if (resp.code != 200) error(resp.message)
     }
 
@@ -150,8 +165,30 @@ class ManagementRepository @Inject constructor(
         }
     }
 
-    suspend fun mkdir(path: String, name: String): Result<Unit> = fsPost("mkdir", """{"path":"$path","name":"$name"}""")
-    suspend fun rename(path: String, newName: String): Result<Unit> = fsPost("rename", """{"path":"$path","name":"$newName"}""")
-    suspend fun move(path: String, newPath: String): Result<Unit> = fsPost("move", """{"path":"$path","new_path":"$newPath"}""")
-    suspend fun delete(dir: String, name: String): Result<Unit> = fsPost("remove", """{"dir":"$dir","names":["$name"]}""")
+    suspend fun mkdir(path: String, name: String): Result<Unit> = fsPost(
+        "mkdir",
+        // 上游 MkdirOrLinkReq 只收完整的新目录路径; 之前传 {path: 父目录, name} →
+        // 服务端对父目录 MakeDir(幂等成功), 也就是"新建文件夹"一直什么都没建
+        OpenListJson.encodeToString(
+            FsMkdirRequest(if (path.endsWith("/")) path + name else "$path/$name")
+        ),
+    )
+
+    suspend fun rename(path: String, newName: String): Result<Unit> =
+        fsPost("rename", OpenListJson.encodeToString(FsRenameRequest(path, newName)))
+
+    suspend fun move(path: String, newPath: String): Result<Unit> = fsPost(
+        "move",
+        // 上游 MoveCopyReq 是 {src_dir, dst_dir, names[]}; 之前传 {path, new_path} 字段全绑不上
+        OpenListJson.encodeToString(
+            FsMoveRequest(
+                srcDir = path.substringBeforeLast('/').ifEmpty { "/" },
+                dstDir = newPath.substringBeforeLast('/').ifEmpty { "/" },
+                names = listOf(path.substringAfterLast('/')),
+            )
+        ),
+    )
+
+    suspend fun delete(dir: String, name: String): Result<Unit> =
+        fsPost("remove", OpenListJson.encodeToString(FsRemoveRequest(dir, listOf(name))))
 }

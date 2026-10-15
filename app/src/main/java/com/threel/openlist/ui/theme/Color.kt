@@ -40,7 +40,8 @@ val iOSPink = Color(0xFFFF2D55)
 val GlassWhite = Color.White.copy(alpha = 0.85f)
 val GlassHighlight = Color.White.copy(alpha = 0.95f)
 val GlassShadow = Color.Black.copy(alpha = 0.08f)
-val GlassBorder = Color.White.copy(alpha = 0.6f)
+// 玻璃发丝边: 背景是纯白, 白边不可见 → 用极淡的中性灰定义边界 (iOS 27 做法)
+val GlassBorder = Color.Black.copy(alpha = 0.07f)
 
 // Dark variants
 val TerracottaDark = Color(0xFFE07A57)

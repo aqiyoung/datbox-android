@@ -25,6 +25,12 @@ data class FsListRequest(
     val refresh: Boolean = false,
 )
 
+/** POST /api/fs/get 请求体（下载/预览取 sign 用）。path 来自服务端文件名，必须交给序列化器转义。 */
+@Serializable
+data class FsGetRequest(
+    val path: String,
+)
+
 /** 老板 6/13 v0.3.0: 上传响应 */
 @Serializable
 data class FsUploadResponse(

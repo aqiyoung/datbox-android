@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,14 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.threel.openlist.BuildConfig
 import com.threel.openlist.data.model.Mount
 import com.threel.openlist.ui.component.LiquidGlassAlertDialog
 import com.threel.openlist.ui.component.LiquidGlassSurface
@@ -45,26 +43,14 @@ fun ManagementScreen(
     vm: ManagementViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
+    val serverUrl by vm.serverUrl.collectAsState()
     var selectedTab by remember { mutableStateOf(ManagementTab.USERS) }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, Color.White)
-                )
-            )
+            .background(Color.White)
     ) {
-        // 背景装饰
-        Box(
-            modifier = Modifier
-                .offset(x = 120.dp, y = (-80).dp)
-                .size(160.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF20C997).copy(alpha = 0.06f))
-        )
-
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -139,7 +125,7 @@ fun ManagementScreen(
                     ManagementTab.USERS -> UsersTab(state.users, state.loading, vm)
                     ManagementTab.MOUNTS -> MountsTab(state.mounts, state.loading, vm)
                     ManagementTab.SHARES -> SharesTab(state.shares, state.loading, vm)
-                    ManagementTab.SETTINGS -> SettingsTab(state.overview, state.options, state.loading, onBack, vm)
+                    ManagementTab.SETTINGS -> SettingsTab(state.overview, state.options, state.loading, onBack, serverUrl, vm)
                 }
             }
         }
@@ -210,16 +196,17 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFF888888)
                             )
-                            // 权限标签
+                            // 权限标签 (位定义见 OpenList internal/model/user.go 的 User.Permission 注释)
                             if (user.permission != 0) {
                                 Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     if (user.permission and 1 != 0) PermissionTag("可见隐藏")
                                     if (user.permission and 8 != 0) PermissionTag("上传")
-                                    if (user.permission and 128 != 0) PermissionTag("WebDAV读")
-                                    if (user.permission and 256 != 0) PermissionTag("WebDAV写")
+                                    if (user.permission and 128 != 0) PermissionTag("删除")
+                                    if (user.permission and 256 != 0) PermissionTag("WebDAV读")
+                                    if (user.permission and 16384 != 0) PermissionTag("分享")
                                 }
                             } else {
-                                Text("全部权限", style = MaterialTheme.typography.labelSmall, color = Color(0xFF20C997))
+                                Text("仅浏览 (无上传/分享权限)", style = MaterialTheme.typography.labelSmall, color = Color(0xFF888888))
                             }
                         }
                         Box {
@@ -246,19 +233,33 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     }
 
     if (showAddDialog) {
-        UserEditDialog(user = null, onDismiss = { showAddDialog = false }, onSave = { u, p, r, perm -> vm.createUser(u, p, r, perm) { showAddDialog = false } })
+        UserEditDialog(
+            user = null,
+            onDismiss = { showAddDialog = false },
+            onSave = { u, pw ->
+                // 点击即关(乐观提交): 请求期间按钮不再可点, 防连点重复创建; 失败由顶部错误条提示
+                showAddDialog = false
+                vm.createUser(u.username, pw, u.role, u.permission)
+            }
+        )
     }
     editingUser?.let { user ->
-        UserEditDialog(user = user, onDismiss = { editingUser = null }, onSave = { u, p, r, perm -> vm.updateUser(user.id, u, p, r, perm) { editingUser = null } })
+        UserEditDialog(
+            user = user,
+            onDismiss = { editingUser = null },
+            onSave = { u, pw ->
+                editingUser = null
+                vm.updateUser(u, pw)
+            }
+        )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, String, Int, Int) -> Unit) {
+private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: User, password: String) -> Unit) {
     var username by remember { mutableStateOf(user?.username ?: "") }
     var password by remember { mutableStateOf("") }
-    var role by remember { mutableIntStateOf(user?.role ?: 0) }
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
@@ -284,30 +285,30 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, 
                         focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
                     )
                 )
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                    OutlinedTextField(
-                        value = when (role) { 0 -> "普通用户"; 1 -> "游客"; 2 -> "管理员"; else -> "未知" },
-                        onValueChange = {}, readOnly = true, label = { Text("角色") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                            focusedLabelColor = Color(0xFF20C997)
-                        )
+                // 角色只读: OpenList 服务端禁止创建游客/管理员、禁止修改角色
+                // (server/handles/user.go: "admin or guest user can not be created" / "role can not be changed")
+                OutlinedTextField(
+                    value = roleLabel(if (user == null) 0 else user.role),
+                    onValueChange = {}, readOnly = true, label = { Text("角色") },
+                    supportingText = {
+                        Text(if (user == null) "服务端仅允许创建普通用户" else "服务端不允许修改角色")
+                    },
+                    singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
+                        focusedLabelColor = Color(0xFF20C997)
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, containerColor = Color.White) {
-                        DropdownMenuItem(text = { Text("普通用户", color = Color(0xFF2A2925)) }, onClick = { role = 0; expanded = false })
-                        DropdownMenuItem(text = { Text("游客", color = Color(0xFF2A2925)) }, onClick = { role = 1; expanded = false })
-                        DropdownMenuItem(text = { Text("管理员", color = Color(0xFF2A2925)) }, onClick = { role = 2; expanded = false })
-                    }
-                }
+                )
             }
         },
         confirmButton = {
             Button(
-                onClick = { onSave(username, password, role, 0) },
+                onClick = {
+                    // 新建: 服务端只接受普通用户(0); 编辑: 除用户名/密码外全字段回传, 权限/目录/状态原样保留
+                    val target = user ?: User(id = 0, username = "", role = 0, permission = 0)
+                    onSave(target.copy(username = username), password)
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997))
             ) { Text("保存", color = Color.White) }
         },
@@ -315,6 +316,14 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (String, 
             TextButton(onClick = onDismiss) { Text("取消", color = Color(0xFF888888)) }
         }
     )
+}
+
+/** OpenList 角色定义: GENERAL=0, GUEST=1, ADMIN=2 (internal/model/user.go)。 */
+private fun roleLabel(role: Int): String = when (role) {
+    0 -> "普通用户"
+    1 -> "游客"
+    2 -> "管理员"
+    else -> "未知"
 }
 
 // ===== Tab 2: 挂载管理 =====
@@ -408,10 +417,24 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
     }
 
     if (showAddDialog) {
-        MountEditDialog(mount = null, onDismiss = { showAddDialog = false }, onSave = { d, mp, _, r -> vm.createMount(d, mp, 0, r) { showAddDialog = false } })
+        MountEditDialog(
+            mount = null,
+            onDismiss = { showAddDialog = false },
+            onSave = { d, mp, _, r ->
+                showAddDialog = false   // 乐观关闭, 防连点重复创建
+                vm.createMount(d, mp, 0, r)
+            },
+        )
     }
     editingMount?.let { mount ->
-        MountEditDialog(mount = mount, onDismiss = { editingMount = null }, onSave = { d, mp, _, r -> vm.updateMount(mount.id, d, mp, 0, r) { editingMount = null } })
+        MountEditDialog(
+            mount = mount,
+            onDismiss = { editingMount = null },
+            onSave = { d, mp, ord, r ->
+                editingMount = null     // 乐观关闭, 防连点重复提交
+                vm.updateMount(mount, driver = d, mountPath = mp, order = ord, remark = r)
+            },
+        )
     }
 }
 
@@ -420,7 +443,8 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
 private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (String, String, Int, String) -> Unit) {
     var driver by remember { mutableStateOf(mount?.driver ?: "Local") }
     var mountPath by remember { mutableStateOf(mount?.mountPath ?: "") }
-    var remark by remember { mutableStateOf("") }
+    // 之前初始化为 "" → 编辑已有挂载一保存就把备注清空
+    var remark by remember { mutableStateOf(mount?.remark ?: "") }
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
@@ -439,6 +463,9 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
                 OutlinedTextField(
                     value = driver, onValueChange = { driver = it }, label = { Text("驱动") },
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
+                    // 上游 op.UpdateStorage 显式拒绝改驱动 ("driver cannot be changed"), 编辑时锁死
+                    enabled = mount == null,
+                    supportingText = { if (mount != null) Text("编辑时不可修改驱动", style = MaterialTheme.typography.bodySmall) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
@@ -458,7 +485,8 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
         },
         confirmButton = {
             Button(
-                onClick = { onSave(driver, mountPath, 0, remark) },
+                // 透传原 order(之前写死 0, 编辑一次排序就被清零)
+                onClick = { onSave(driver, mountPath, mount?.order ?: 0, remark) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997))
             ) { Text("保存", color = Color.White) }
         },
@@ -520,7 +548,7 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
 
 // ===== Tab 4: 设置 =====
 @Composable
-private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boolean, onBack: () -> Unit, vm: ManagementViewModel) {
+private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boolean, onBack: () -> Unit, serverUrl: String, vm: ManagementViewModel) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -529,8 +557,7 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
             CardItem {
                 Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                 Spacer(Modifier.height(8.dp))
-                Text("地址: <your-server>", color = Color(0xFF888888))
-                Text("版本: OpenList v4.2.2", color = Color(0xFF888888))
+                Text("地址: $serverUrl", color = Color(0xFF888888))
                 overview?.let {
                     Text("用户数: ${it.userCount}", color = Color(0xFF888888))
                     Text("挂载数: ${it.mountCount}", color = Color(0xFF888888))
@@ -543,7 +570,7 @@ private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boo
             CardItem {
                 Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                 Spacer(Modifier.height(8.dp))
-                Text("三页云盘 v0.3.7", color = Color(0xFF888888))
+                Text("三页云盘 v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
                 Text("基于官方 OpenList 开发", color = Color(0xFF888888))
             }
         }

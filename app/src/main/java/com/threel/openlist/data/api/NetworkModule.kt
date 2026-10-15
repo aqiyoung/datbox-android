@@ -6,25 +6,39 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Interceptor
 import okhttp3.Interceptor.Chain
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
-/** 全 App 共用的 kotlinx.serialization Json 实例（与 Retrofit 一致配置）。
+/** 全 App 共用的 kotlinx.serialization Json 实例（Retrofit 与 OkHttp 直发接口共用）。
  *  用于 OkHttp 直发接口（fs/get、fs/form、share/create）安全地解析 JSON，
- *  替代脆弱的 Regex 字符串匹配。 */
+ *  替代脆弱的 Regex 字符串匹配。
+ *
+ *  encodeDefaults=true: 上游管理端点（user/update、storage/update）是整结构体绑定 + 全量落库，
+ *  等于 Kotlin 默认值的字段（如挂载 driver="Local"、status="work"）若被省略，服务端会 bind 到零值
+ *  —— driver 变空串直接触发 "driver cannot be changed" 报错。显式发送默认值对 Go bind 等价于缺省，无副作用。 */
 val OpenListJson: Json = Json {
     ignoreUnknownKeys = true
     coerceInputValues = true
     explicitNulls = false
+    encodeDefaults = true
 }
+
+/** 把可序列化对象编码成 application/json 的 OkHttp 请求体。
+ *  fs/get、share/create、fs/mkdir 等直发接口统一走这里，替代手拼字符串 ——
+ *  文件名里带引号/反斜杠时，手拼会产出非法 JSON（请求 400，甚至构成 JSON 注入）。 */
+inline fun <reified T> T.toJsonRequestBody(): RequestBody =
+    OpenListJson.encodeToString(this).toRequestBody("application/json; charset=utf-8".toMediaType())
 
 /** Retrofit 占位主机：真正的服务器地址在 [DynamicServerInterceptor] 里按 DataStore 动态替换。 */
 private const val PLACEHOLDER_HOST = "dynamic.openlist.local"
@@ -63,11 +77,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideJson(): Json = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true
-        explicitNulls = false
-    }
+    fun provideJson(): Json = OpenListJson
 
     @Provides
     @Singleton

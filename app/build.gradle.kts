@@ -45,8 +45,8 @@ android {
         applicationId = "com.threel.openlist"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 110
-        versionName = "0.3.110"
+        versionCode = 111
+        versionName = "0.3.111"
     }
 
     buildTypes {
@@ -109,4 +109,7 @@ dependencies {
 
     // WebView
     implementation("androidx.webkit:webkit:1.10.0")
+
+    // Unit test (纯 JVM): JSON 契约回归测试, 无 Android 依赖
+    testImplementation("junit:junit:4.13.2")
 }

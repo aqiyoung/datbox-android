@@ -1,5 +1,5 @@
 # ============================================================
-# CI 只做编译检查（不签名、不 Release）
+# CI 做单元测试 + 编译检查（不签名、不 Release）
 # - PR 到 master/beta 时自动跑
 # - push 到 master/beta 时自动跑（手动触发也行）
 # ============================================================
@@ -54,6 +54,22 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
+      # 先跑单测快速失败(纯 JVM, 比完整构建快); JSON 契约回归测试在这里兜底
+      - name: Run unit tests
+        run: |
+          ./gradlew testDebugUnitTest --no-daemon --no-build-cache --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          JAVA_HOME: ${{ env.JAVA_HOME_17_X64 }}
+
+      - name: Upload unit test report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/
+          retention-days: 7
 
       - name: Build debug APK
         run: |

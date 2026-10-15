@@ -392,14 +392,20 @@ fun FileBrowserScreen(
                     menuItem = null; shareSheetUrl = null; shareLoading = false
                 },
                 onRequestShare = {
+                    val target = menuItem        // 捕获目标文件的 state 引用, 回来时比对(读到的是最新值)
+                    val requestPath = menuRemotePath
                     scope.launch {
                         shareLoading = true
-                        try { shareSheetUrl = vm.buildShareUrl(menuRemotePath) }
-                        catch (e: Exception) {
-                            shareSheetUrl = null
+                        try {
+                            val url = vm.buildShareUrl(requestPath)
+                            // 请求期间弹窗被关(menuItem=null)/已切到别的文件(换对象) → 丢弃结果,
+                            // 否则上一个文件的链接会残给下一个文件 (串数据)
+                            if (menuItem === target) shareSheetUrl = url
+                        } catch (e: Exception) {
+                            if (menuItem === target) shareSheetUrl = null
                             Toast.makeText(context, "生成分享链接失败: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
-                        shareLoading = false
+                        if (menuItem === target) shareLoading = false
                     }
                 },
                 onCopyShare = {

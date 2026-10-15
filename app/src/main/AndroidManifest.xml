@@ -3,6 +3,11 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Android 13+ 通知运行时权限: 缺它时下载进度通知被系统静默丢弃 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 下载前台服务: App 退后台时保持下载不被系统回收 (targetSdk 34 要求声明类型权限) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:name=".OpenListApp"
@@ -24,5 +29,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".data.download.DownloadForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 </manifest>

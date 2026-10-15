@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -15,8 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,9 +28,11 @@ import com.threel.openlist.ui.component.LiquidGlassSurface
 import com.threel.openlist.data.api.ServerProbe
 import com.threel.openlist.data.api.TokenStore
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ServerItem(
@@ -65,17 +64,20 @@ class ServerSettingsViewModel @Inject constructor(
     )
 
     init {
-        val current = tokenStore.serverUrlSync()
-        val custom = tokenStore.customServersSync()
-            .map { ServerItem(it) }
-        val all = presetServers + custom
-        // 若持久化的当前服务器不在列表中（例如被删），回退到首个可用服务器
-        val resolved = if (current.isBlank() || all.none { it.url.equals(current, ignoreCase = true) }) {
-            all.firstOrNull()?.url ?: TokenStore.DEFAULT_SERVER
-        } else {
-            current
+        // runBlocking 读 DataStore 不能在主线程: 挪进 IO 协程, 读完再组装初始 state
+        viewModelScope.launch {
+            val (current, custom) = withContext(Dispatchers.IO) {
+                tokenStore.serverUrlSync() to tokenStore.customServersSync().map { ServerItem(it) }
+            }
+            val all = presetServers + custom
+            // 若持久化的当前服务器不在列表中（例如被删），回退到首个可用服务器
+            val resolved = if (current.isBlank() || all.none { it.url.equals(current, ignoreCase = true) }) {
+                all.firstOrNull()?.url ?: TokenStore.DEFAULT_SERVER
+            } else {
+                current
+            }
+            _state.value = _state.value.copy(currentServer = resolved, servers = all)
         }
-        _state.value = _state.value.copy(currentServer = resolved, servers = all)
     }
 
     fun selectServer(url: String) {
@@ -169,21 +171,8 @@ fun ServerSettingsScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color.White, Color.White)
-                )
-            )
+            .background(Color.White)
     ) {
-        // 背景装饰
-        Box(
-            modifier = Modifier
-                .offset(x = (-60).dp, y = 600.dp)
-                .size(140.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF20C997).copy(alpha = 0.06f))
-        )
-
         Scaffold(
             topBar = {
                 TopAppBar(

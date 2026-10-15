@@ -7,20 +7,25 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.threel.openlist.MainActivity
+import com.threel.openlist.data.api.FsGetRequest
 import com.threel.openlist.data.api.OpenListJson
 import com.threel.openlist.data.api.TokenStore
+import com.threel.openlist.data.api.toJsonRequestBody
 import com.threel.openlist.data.model.FsGetResponse
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -45,13 +50,22 @@ class AppDownloadManager @Inject constructor(
     companion object {
         const val TAG = "AppDownload"
         const val CHANNEL_ID = "download_channel"
-        const val NOTIFICATION_ID = 1001
+        /** 每个下载任务分配独立通知 ID: 之前所有任务共用 1001, 多任务进度/完成通知互相覆盖 */
+        private const val FIRST_NOTIFICATION_ID = 1001
     }
 
     private val _downloads = MutableStateFlow<List<DownloadTask>>(emptyList())
     val downloads = _downloads.asStateFlow()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // 正在跑的下载: id → 协程 / HTTP Call。取消时两样都要断，只改状态是假取消。
+    private val activeJobs = ConcurrentHashMap<String, Job>()
+    private val activeCalls = ConcurrentHashMap<String, Call>()
+    // 任务 id → 通知 ID: 同一任务重试复用同一 ID, remove 时回收撤销
+    private val notificationIds = ConcurrentHashMap<String, Int>()
+    private val nextNotificationId = AtomicInteger(FIRST_NOTIFICATION_ID)
+    private fun notificationIdFor(taskId: String) =
+        notificationIds.getOrPut(taskId) { nextNotificationId.getAndIncrement() }
     private val client by lazy {
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -80,10 +94,13 @@ class AppDownloadManager @Inject constructor(
         startDownload(id)
     }
 
+    /** 真取消: 状态置 CANCELLED + 中断协程 + cancel 底层 HTTP 连接（阻塞中的 execute 立刻抛异常返回）。 */
     fun cancel(id: String) {
         _downloads.value = _downloads.value.map {
             if (it.id == id) it.copy(status = DownloadStatus.CANCELLED) else it
         }
+        activeJobs.remove(id)?.cancel()
+        activeCalls.remove(id)?.cancel()
     }
 
     fun retry(id: String) {
@@ -94,26 +111,35 @@ class AppDownloadManager @Inject constructor(
     }
 
     fun remove(id: String) {
+        activeJobs.remove(id)?.cancel()
+        activeCalls.remove(id)?.cancel()
+        notificationIds.remove(id)?.let { cancelNotification(it) }
         _downloads.value = _downloads.value.filter { it.id != id }
+        stopForegroundServiceIfIdle()
     }
 
     private fun startDownload(id: String) {
-        scope.launch {
+        // LAZY: 先注册进 activeJobs 再启动, 堵住"协程在注册前就跑完 finally"的竞态
+        // (那会导致残留僵尸 job 项、前台服务永不收起)
+        val job = scope.launch(start = CoroutineStart.LAZY) {
             val task = _downloads.value.find { it.id == id } ?: return@launch
             updateStatus(id, DownloadStatus.DOWNLOADING)
+            var completed = false
 
             try {
                 // 1. 拿 sign（用当前登录的服务器地址，而不是写死的公开域名）
                 val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
                 val token = tokenStore.tokenSync()
-                val getBody = """{"path":"${task.remotePath}"}"""
+                val getBody = FsGetRequest(task.remotePath).toJsonRequestBody()
                 val getRequest = Request.Builder()
                     .url("$serverUrl/api/fs/get")
                     .addHeader("Authorization", token)
-                    .post(getBody.toRequestBody())
+                    .post(getBody)
                     .build()
 
-                val sign = client.newCall(getRequest).execute().use { resp ->
+                val getCall = client.newCall(getRequest)
+                activeCalls[id] = getCall
+                val sign = getCall.execute().use { resp ->
                     if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
                     val body = resp.body?.string() ?: error("empty body")
                     OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
@@ -126,7 +152,9 @@ class AppDownloadManager @Inject constructor(
                 val dir = File(task.localPath).parentFile
                 dir?.mkdirs()
 
-                client.newCall(req).execute().use { resp ->
+                val call = client.newCall(req)
+                activeCalls[id] = call
+                call.execute().use { resp ->
                     if (!resp.isSuccessful) error("HTTP ${resp.code}")
                     val body = resp.body ?: error("empty body")
                     val total = body.contentLength()
@@ -142,23 +170,68 @@ class AppDownloadManager @Inject constructor(
 
                                 if (downloaded % (100 * 1024) < 8192) {
                                     updateProgress(id, downloaded, total)
-                                    showProgressNotification(task.fileName, downloaded, total)
+                                    showProgressNotification(id, task.fileName, downloaded, total)
                                 }
                             }
                         }
                     }
                 }
 
-                updateStatus(id, DownloadStatus.COMPLETED, totalBytes = task.totalBytes)
-                showCompleteNotification(task.fileName)
+                completed = true
+                // 用实际落盘大小收尾: 服务器不回 Content-Length 时 total 是 -1，之前还传的 task.totalBytes(恒为 0)
+                updateStatus(id, DownloadStatus.COMPLETED, totalBytes = File(task.localPath).length())
+                showCompleteNotification(id, task.fileName)
 
             } catch (e: CancellationException) {
                 updateStatus(id, DownloadStatus.CANCELLED)
             } catch (e: Exception) {
-                TelemetryLog.e(TAG, "download FAIL: ${task.remotePath.substringAfterLast('/')}", e)
-                updateStatus(id, DownloadStatus.FAILED, error = e.message)
+                // call.cancel() 让阻塞中的 execute() 抛 IOException 走到这里; 状态已是 CANCELLED 就别覆盖成 FAILED
+                val cancelled = _downloads.value.firstOrNull { it.id == id }?.status == DownloadStatus.CANCELLED
+                if (cancelled) {
+                    updateStatus(id, DownloadStatus.CANCELLED)
+                } else {
+                    TelemetryLog.e(TAG, "download FAIL: ${task.remotePath.substringAfterLast('/')}", e)
+                    updateStatus(id, DownloadStatus.FAILED, error = e.message)
+                }
+            } finally {
+                activeCalls.remove(id)
+                activeJobs.remove(id)
+                if (!completed) {
+                    File(task.localPath).delete()  // 取消/失败清掉半截文件
+                    // 进度通知是 ongoing 的, 换成独立 ID 后不会再被下一个下载覆盖 —— 不显式撤就永远挂着
+                    cancelNotification(notificationIdFor(id))
+                }
+                // 全部结束 → 收服务; 还有任务在跑 → 重新发 intent 刷新常驻通知里的数量
+                if (activeJobs.isEmpty()) stopForegroundServiceIfIdle() else startForegroundService()
             }
         }
+        activeJobs[id] = job
+        // 注册完成后再拉前台服务并启动协程
+        startForegroundService()
+        job.start()
+    }
+
+    /** 有任务在跑 → 拉起下载前台服务(常驻通知防后台回收), 数量实时刷新在通知里 */
+    private fun startForegroundService() {
+        try {
+            val intent = Intent(context, DownloadForegroundService::class.java)
+                .putExtra(DownloadForegroundService.EXTRA_COUNT, activeJobs.size)
+            ContextCompat.startForegroundService(context, intent)
+        } catch (e: Exception) {
+            // Android 12+ 禁止后台拉起 FGS; 正常下载都从界面发起不会走到, 兜底防崩
+            TelemetryLog.e(TAG, "start FGS fail", e)
+        }
+    }
+
+    /** 全部下载结束 → 收起前台服务与常驻通知 */
+    private fun stopForegroundServiceIfIdle() {
+        if (activeJobs.isEmpty()) {
+            context.stopService(Intent(context, DownloadForegroundService::class.java))
+        }
+    }
+
+    private fun cancelNotification(id: Int) {
+        context.getSystemService(NotificationManager::class.java).cancel(id)
     }
 
     private fun updateStatus(id: String, status: DownloadStatus, totalBytes: Long = 0, error: String? = null) {
@@ -183,7 +256,7 @@ class AppDownloadManager @Inject constructor(
         }
     }
 
-    private fun showProgressNotification(fileName: String, current: Long, total: Long) {
+    private fun showProgressNotification(taskId: String, fileName: String, current: Long, total: Long) {
         val intent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
         val progress = if (total > 0) ((current * 100) / total).toInt() else 0
@@ -199,10 +272,10 @@ class AppDownloadManager @Inject constructor(
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIFICATION_ID, notification)
+        manager.notify(notificationIdFor(taskId), notification)
     }
 
-    private fun showCompleteNotification(fileName: String) {
+    private fun showCompleteNotification(taskId: String, fileName: String) {
         val intent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
@@ -215,12 +288,7 @@ class AppDownloadManager @Inject constructor(
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(NOTIFICATION_ID, notification)
+        // 与该任务的进度通知同 ID → 完成后进度通知被原位替换, 不会残留
+        manager.notify(notificationIdFor(taskId), notification)
     }
-}
-
-private fun String.toRequestBody(): okhttp3.RequestBody {
-    val mediaType = "application/json; charset=utf-8".toMediaType()
-        ?: error("Invalid media type")
-    return okhttp3.RequestBody.create(mediaType, this.toByteArray())
 }

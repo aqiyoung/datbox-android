@@ -3,6 +3,7 @@ package com.threel.openlist.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.threel.openlist.data.api.ManagementRepository
+import com.threel.openlist.data.api.TokenStore
 import com.threel.openlist.data.model.Mount
 import com.threel.openlist.data.model.Option
 import com.threel.openlist.data.model.Overview
@@ -10,6 +11,7 @@ import com.threel.openlist.data.model.Share
 import com.threel.openlist.data.model.User
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -28,12 +30,18 @@ data class ManagementState(
 @HiltViewModel
 class ManagementViewModel @Inject constructor(
     private val repo: ManagementRepository,
+    private val tokenStore: TokenStore,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ManagementState())
     val state = _state.asStateFlow()
 
+    /** 当前服务器地址（设置页展示用, 替代硬编码） */
+    private val _serverUrl = MutableStateFlow(TokenStore.DEFAULT_SERVER)
+    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
+
     init {
         loadAll()
+        viewModelScope.launch { tokenStore.serverUrl.collect { _serverUrl.value = it } }
     }
 
     fun loadAll() {
@@ -67,7 +75,7 @@ class ManagementViewModel @Inject constructor(
     }
 
     // ===== 用户管理 =====
-    fun createUser(username: String, password: String, role: Int = 1, permission: Int = 0, onSuccess: () -> Unit = {}) {
+    fun createUser(username: String, password: String, role: Int = 0, permission: Int = 0, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.userCreate(username, password, role, permission)
                 .onSuccess { loadAll(); onSuccess() }
@@ -75,9 +83,10 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    fun updateUser(id: Int, username: String = "", password: String = "", role: Int = -1, permission: Int = -1, onSuccess: () -> Unit = {}) {
+    /** [user] 必须是"已回读的完整对象 + 本次编辑项"，未编辑字段原样回传，避免服务端置零。 */
+    fun updateUser(user: User, password: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            repo.userUpdate(id, username, password, role, permission)
+            repo.userUpdate(user, password)
                 .onSuccess { loadAll(); onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }
@@ -100,9 +109,19 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    fun updateMount(id: Int, driver: String = "Local", mountPath: String = "", order: Int = -1, remark: String = "", onSuccess: () -> Unit = {}) {
+    /** 编辑挂载: 以原 Mount 为底 copy 出要改的字段。driver 服务端禁止变更, 恒回传原值 */
+    fun updateMount(
+        mount: Mount,
+        driver: String = mount.driver,
+        mountPath: String = mount.mountPath,
+        order: Int = mount.order,
+        remark: String = mount.remark,
+        onSuccess: () -> Unit = {},
+    ) {
         viewModelScope.launch {
-            repo.mountUpdate(id, driver, mountPath, order, remark)
+            repo.mountUpdate(
+                mount.copy(driver = mount.driver, mountPath = mountPath, order = order, remark = remark)
+            )
                 .onSuccess { loadAll(); onSuccess() }
                 .onFailure { _state.value = _state.value.copy(error = it.message) }
         }

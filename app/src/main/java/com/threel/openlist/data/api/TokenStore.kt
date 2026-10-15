@@ -23,7 +23,8 @@ class TokenStore @Inject constructor(
     private val SERVER_KEY = stringPreferencesKey("server_url")
     private val CUSTOM_SERVERS_KEY = stringSetPreferencesKey("custom_servers")  // 用户自建服务器列表（预设不入库）
     private val USERNAME_KEY = stringPreferencesKey("last_username")
-    private val PASSWORD_KEY = stringPreferencesKey("last_password")  // v0.3.37: 恢复密码缓存
+    // v0.3.37: 恢复密码缓存；v0.3.111: 值改为 CredentialCipher 加密后的密文，不再明文落盘
+    private val PASSWORD_KEY = stringPreferencesKey("last_password")
 
     // 内存缓存：拦截器每次请求都读 token，runBlocking 读 DataStore 会阻塞 OkHttp 线程。
     // 登录/登出时更新缓存，避免热路径上的协程阻塞（ANR 风险）。
@@ -36,9 +37,13 @@ class TokenStore @Inject constructor(
         ctx.dataStore.edit { it[TOKEN_KEY] = token }
     }
 
+    /** 退出登录: 清 token + 缓存的密码（密码不该在退出后还留在盘上）；保留用户名方便下次输入。 */
     suspend fun clear() {
         cachedToken = ""
-        ctx.dataStore.edit { it.remove(TOKEN_KEY) }
+        ctx.dataStore.edit {
+            it.remove(TOKEN_KEY)
+            it.remove(PASSWORD_KEY)
+        }
     }
 
     /** 同步拿 token（用于 OkHttp interceptor）。优先走内存缓存，未命中再回退到 DataStore。 */
@@ -81,22 +86,25 @@ class TokenStore @Inject constructor(
     /** 记住账号 */
     val lastUsername: Flow<String> = ctx.dataStore.data.map { it[USERNAME_KEY] ?: "" }
 
-    /** 记住密码 */
-    val lastPassword: Flow<String> = ctx.dataStore.data.map { it[PASSWORD_KEY] ?: "" }
+    /** 记住密码（落盘是密文，读取时解密；旧版明文与解密失败都视为空 → 重新输入一次即可） */
+    val lastPassword: Flow<String> = ctx.dataStore.data
+        .map { it[PASSWORD_KEY]?.let(CredentialCipher::decrypt) ?: "" }
 
     suspend fun saveLastUsername(username: String) {
         ctx.dataStore.edit { it[USERNAME_KEY] = username }
     }
 
     suspend fun saveLastPassword(password: String) {
-        ctx.dataStore.edit { it[PASSWORD_KEY] = password }
+        val encrypted = CredentialCipher.encrypt(password) ?: return
+        ctx.dataStore.edit { it[PASSWORD_KEY] = encrypted }
     }
 
-    /** 保存账号密码 */
+    /** 保存账号密码（密码走 Keystore 加密；加密失败则只存用户名，不落明文） */
     suspend fun saveLastCredentials(username: String, password: String) {
+        val encrypted = CredentialCipher.encrypt(password)
         ctx.dataStore.edit {
             it[USERNAME_KEY] = username
-            it[PASSWORD_KEY] = password
+            if (encrypted != null) it[PASSWORD_KEY] = encrypted else it.remove(PASSWORD_KEY)
         }
     }
 
