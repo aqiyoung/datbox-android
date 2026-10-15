@@ -365,8 +365,9 @@ fun LiquidGlassBottomBar(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = barW.dp),
+                // 直接给死条宽 (勿改回 fillMaxWidth().widthIn(max): fillMaxWidth 会把约束
+                // 固定为整屏宽, widthIn 的 max 限制随之失效 — 药丸条会一直是全屏宽)
+                .width(barW.dp),
             horizontalArrangement = Arrangement.Center,
         ) {
             // 单层玻璃药丸: 条体与滑镜光斑同处一层轮廓内 → 视觉上只有一枚胶囊
