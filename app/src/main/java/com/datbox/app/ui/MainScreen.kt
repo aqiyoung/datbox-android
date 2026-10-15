@@ -111,16 +111,6 @@ fun MainScreen(
                     if (searchActive) searchActive = false
                     selectedTab = tab
                 },
-                onSearchClick = {
-                    if (searchActive) {
-                        // 再点搜索 = 关闭搜索回首页 (toggle)
-                        searchActive = false
-                    } else {
-                        if (selectedTab != 0) selectedTab = 0
-                        searchActive = true
-                    }
-                },
-                searchActive = searchActive,
                 backdrop = glassLayer,
                 backdropOrigin = backdropOrigin,
                 modifier = Modifier.align(Alignment.BottomCenter),

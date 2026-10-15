@@ -297,7 +297,6 @@ fun LiquidGlassFab(
  * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
- * - 搜索是条内第三个条目 (此前独立摆放的搜索屡被报告丢失)
  * backdrop 折射 (API 33+): 内容层经 [LiquidGlassBackdrop] 的 AGSL shader —
  * 边缘 bevel 折射 + 滑镜 raised-lens 折射 + 磨砂 + 色散 + 暗边线;
  * 以下系统或 backdrop 缺省时回落 v3 平玻璃材质。
@@ -307,8 +306,6 @@ fun LiquidGlassBottomBar(
     tabs: List<BottomTab>,
     selectedIndex: Int,
     onSelected: (Int) -> Unit,
-    onSearchClick: () -> Unit,
-    searchActive: Boolean = false,
     backdrop: GraphicsLayer? = null,
     backdropOrigin: Offset = Offset.Zero,
     modifier: Modifier = Modifier,
@@ -316,8 +313,7 @@ fun LiquidGlassBottomBar(
     // 滑镜运动学: 位置弹簧(带回弹) + 点按抬升(充气) + 加速液体形变, 逐帧驱动
     val scope = rememberCoroutineScope()
     val motion = remember { LensMotion(scope, selectedIndex) }
-    // 搜索是独立条目: 激活时滑镜随"选中"一起移过去, 否则镜片停在首页造成双高亮感
-    val lensTarget = if (searchActive) tabs.size else selectedIndex
+    val lensTarget = selectedIndex
     LaunchedEffect(lensTarget) { motion.animateTo(lensTarget) }
     val mPos = motion.position
     val mLift = motion.lift
@@ -325,7 +321,7 @@ fun LiquidGlassBottomBar(
 
     // iOS 式排布: 步距按条目数均分; 首帧用静态条宽公式, 随后以实测条宽为准 —
     // 保证任何屏宽/约束行为下滑镜与条目严格对齐 (此前静态假设 274 曾致错位)
-    val count = tabs.size + 1 // 条目 = Tab + 搜索
+    val count = tabs.size
     val barW = DOCK_ITEM_MAX * count + DOCK_BAR_PADDING * 4
     val density = LocalDensity.current
     var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
@@ -505,23 +501,13 @@ fun LiquidGlassBottomBar(
                         DockTabItem(
                             icon = tab.icon,
                             label = tab.label,
-                            // 搜索激活时 Tab 全部熄灭: 选中概念整体交给搜索条目 (互斥高亮)
-                            tinted = index == selectedIndex && !searchActive,
+                            tinted = index == selectedIndex,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight(),
                             onClick = { onSelected(index) },
                         )
                     }
-                    DockTabItem(
-                        icon = Icons.Outlined.Search,
-                        label = "搜索",
-                        tinted = searchActive,
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        onClick = onSearchClick,
-                    )
                 }
             }
         }
