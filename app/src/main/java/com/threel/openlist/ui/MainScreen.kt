@@ -108,7 +108,11 @@ fun MainScreen(
             LiquidGlassBottomBar(
                 tabs = tabs,
                 selectedIndex = selectedTab,
-                onSelected = { selectedTab = it },
+                onSelected = { tab ->
+                    // 切 tab 一律退出搜索态: 搜索只挂在首页, 否则点「首页」停在搜索页不动
+                    if (searchActive) searchActive = false
+                    selectedTab = tab
+                },
                 onSearchClick = {
                     if (searchActive) {
                         // 再点搜索 = 关闭搜索回首页 (toggle)
