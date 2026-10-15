@@ -375,6 +375,7 @@ fun FileBrowserScreen(
                 FileBrowserTopBar(
                     path = state.path,
                     onLogout = onLogout,
+                    onSearchClick = { onSearchActiveChange(true) },
                     onUpload = { pickFileLauncher.launch("*/*") },
                     onSortSelected = vm::updateSortMode,
                 )
@@ -504,11 +505,12 @@ fun FileBrowserScreen(
     }
 }
 
-// ===== 顶部栏: 品牌标识 + 排序 + 上传 (无返回箭头, 上一级走系统返回) =====
+// ===== 顶部栏: 品牌标识 + 搜索 + 排序 + 上传 (无返回箭头, 上一级走系统返回) =====
 @Composable
 private fun FileBrowserTopBar(
     path: String,
     onLogout: () -> Unit,
+    onSearchClick: () -> Unit = {},
     onUpload: () -> Unit = {},
     onSortSelected: (SortMode) -> Unit = {},
 ) {
@@ -530,6 +532,11 @@ private fun FileBrowserTopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+
+        // 搜索入口 (从 dock 移至顶栏: 点开 SearchBarRow 内联搜索, 不弹窗)
+        IconButton(onClick = onSearchClick) {
+            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = Color(0xFF141413))
+        }
 
         // 排序 (原搜索弹窗里的入口)
         Box {
