@@ -43,6 +43,29 @@ data class FsListData(
     val total: Int = 0,
 )
 
+/** /api/fs/search 结果节点 (OpenList internal/model/search.go: parent=所在目录) */
+@Serializable
+data class FsSearchNode(
+    val parent: String = "/",
+    val name: String,
+    val size: Long = 0,
+    @SerialName("is_dir") val isDir: Boolean = false,
+    @SerialName("type") val type: Int = 0,
+)
+
+@Serializable
+data class FsSearchData(
+    val content: List<FsSearchNode> = emptyList(),
+    val total: Int = 0,
+)
+
+@Serializable
+data class FsSearchResponse(
+    val code: Int,
+    val message: String,
+    val data: FsSearchData? = null,
+)
+
 @Serializable
 data class FsItem(
     val name: String,
