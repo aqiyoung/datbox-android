@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  数匣 DATBOX 品牌 logo (About 页): 圆角渐变底 + 白匣图形
+  与 launcher 图标同一造型, 独立画布 (96) 适配小尺寸展示。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="96"
+    android:viewportHeight="96">
+
+    <!-- 圆角渐变底 -->
+    <path android:pathData="M22,0 h52 a22,22 0 0 1 22,22 v52 a22,22 0 0 1 -22,22 h-52 a22,22 0 0 1 -22,-22 v-52 a22,22 0 0 1 22,-22 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="96"
+                android:endY="96"
+                android:startColor="#25CFA5"
+                android:endColor="#0E9C77" />
+        </aapt:attr>
+    </path>
+
+    <!-- 盒盖 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,27 h22 a5,5 0 0 1 5,5 v1 a5,5 0 0 1 -5,5 h-22 a5,5 0 0 1 -5,-5 v-1 a5,5 0 0 1 5,-5 z" />
+
+    <!-- 盒身 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,51 a7,7 0 0 1 7,-7 h14 a7,7 0 0 1 7,7 v12 a7,7 0 0 1 -7,7 h-14 a7,7 0 0 1 -7,-7 z" />
+
+    <!-- 数据条 -->
+    <path
+        android:fillColor="#20C997"
+        android:pathData="M40,52 h16 a2.5,2.5 0 0 1 0,5 h-16 a2.5,2.5 0 0 1 0,-5 z" />
+    <path
+        android:fillColor="#20C997"
+        android:pathData="M40,60 h10 a2.5,2.5 0 0 1 0,5 h-10 a2.5,2.5 0 0 1 0,-5 z" />
+</vector>

@@ -1,4 +1,4 @@
-package com.threel.openlist.data.api
+package com.datbox.app.data.api
 
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.boolean
