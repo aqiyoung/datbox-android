@@ -70,6 +70,7 @@ fun AboutScreen(onBack: () -> Unit) {
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 20.dp),
+                contentPadding = PaddingValues(bottom = 96.dp), // bottom: dock 悬浮区留白
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // 顶部返回 + 标题（内联，避免透明 TopAppBar 预留空白）

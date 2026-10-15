@@ -1,6 +1,5 @@
 package com.threel.openlist.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,9 +20,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.threel.openlist.BuildConfig
 import com.threel.openlist.data.model.Mount
+import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.ui.component.LiquidGlassAlertDialog
 import com.threel.openlist.ui.component.LiquidGlassSurface
-import com.threel.openlist.data.model.Option
 import com.threel.openlist.data.model.Overview
 import com.threel.openlist.data.model.Share
 import com.threel.openlist.data.model.User
@@ -46,11 +45,7 @@ fun ManagementScreen(
     val serverUrl by vm.serverUrl.collectAsState()
     var selectedTab by remember { mutableStateOf(ManagementTab.USERS) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
+    GlassDecorBackground {
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -125,7 +120,7 @@ fun ManagementScreen(
                     ManagementTab.USERS -> UsersTab(state.users, state.loading, vm)
                     ManagementTab.MOUNTS -> MountsTab(state.mounts, state.loading, vm)
                     ManagementTab.SHARES -> SharesTab(state.shares, state.loading, vm)
-                    ManagementTab.SETTINGS -> SettingsTab(state.overview, state.options, state.loading, onBack, serverUrl, vm)
+                    ManagementTab.SETTINGS -> SettingsTab(state.overview, serverUrl)
                 }
             }
         }
@@ -151,9 +146,10 @@ private fun CardItem(
 private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingUser by remember { mutableStateOf<User?>(null) }
+    var deletingUser by remember { mutableStateOf<User?>(null) }
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -221,7 +217,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                 )
                                 DropdownMenuItem(
                                     text = { Text("删除", color = Color(0xFFFF3B30)) },
-                                    onClick = { showMenu = false; vm.deleteUser(user.id) },
+                                    onClick = { showMenu = false; deletingUser = user },
                                     leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
                                 )
                             }
@@ -251,6 +247,23 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                 editingUser = null
                 vm.updateUser(u, pw)
             }
+        )
+    }
+    // 删除确认: 用户删除不可逆 (账号立即失效), 二次确认防误触
+    deletingUser?.let { user ->
+        LiquidGlassAlertDialog(
+            onDismissRequest = { deletingUser = null },
+            title = { Text("删除用户", color = Color(0xFF2A2925)) },
+            text = { Text("确定删除用户「${user.username}」？删除后该账号将无法再登录。", color = Color(0xFF888888)) },
+            confirmButton = {
+                Button(
+                    onClick = { vm.deleteUser(user.id) { deletingUser = null } },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
+                ) { Text("删除", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingUser = null }) { Text("取消", color = Color(0xFF888888)) }
+            },
         )
     }
 }
@@ -331,9 +344,10 @@ private fun roleLabel(role: Int): String = when (role) {
 private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingMount by remember { mutableStateOf<Mount?>(null) }
+    var deletingMount by remember { mutableStateOf<Mount?>(null) }
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -405,7 +419,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
                                 )
                                 DropdownMenuItem(
                                     text = { Text("删除", color = Color(0xFFFF3B30)) },
-                                    onClick = { showMenu = false; vm.deleteMount(mount.id) },
+                                    onClick = { showMenu = false; deletingMount = mount },
                                     leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
                                 )
                             }
@@ -433,6 +447,23 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
             onSave = { d, mp, ord, r ->
                 editingMount = null     // 乐观关闭, 防连点重复提交
                 vm.updateMount(mount, driver = d, mountPath = mp, order = ord, remark = r)
+            },
+        )
+    }
+    // 删除确认: 挂载配置删除后需重建 (存储数据不受影响), 二次确认防误触
+    deletingMount?.let { mount ->
+        LiquidGlassAlertDialog(
+            onDismissRequest = { deletingMount = null },
+            title = { Text("删除挂载", color = Color(0xFF2A2925)) },
+            text = { Text("确定删除挂载「${mount.mountPath}」？仅移除挂载配置, 不会删除存储上的数据。", color = Color(0xFF888888)) },
+            confirmButton = {
+                Button(
+                    onClick = { vm.deleteMount(mount.id) { deletingMount = null } },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
+                ) { Text("删除", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deletingMount = null }) { Text("取消", color = Color(0xFF888888)) }
             },
         )
     }
@@ -500,7 +531,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
 @Composable
 private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewModel) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (loading) {
@@ -548,9 +579,9 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
 
 // ===== Tab 4: 设置 =====
 @Composable
-private fun SettingsTab(overview: Overview?, options: List<Option>, loading: Boolean, onBack: () -> Unit, serverUrl: String, vm: ManagementViewModel) {
+private fun SettingsTab(overview: Overview?, serverUrl: String) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
