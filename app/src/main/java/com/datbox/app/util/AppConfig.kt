@@ -24,7 +24,6 @@ object AppConfig {
     const val UPSTREAM_NAME = "OpenList"
     const val UPSTREAM_REPO = "https://github.com/OpenListTeam/OpenList"
     const val UPSTREAM_NOTE = "基于官方 OpenList 开发"
-    const val CHANGELOG_URL = "https://fn.threel.site/api/openlist-android/changelog.json"
 
     fun versionName(context: Context): String =
         try {

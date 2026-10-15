@@ -89,7 +89,6 @@ data class FileBrowserState(
     val searchResults: List<FsSearchNode> = emptyList(),
     val searchError: String? = null,
     val sortMode: SortMode = SortMode.DEFAULT,
-    val isRefreshing: Boolean = false,
 )
 
 data class FileActionState(val busy: Boolean = false, val message: String? = null, val isError: Boolean = false)
@@ -107,7 +106,6 @@ class FileBrowserViewModel @Inject constructor(
 
     init { load("/") }
 
-    private val hiddenRootDirs: Set<String> = emptySet()
     private val hiddenSubDirs: Set<String> = setOf("天翼云盘飞牛备份")
 
     val displayedItems: List<FsItem>
@@ -172,29 +170,10 @@ class FileBrowserViewModel @Inject constructor(
         _state.value = _state.value.copy(loading = true, path = path, error = null)
         viewModelScope.launch {
             repo.list(path).onSuccess { items ->
-                val visible = when {
-                    path == "/" -> items.filter { it.name !in hiddenRootDirs }
-                    else -> items.filter { it.name !in hiddenSubDirs }
-                }
+                val visible = if (path == "/") items else items.filter { it.name !in hiddenSubDirs }
                 _state.value = _state.value.copy(items = visible, loading = false)
             }.onFailure { e ->
                 _state.value = _state.value.copy(loading = false, error = e.message ?: "加载失败")
-            }
-        }
-    }
-
-    fun refresh() {
-        val currentPath = _state.value.path
-        _state.value = _state.value.copy(isRefreshing = true)
-        viewModelScope.launch {
-            repo.list(currentPath).onSuccess { items ->
-                val visible = when {
-                    currentPath == "/" -> items.filter { it.name !in hiddenRootDirs }
-                    else -> items.filter { it.name !in hiddenSubDirs }
-                }
-                _state.value = _state.value.copy(items = visible, isRefreshing = false)
-            }.onFailure { e ->
-                _state.value = _state.value.copy(isRefreshing = false, error = e.message ?: "刷新失败")
             }
         }
     }
@@ -276,13 +255,6 @@ class FileBrowserViewModel @Inject constructor(
         }
     }
 }
-
-// ===== iOS 26 风格 FAB 菜单项 =====
-data class FabMenuItem(
-    val icon: ImageVector,
-    val label: String,
-    val onClick: () -> Unit,
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -588,40 +560,6 @@ private fun FileBrowserTopBar(
     }
 }
 
-// ===== FAB 菜单项行 =====
-@Composable
-private fun FabMenuItemRow(item: FabMenuItem) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.End,
-    ) {
-        // 标签
-        LiquidGlassSurface(
-            shape = RoundedCornerShape(12.dp),
-        ) {
-            Text(
-                text = item.label,
-                color = Color(0xFF141413),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        // 小圆形图标按钮
-        SmallFloatingActionButton(
-            onClick = item.onClick,
-            containerColor = Color.White,
-            contentColor = Color(0xFF20C997),
-            shape = CircleShape,
-            modifier = Modifier.size(40.dp),
-            elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 4.dp)
-        ) {
-            Icon(item.icon, contentDescription = item.label, modifier = Modifier.size(20.dp))
-        }
-    }
-}
-
 // ===== 内联搜索 (无弹窗) =====
 /**
  * 内联搜索条 — 搜索态替换顶部栏 (不弹窗)。
@@ -757,11 +695,9 @@ private fun FileRow(
     onClick: () -> Unit,
     onLongClick: (() -> Unit)?,
     onMenuClick: (() -> Unit)? = null,
-    selected: Boolean = false,
 ) {
     LiquidGlassRow(
         cornerRadius = 14.dp,
-        selected = selected,
         onClick = onClick,
         onLongClick = onLongClick,
         leading = icon,

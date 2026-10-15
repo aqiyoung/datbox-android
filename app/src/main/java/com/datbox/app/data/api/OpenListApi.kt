@@ -6,9 +6,7 @@ import com.datbox.app.data.model.FsSearchResponse
 import com.datbox.app.data.model.LoginResponse
 import com.datbox.app.data.model.UserInfo
 import retrofit2.http.Body
-import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -80,10 +78,6 @@ interface OpenListApi {
 
     @POST("api/fs/get")
     suspend fun get(@Body req: FsListRequest): FsGetResponse
-
-    /** 下载用 (后端返 short url, 客户端用 OkHttp 下载) - 详见 OpenListRepository.download */
-    @GET("d/{path}")
-    suspend fun downloadUrl(@Path("path", encoded = true) path: String): String
 
     // 老板 6/14: 上传改用 OkHttp 直发 (File-Path header), 不走 Retrofit
     // 详见 OpenListRepository.upload

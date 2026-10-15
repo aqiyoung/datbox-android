@@ -97,6 +97,7 @@ fun FilePreviewScreen(
         val authToken = withContext(Dispatchers.IO) { tokenStore.tokenSync() }
         if (isImage || isVideo || isAudio || isPdf) {
             previewUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
+            if (previewUrl == null) error = "预览地址获取失败，请检查网络后重试"
         }
         if (isText) {
             textLoading = true

@@ -73,9 +73,3 @@ val OpenListTypography = Typography(
         fontSize = 11.sp, lineHeight = 16.sp, letterSpacing = 0.5.sp
     ),
 )
-
-// 旧 API 保留
-@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
-val SerifFamily = MiSansFamily
-@Deprecated("改用 MiSansFamily", ReplaceWith("MiSansFamily"))
-val SansFamily = MiSansFamily

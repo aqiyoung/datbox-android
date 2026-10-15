@@ -29,6 +29,7 @@ class TokenStore @Inject constructor(
     // 内存缓存：拦截器每次请求都读 token，runBlocking 读 DataStore 会阻塞 OkHttp 线程。
     // 登录/登出时更新缓存，避免热路径上的协程阻塞（ANR 风险）。
     @Volatile private var cachedToken: String? = null
+    @Volatile private var cachedServerUrl: String? = null
 
     val token: Flow<String> = ctx.dataStore.data.map { it[TOKEN_KEY] ?: "" }
 
@@ -54,10 +55,15 @@ class TokenStore @Inject constructor(
     val serverUrl: Flow<String> = ctx.dataStore.data.map { it[SERVER_KEY] ?: DEFAULT_SERVER }
 
     suspend fun saveServerUrl(url: String) {
+        cachedServerUrl = url
         ctx.dataStore.edit { it[SERVER_KEY] = url }
     }
 
-    fun serverUrlSync(): String = runBlocking { serverUrl.first() }
+    /** 同步拿服务器地址（OkHttp interceptor 每个请求都要用）。同 token：优先内存缓存，未命中回退 DataStore。 */
+    fun serverUrlSync(): String {
+        cachedServerUrl?.let { return it }
+        return runBlocking { serverUrl.first() }.also { cachedServerUrl = it }
+    }
 
     /** 用户自建的服务器列表（与 3 个硬编码预设区分开，持久化以便下次打开仍在）。 */
     val customServers: Flow<Set<String>> =
