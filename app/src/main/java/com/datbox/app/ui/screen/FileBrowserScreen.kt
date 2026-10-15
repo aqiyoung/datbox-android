@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -40,9 +41,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import com.datbox.app.ui.theme.StoneGray
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -51,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.datbox.app.R
 import com.datbox.app.data.api.ManagementRepository
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.download.AppDownloadManager
@@ -514,16 +518,38 @@ private fun FileBrowserTopBar(
             .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 标题 / 子目录名: 放大加粗 (iOS 大标题感)
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFF141413),
-            modifier = Modifier.weight(1f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
+        // 根目录: 左上角放品牌 logo + 名称 (原来根目录大标题留空, 左上角显得空)
+        if (path == "/") {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.datbox_logo),
+                    contentDescription = "数匣 DATBOX",
+                    modifier = Modifier.size(30.dp),
+                )
+                Spacer(Modifier.width(9.dp))
+                Text(
+                    text = "数匣",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF141413),
+                    maxLines = 1,
+                )
+            }
+        } else {
+            // 子目录: 显示当前目录名 (放大加粗, iOS 大标题感)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF141413),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
 
         // 搜索入口 (从 dock 移至顶栏: 点开 SearchBarRow 内联搜索, 不弹窗)
         IconButton(onClick = onSearchClick) {
@@ -951,7 +977,7 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     }
 }
 
-/** 渲染文件类型图标: 文件夹底形, 或 文档页底形 + 类型符号 (Canvas 绘制, iOS Files 语言) */
+/** 渲染文件类型图标: 统一的「正方形圆角块」底 + 类型符号 (iOS App 图标语言) */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
@@ -959,42 +985,38 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
         // 必须按画布实际像素宽归一化, 否则高密度屏上图形只占画布的 ~1/density → 显得极小, 描边细到看不见.
         val unit = size.width / 46f
         scale(unit, pivot = Offset.Zero) {
-            // 归一化后再整体放大 1.3, 让页身/文件夹填满图标区
+            // 归一化后再整体放大 1.3, 让方块填满图标区
             scale(1.3f, pivot = Offset(23f, 23f)) {
-                if (style.kind == FileKind.FOLDER) {
-                    // 文件夹: 顶舌 + 主体 (同色叠加成一体)
-                    drawRoundRect(
-                        color = style.fg,
-                        topLeft = Offset(8.5f, 12.5f),
-                        size = Size(13f, 8f),
-                        cornerRadius = CornerRadius(2.5f, 2.5f),
-                    )
-                    drawRoundRect(
-                        color = style.fg,
-                        topLeft = Offset(8.5f, 15.5f),
-                        size = Size(29f, 20f),
-                        cornerRadius = CornerRadius(5f, 5f),
-                    )
-                } else {
-                    drawDocSheet(style.bg, style.fg)
-                    drawKindGlyph(style.kind, style.bg, style.fg)
+                // 正方形圆角底块 (所有类型统一, 不再用竖长文档页 / 横长文件夹)
+                val tileTopLeft = Offset(7f, 7f)
+                val tileSize = Size(32f, 32f)
+                val tileCorner = CornerRadius(8f, 8f)
+                drawRoundRect(style.bg, tileTopLeft, tileSize, tileCorner)
+                drawRoundRect(
+                    style.fg.copy(alpha = 0.18f),
+                    tileTopLeft, tileSize, tileCorner,
+                    style = Stroke(width = 1.2f),
+                )
+
+                // 类型符号: 符号按旧「文档页」坐标设计 (光学中心偏下 ~2.5), 上移归中后再略放大
+                scale(1.2f, pivot = Offset(23f, 23f)) {
+                    translate(top = -2.5f) {
+                        if (style.kind == FileKind.FOLDER) {
+                            drawFolderGlyph(style.fg)
+                        } else {
+                            drawKindGlyph(style.kind, style.bg, style.fg)
+                        }
+                    }
                 }
             }
         }
     }
 }
 
-/** 文档页底形: 浅底页身 + 右上折角 + 细描边 */
-private fun DrawScope.drawDocSheet(bg: Color, fg: Color) {
-    val tl = Offset(12.5f, 7.5f)
-    val sz = Size(21f, 30f)
-    val cr = CornerRadius(4f, 4f)
-    drawRoundRect(bg, tl, sz, cr)
-    val fold = Path().apply {
-        moveTo(26.5f, 7.5f); lineTo(33.5f, 14.5f); lineTo(26.5f, 14.5f); close()
-    }
-    drawPath(fold, fg.copy(alpha = 0.22f))
-    drawRoundRect(fg.copy(alpha = 0.28f), tl, sz, cr, style = Stroke(width = 1.1f))
+/** 文件夹符号 (画在方块中央) */
+private fun DrawScope.drawFolderGlyph(fg: Color) {
+    drawRoundRect(fg, Offset(13f, 17.5f), Size(12f, 6.5f), CornerRadius(2f, 2f))
+    drawRoundRect(fg, Offset(13f, 20.5f), Size(20f, 13f), CornerRadius(3.5f, 3.5f))
 }
 
 /** 类型符号: 画在页身中央 (x 15~31, y 19~32) */
