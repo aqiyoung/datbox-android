@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -51,6 +53,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -65,6 +68,7 @@ import com.threel.openlist.ui.theme.GlassBorder
 import com.threel.openlist.ui.theme.GlassShadow
 import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
+import com.threel.openlist.ui.theme.NearBlack
 import com.threel.openlist.ui.theme.StoneGray
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -270,14 +274,16 @@ fun LiquidGlassFab(
 }
 
 /**
- * 液态玻璃底部 Dock (iOS 27 悬浮胶囊)
+ * 液态玻璃底部 Dock — 浮动玻璃药丸条 + 滑镜 (样式对齐 FlClash dev 分支的 NavigationDock)
  *
- * iOS 27 极简布局:
- * - 主胶囊只放 2 个 Tab 图标 (无文字、无分隔线), 宽度贴合内容
- * - 搜索是独立的小玻璃圆钮 (44dp, 比胶囊矮一截), 与胶囊隔 20dp → 一眼读作两个独立容器
- * - 胶囊 + 间距 + 搜索圆钮 整组水平居中, 不要任何多余装饰
- * - 选中态是"液态滑镜": 唯一一块镜片在 Tab 之间弹簧滑行, 行进中拉伸回弹
- * - 全部中性无色: 玻璃体半透明白, 页面纯白上呈悬浮磨砂
+ * 设计参数参照 aqiyoung/FlClash@dev 的 NavigationDock (GPL-3.0, fork of chen08209/FlClash),
+ * 本文件为独立实现, 未移植其代码:
+ * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
+ * - 条宽 = 条目数×86 + 16, 屏内居中, 左右边距 21
+ * - 滑镜: 宽 = 步距+8 (每侧悬出 4), 静高 54; 抬升每侧充气 8 → 可越出条体
+ * - 形变纵横比 1.4 (出发拉伸 / 刹车压扁), travel 弹簧带回弹
+ * - 搜索是条内第三个条目 (此前独立摆放的搜索屡被报告丢失)
+ * 简化 (相对 FlClash): 无 shader 折射/色差、无悬停磁吸与按压辉光; 玻璃材质沿用 FrostedGlass v2。
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -288,175 +294,174 @@ fun LiquidGlassBottomBar(
     searchActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    // 滑镜运动学 (移植自 BitChord 的 GlassPillMotion, 物理源自 liquid_glass_easy, MIT):
-    // 位置弹簧 + 点按抬升 + 加速液体形变, 逐帧驱动
+    // 滑镜运动学: 位置弹簧(带回弹) + 点按抬升(充气) + 加速液体形变, 逐帧驱动
     val scope = rememberCoroutineScope()
     val motion = remember { LensMotion(scope, selectedIndex) }
     LaunchedEffect(selectedIndex) { motion.animateTo(selectedIndex) }
     val mPos = motion.position
     val mLift = motion.lift
     val mSquash = motion.squash
-    // 形变: 出发宽拉伸/高压扁, 刹车反之; 抬升时镜片在胶囊内充气
-    val lensW = TAB_STEP_DP * (1f + mSquash)
-    val lensH = (LENS_BASE_HEIGHT + LENS_LIFT_HEIGHT * mLift) * (1f - mSquash)
+
+    // iOS 式排布: 步距按条目数均分, 镜片悬出步距每侧 4
+    val count = tabs.size + 1 // 条目 = Tab + 搜索
+    val barW = DOCK_ITEM_MAX * count + DOCK_BAR_PADDING * 4
+    val pitch = (barW - DOCK_BAR_PADDING * 2) / count
+    val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
+    val lensH =
+        (DOCK_BAR_HEIGHT - DOCK_BAR_PADDING * 2 + DOCK_LENS_GROWTH * 2 * mLift) *
+            (1f - mSquash * DOCK_LENS_JELLY_ASPECT)
+    val lensClear = 1f - 0.5f * mLift // 抬升时镜片转清 (FlClash: 升起后是清玻璃)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .padding(horizontal = DOCK_EDGE_MARGIN.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // 两容器挨着成组、整组居中: 主胶囊(2 Tab) + 20dp 间距 + 独立搜索圆钮(44dp)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // 主胶囊: 宽度贴合内容, 只装图标
-            FrostedGlass(
-                shape = RoundedCornerShape(29.dp),
-                modifier = Modifier.height(58.dp),
-                veilAlpha = 0.30f,
-                tintGradient = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.82f),
-                        Color(0xFFF0F1F4).copy(alpha = 0.76f),
-                    )
-                ),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = barW.dp),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            // 玻璃药丸条 — 三层分层: 条体 → 滑镜 → 条目 (镜片抬升时可越出条体)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(DOCK_BAR_HEIGHT.dp),
             ) {
-                Box {
-                    // —— 液态滑镜: 唯一的选中底, 画在图标之下; 尺寸随抬升/形变逐帧变化 ——
-                    val lensShape = RoundedCornerShape((lensH / 2f).dp)
-                    Box(
-                        Modifier
-                            .align(Alignment.CenterStart)
-                            .offset(x = 8.dp + (mPos * TAB_STEP_DP).dp)
-                            .width(lensW.dp)
-                            .height(lensH.dp)
-                            .clip(lensShape)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.60f),
-                                        Color.White.copy(alpha = 0.08f),
-                                        Color.Black.copy(alpha = 0.05f),
-                                    )
+                // 1) 条体: 中性玻璃药丸
+                FrostedGlass(
+                    shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DOCK_BAR_HEIGHT.dp),
+                    veilAlpha = 0.22f,
+                    tintGradient = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.62f),
+                            Color(0xFFF4F4F4).copy(alpha = 0.46f),
+                        )
+                    ),
+                ) {}
+                // 2) 液态滑镜: 在条体之上、条目之下; 尺寸随抬升/形变逐帧变化
+                val lensX = DOCK_BAR_PADDING + (mPos + 0.5f) * pitch - lensW / 2f
+                val lensY = (DOCK_BAR_HEIGHT - lensH) / 2f
+                val lensShape = RoundedCornerShape((lensH / 2f).dp)
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .offset(x = lensX.dp, y = lensY.dp)
+                        .width(lensW.dp)
+                        .height(lensH.dp)
+                        .clip(lensShape)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.60f * lensClear),
+                                    Color.White.copy(alpha = 0.08f * lensClear),
+                                    Color.Black.copy(alpha = 0.05f * lensClear),
                                 )
                             )
-                            .border(0.5.dp, Color.Black.copy(alpha = 0.08f), lensShape),
-                    )
-                    Row(
-                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        tabs.forEachIndexed { index, tab ->
-                            DockTabItem(
-                                tab = tab,
-                                selected = index == selectedIndex,
-                                onClick = { onSelected(index) },
-                            )
-                        }
+                        )
+                        .border(0.5.dp, Color.Black.copy(alpha = 0.09f), lensShape),
+                )
+                // 3) 条目: 均分步距, 图标 + 文字
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DOCK_BAR_HEIGHT.dp)
+                        .padding(horizontal = DOCK_BAR_PADDING.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    tabs.forEachIndexed { index, tab ->
+                        DockTabItem(
+                            icon = tab.icon,
+                            label = tab.label,
+                            tinted = index == selectedIndex,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
+                            onClick = { onSelected(index) },
+                        )
                     }
+                    DockTabItem(
+                        icon = Icons.Outlined.Search,
+                        label = "搜索",
+                        tinted = searchActive,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        onClick = onSearchClick,
+                    )
                 }
             }
-            Spacer(Modifier.width(20.dp))
-            DockSearchButton(active = searchActive, onClick = onSearchClick)
         }
     }
 }
 
 /**
- * Dock 单个 Tab — 纯图标 (固定 56×56 触区, 无文字, iOS Dock 式)。
- * 触区固定 → 滑镜按固定步长滑动, 无需实测布局。
- * 选中时图标微涨 (24→26dp)、颜色 StoneGray → 近黑, 240ms 补间; 选中底由液态滑镜统一绘制。
+ * Dock 条目 — 图标 + 文字 (FlClash/iOS 式), 选中时整体转主色 (240ms 补间)。
  */
 @Composable
 private fun DockTabItem(
-    tab: BottomTab,
-    selected: Boolean,
+    icon: ImageVector,
+    label: String,
+    tinted: Boolean,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     val t = animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
+        targetValue = if (tinted) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    Box(
-        modifier = Modifier
-            .size(TAB_STEP_DP.dp)
-            .clickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null,
-            ) { onClick() },
-        contentAlignment = Alignment.Center,
+    val tint = lerp(StoneGray, NearBlack, t)
+    Column(
+        modifier = modifier.clickable(
+            interactionSource = MutableInteractionSource(),
+            indication = null,
+        ) { onClick() },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
         Icon(
-            tab.icon,
-            contentDescription = tab.label,
-            tint = if (selected) Color(0xFF141413) else StoneGray,
-            modifier = Modifier.size(24.dp + 2.dp * t),
+            icon,
+            contentDescription = label,
+            tint = tint,
+            modifier = Modifier.size(26.dp),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.W500,
+            maxLines = 1,
+            color = tint,
         )
     }
 }
 
-/**
- * 独立搜索圆钮 (44dp, 比胶囊矮一截 → 明确是另一个容器) — 与主胶囊同一种玻璃, 激活时内部浮现镜片。
- */
-@Composable
-private fun DockSearchButton(
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    val t = animateFloatAsState(
-        targetValue = if (active) 1f else 0f,
-        animationSpec = tween(durationMillis = 240),
-    ).value
-    FrostedGlass(
-        shape = CircleShape,
-        modifier = Modifier.size(44.dp),
-        veilAlpha = 0.30f,
-        tintGradient = Brush.verticalGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.82f),
-                Color(0xFFF0F1F4).copy(alpha = 0.76f),
-            )
-        ),
-        onClick = onClick,
-    ) {
-        // 激活镜片: 圆形穹顶, 随选中度 t 淡入
-        if (t > 0f) {
-            Box(
-                Modifier
-                    .align(Alignment.Center)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.60f * t),
-                                Color.White.copy(alpha = 0.08f * t),
-                                Color.Black.copy(alpha = 0.05f * t),
-                            )
-                        )
-                    )
-                    .border(0.5.dp, Color.Black.copy(alpha = 0.08f * t), CircleShape)
-            )
-        }
-        Icon(
-            Icons.Outlined.Search,
-            contentDescription = "搜索",
-            tint = if (active) Color(0xFF141413) else StoneGray,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(22.dp),
-        )
-    }
-}
+// ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
+
+/** 条目最大宽度: 条宽 = 条目数×86 + 内边距×4, 屏内居中 */
+private const val DOCK_ITEM_MAX = 86f
+
+/** 条内边距: 滑镜静止时悬出条目每侧 4 */
+private const val DOCK_BAR_PADDING = 4f
+
+private const val DOCK_BAR_HEIGHT = 62f
+
+/** 条体距屏幕边缘 */
+private const val DOCK_EDGE_MARGIN = 21f
+
+/** 滑镜抬升时每侧充气高度 (分层绘制, 镜片可越出条体) */
+private const val DOCK_LENS_GROWTH = 8f
+
+/** 形变纵横比: 出发时宽 ×(1+d), 高 ×(1-d×1.4) — FlClash jellyAspect */
+private const val DOCK_LENS_JELLY_ASPECT = 1.4f
 
 // ===== 液态滑镜运动学 (移植) =====
-
-/** Tab 触区固定 56×56 → 镜片按固定步长滑动, 无需实测布局 */
-private const val TAB_STEP_DP = 56f
-
-/** 镜片静止高度 / 抬升充气增量 (胶囊内, 无法像 BitChord 那样越出栏体 —— 胶囊裁剪) */
-private const val LENS_BASE_HEIGHT = 44f
-private const val LENS_LIFT_HEIGHT = 8f
 
 /**
  * 滑镜运动学 — 移植自 BitChord (github.com/kushagrasinghx/BitChord) 的 GlassPillMotion,
@@ -580,7 +585,9 @@ internal class LensMotion(
 
     companion object {
         const val TRAVEL_STIFFNESS = 280.0
-        const val TRAVEL_DAMPING = 31.4
+
+        /** FlClash travel (400ms, 回弹 0.15 ≈ ζ0.52) — 比临界阻尼更活, 落位带回弹 */
+        const val TRAVEL_DAMPING = 17.4
         const val LIFT_STIFFNESS = 250.0
         const val LIFT_DAMPING = 19.0
         const val HANDOVER_START = 0.92
@@ -660,7 +667,7 @@ private class PillSquashModel {
     companion object {
         const val SAMPLE_WINDOW = 0.3
         const val SENSITIVITY = 0.00007
-        const val MAX_DEFORMATION = 0.12
+        const val MAX_DEFORMATION = 0.18
         const val RESPONSE_TIME = 0.18
     }
 }
