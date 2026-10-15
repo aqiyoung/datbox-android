@@ -165,7 +165,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             customPainter = painterResource(R.drawable.ic_github_cat),
                             tint = Color(0xFF2A2925),
                             onClick = {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/aqiyoung/openlist-android")))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/aqiyoung/datbox-android")))
                             },
                         )
                     }

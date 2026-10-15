@@ -162,7 +162,7 @@ jobs:
           set -e
           TAG="${{ steps.tag.outputs.tag }}"
           PROXY="https://gh-proxy.com/"
-          DL="${PROXY}https://github.com/aqiyoung/openlist-android/releases/download/${TAG}/datbox-${TAG}.apk"
+          DL="${PROXY}https://github.com/aqiyoung/datbox-android/releases/download/${TAG}/datbox-${TAG}.apk"
           LOG_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
           {
             echo "📦 数匣 $TAG 构建成功"

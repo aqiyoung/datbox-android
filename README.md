@@ -1,6 +1,5 @@
-# OpenList Android Client
-
-原生 Android APP 连接本地 OpenList 后端（v4.2.2）。
+# 数匣 DATBOX Android Client
+数匣 DATBOX — 原生 Android 客户端，连接 OpenList / Alist 后端（v4.2.2）。
 
 ## 技术栈
 - **语言**：Kotlin
@@ -12,7 +11,7 @@
 - **目标 API**：Android 14 (API 34)
 
 ## 包名
-`com.threel.openlist`（老板 6/13 11:34 拍板）
+`com.datbox.app`
 
 ## 后端
 - 本地 OpenList v4.2.2 systemd 服务（端口 5244）

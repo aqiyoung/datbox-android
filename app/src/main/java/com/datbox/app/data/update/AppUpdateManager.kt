@@ -33,7 +33,7 @@ class AppUpdateManager @Inject constructor(
 ) {
     private val TAG = "AppUpdate"
     private val engine = GitHubUpdateEngine(
-        UpdateConfig(owner = "aqiyoung", repo = "openlist-android"),
+        UpdateConfig(owner = "aqiyoung", repo = "datbox-android"),
     )
     private val client by lazy {
         OkHttpClient.Builder()
