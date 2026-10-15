@@ -37,6 +37,8 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var previewPath by remember { mutableStateOf<String?>(null) }
     var previewName by remember { mutableStateOf("") }
+    // 点 dock 首页 = 回根目录: 每次点击 +1, FileBrowserScreen 收到即 load("/")
+    var homeReset by remember { mutableIntStateOf(0) }
     var searchActive by remember { mutableStateOf(false) }
 
     // ── 文件预览全屏模式: 隐藏底部栏 ──
@@ -93,6 +95,7 @@ fun MainScreen(
                             previewPath = path
                             previewName = name
                         },
+                        homeReset = homeReset,
                         searchActive = searchActive,
                         onSearchActiveChange = { searchActive = it },
                     )
@@ -109,6 +112,8 @@ fun MainScreen(
                 onSelected = { tab ->
                     // 切 tab 一律退出搜索态: 搜索只挂在首页, 否则点「首页」停在搜索页不动
                     if (searchActive) searchActive = false
+                    // 点首页 (无论在哪个 tab) 一律回根目录: 已在首页子目录时即为"回到顶部"
+                    if (tab == 0) homeReset++
                     selectedTab = tab
                 },
                 backdrop = glassLayer,

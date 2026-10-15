@@ -279,6 +279,7 @@ data class FabMenuItem(
 fun FileBrowserScreen(
     onLogout: () -> Unit,
     onPreview: (String, String) -> Unit = { _, _ -> },
+    homeReset: Int = 0,
     searchActive: Boolean = false,
     onSearchActiveChange: (Boolean) -> Unit = {},
     vm: FileBrowserViewModel = hiltViewModel(),
@@ -322,6 +323,14 @@ fun FileBrowserScreen(
                 out
             }
             vm.uploadFile(tempFile)
+        }
+    }
+
+    // 点 dock 首页 = 回根目录: 每次点击都生效 (从子目录点 = 回到顶层; 从其它 tab 切回同样落根目录)
+    // 语义是"每次点首页都回根", 所以重新组合时重放也是期望行为, 无 searchTrigger 式误导
+    LaunchedEffect(homeReset) {
+        if (homeReset > 0 && state.path != "/") {
+            vm.load("/")
         }
     }
 
@@ -515,14 +524,15 @@ private fun FileBrowserTopBar(
     onSortSelected: (SortMode) -> Unit = {},
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    val title = if (path == "/") "数匣" else path.substringAfterLast('/')
+    // 根目录不挂标题 (左上角留给搜索/排序/上传图标); 子目录显示当前目录名
+    val title = if (path == "/") "" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 标题 / 根目录即品牌标识: 放大加粗 (iOS 大标题感)
+        // 标题 / 子目录名: 放大加粗 (iOS 大标题感)
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
