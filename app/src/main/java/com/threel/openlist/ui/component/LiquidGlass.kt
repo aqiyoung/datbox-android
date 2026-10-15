@@ -1,10 +1,6 @@
 package com.threel.openlist.ui.component
 
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -39,8 +35,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,8 +51,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +65,9 @@ import com.threel.openlist.ui.theme.GlassShadow
 import com.threel.openlist.ui.theme.GlassWhite
 import com.threel.openlist.ui.theme.MiSansFamily
 import com.threel.openlist.ui.theme.StoneGray
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 // ===== 底部导航 Tab 定义 =====
 /**
@@ -269,11 +271,11 @@ fun LiquidGlassFab(
 /**
  * 液态玻璃底部 Dock (iOS 27 悬浮胶囊)
  *
- * iOS 27 样式要点:
- * - 宽度贴合内容的悬浮胶囊, 水平居中, 不再通栏; 玻璃体半透明白, 纯白页面上呈悬浮磨砂
- * - 选中态是全 Dock 唯一的"液态滑镜": 在 Tab 之间弹簧滑行, 行进中宽度滞后 → 拉伸/回弹的液体感
- * - 镜片底是穹顶渐变 (顶受光 → 底积影), 分隔线是上下渐隐的发丝
- * - 右侧搜索为同一条胶囊内的圆钮, 激活时用同一套镜片语言, 不引入颜色
+ * iOS 27 极简 2+1 布局:
+ * - 主胶囊只放 2 个 Tab 图标 (无文字、无分隔线), 宽度贴合内容, 水平居中
+ * - 搜索是独立的玻璃圆钮, 与主胶囊并排成组, 整组直接居中, 不要任何多余装饰
+ * - 选中态是"液态滑镜": 唯一一块镜片在 Tab 之间弹簧滑行, 行进中拉伸回弹
+ * - 全部中性无色: 玻璃体半透明白, 页面纯白上呈悬浮磨砂
  */
 @Composable
 fun LiquidGlassBottomBar(
@@ -284,15 +286,17 @@ fun LiquidGlassBottomBar(
     searchActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val density = LocalDensity.current
-    // 每个 Tab 的实测宽度: 液态滑镜据此计算起点与宽度。首帧为空 → 镜片从 0 滑入
-    val tabWidths = remember { mutableStateMapOf<Int, Dp>() }
-    val tabsRowStart = 8.dp
-    val targetX = tabsRowStart + (0 until selectedIndex).fold(0f) { acc, i -> acc + (tabWidths[i]?.value ?: 0f) }.dp
-    val targetW = tabWidths[selectedIndex] ?: 0.dp
-    // 位置用弹簧 (滑行带回弹), 宽度用补间 (略滞后) → 行进中被拉长、落位时回弹 = 液态
-    val lensX = animateDpAsState(targetX, spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessMediumLow), label = "lensX").value
-    val lensW = animateDpAsState(targetW, tween(320, easing = FastOutSlowInEasing), label = "lensW").value
+    // 滑镜运动学 (移植自 BitChord 的 GlassPillMotion, 物理源自 liquid_glass_easy, MIT):
+    // 位置弹簧 + 点按抬升 + 加速液体形变, 逐帧驱动
+    val scope = rememberCoroutineScope()
+    val motion = remember { LensMotion(scope, selectedIndex) }
+    LaunchedEffect(selectedIndex) { motion.animateTo(selectedIndex) }
+    val mPos = motion.position
+    val mLift = motion.lift
+    val mSquash = motion.squash
+    // 形变: 出发宽拉伸/高压扁, 刹车反之; 抬升时镜片在胶囊内充气
+    val lensW = TAB_STEP_DP * (1f + mSquash)
+    val lensH = (LENS_BASE_HEIGHT + LENS_LIFT_HEIGHT * mLift) * (1f - mSquash)
 
     Box(
         modifier = modifier
@@ -301,28 +305,30 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // 悬浮胶囊: 宽度贴合内容 (不 fillMaxWidth), 半透明玻璃体 + 发丝边 + 折射边
-        FrostedGlass(
-            shape = RoundedCornerShape(29.dp),
-            modifier = Modifier.height(58.dp),
-            veilAlpha = 0.30f,
-            tintGradient = Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.82f),
-                    Color(0xFFF0F1F4).copy(alpha = 0.76f),
-                )
-            ),
-        ) {
-            Box {
-                // —— 液态滑镜: 唯一的选中底, 画在 Tab 内容之下 ——
-                if (lensW > 0.dp) {
+        // 2+1 整组直接居中: 主胶囊(2 Tab 图标) + 间距 + 独立搜索圆钮
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 主胶囊: 半透明玻璃体 + 发丝边 + 折射边, 只装图标
+            FrostedGlass(
+                shape = RoundedCornerShape(29.dp),
+                modifier = Modifier.height(58.dp),
+                veilAlpha = 0.30f,
+                tintGradient = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.82f),
+                        Color(0xFFF0F1F4).copy(alpha = 0.76f),
+                    )
+                ),
+            ) {
+                Box {
+                    // —— 液态滑镜: 唯一的选中底, 画在图标之下; 尺寸随抬升/形变逐帧变化 ——
+                    val lensShape = RoundedCornerShape((lensH / 2f).dp)
                     Box(
                         Modifier
                             .align(Alignment.CenterStart)
-                            .offset(x = lensX)
-                            .width(lensW)
-                            .height(40.dp)
-                            .clip(RoundedCornerShape(20.dp))
+                            .offset(x = 8.dp + (mPos * TAB_STEP_DP).dp)
+                            .width(lensW.dp)
+                            .height(lensH.dp)
+                            .clip(lensShape)
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
@@ -332,87 +338,64 @@ fun LiquidGlassBottomBar(
                                     )
                                 )
                             )
-                            .border(0.5.dp, Color.Black.copy(alpha = 0.08f), RoundedCornerShape(20.dp)),
+                            .border(0.5.dp, Color.Black.copy(alpha = 0.08f), lensShape),
                     )
-                }
-                Row(
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    tabs.forEachIndexed { index, tab ->
-                        DockTabItem(
-                            tab = tab,
-                            selected = index == selectedIndex,
-                            onSizeChanged = { px -> tabWidths[index] = with(density) { px.toDp() } },
-                            onClick = { onSelected(index) },
-                        )
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            DockTabItem(
+                                tab = tab,
+                                selected = index == selectedIndex,
+                                onClick = { onSelected(index) },
+                            )
+                        }
                     }
-                    // 发丝分隔线: 上下渐隐
-                    Box(
-                        Modifier
-                            .padding(horizontal = 8.dp)
-                            .width(1.dp)
-                            .height(22.dp)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.Black.copy(alpha = 0.14f),
-                                        Color.Black.copy(alpha = 0.03f),
-                                    )
-                                )
-                            ),
-                    )
-                    DockSearchButton(active = searchActive, onClick = onSearchClick)
                 }
             }
+            Spacer(Modifier.width(12.dp))
+            DockSearchButton(active = searchActive, onClick = onSearchClick)
         }
     }
 }
 
 /**
- * Dock 单个 Tab — 纯内容 (选中底由外层液态滑镜统一绘制, 不再各自贴底)。
- * 选中时图标微涨 (20→22dp)、间距微增、文字转 SemiBold、颜色 StoneGray → 近黑, 240ms 补间。
- * [onSizeChanged] 上报实测宽度 (像素), 供滑镜计算位置。
+ * Dock 单个 Tab — 纯图标 (固定 56×56 触区, 无文字, iOS Dock 式)。
+ * 触区固定 → 滑镜按固定步长滑动, 无需实测布局。
+ * 选中时图标微涨 (24→26dp)、颜色 StoneGray → 近黑, 240ms 补间; 选中底由液态滑镜统一绘制。
  */
 @Composable
 private fun DockTabItem(
     tab: BottomTab,
     selected: Boolean,
-    onSizeChanged: (Int) -> Unit,
     onClick: () -> Unit,
 ) {
     val t = animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    val contentColor = if (selected) Color(0xFF141413) else StoneGray
-    Row(
+    Box(
         modifier = Modifier
-            .onSizeChanged { onSizeChanged(it.width) }
+            .size(TAB_STEP_DP.dp)
             .clickable(
                 interactionSource = MutableInteractionSource(),
                 indication = null,
-            ) { onClick() }
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            ) { onClick() },
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             tab.icon,
             contentDescription = tab.label,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp + 2.dp * t),
-        )
-        Spacer(Modifier.width(6.dp + 1.dp * t))
-        Text(
-            tab.label,
-            color = contentColor,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 13.sp,
+            tint = if (selected) Color(0xFF141413) else StoneGray,
+            modifier = Modifier.size(24.dp + 2.dp * t),
         )
     }
 }
 
-/** Dock 右侧搜索圆钮 — 与 Tab 同一套中性镜片语言。 */
+/**
+ * 独立搜索圆钮 (2+1 里的那个 "1") — 与主胶囊同一种玻璃, 激活时内部浮现同一套镜片。
+ */
 @Composable
 private fun DockSearchButton(
     active: Boolean,
@@ -422,33 +405,261 @@ private fun DockSearchButton(
         targetValue = if (active) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(
-                // 镜片穹顶: 顶部受光 → 底部积影, 浓度随选中度 t 补间 (液态镜片的"厚度感")
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.60f * t),
-                        Color.White.copy(alpha = 0.08f * t),
-                        Color.Black.copy(alpha = 0.05f * t),
-                    )
-                )
+    FrostedGlass(
+        shape = CircleShape,
+        modifier = Modifier.size(52.dp),
+        veilAlpha = 0.30f,
+        tintGradient = Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.82f),
+                Color(0xFFF0F1F4).copy(alpha = 0.76f),
             )
-            .border(0.5.dp, Color.Black.copy(alpha = 0.08f * t), CircleShape)
-            .clickable(
-                interactionSource = MutableInteractionSource(),
-                indication = null,
-            ) { onClick() },
-        contentAlignment = Alignment.Center,
+        ),
+        onClick = onClick,
     ) {
+        // 激活镜片: 圆形穹顶, 随选中度 t 淡入
+        if (t > 0f) {
+            Box(
+                Modifier
+                    .align(Alignment.Center)
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.60f * t),
+                                Color.White.copy(alpha = 0.08f * t),
+                                Color.Black.copy(alpha = 0.05f * t),
+                            )
+                        )
+                    )
+                    .border(0.5.dp, Color.Black.copy(alpha = 0.08f * t), CircleShape)
+            )
+        }
         Icon(
             Icons.Outlined.Search,
             contentDescription = "搜索",
             tint = if (active) Color(0xFF141413) else StoneGray,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(24.dp),
         )
+    }
+}
+
+// ===== 液态滑镜运动学 (移植) =====
+
+/** Tab 触区固定 56×56 → 镜片按固定步长滑动, 无需实测布局 */
+private const val TAB_STEP_DP = 56f
+
+/** 镜片静止高度 / 抬升充气增量 (胶囊内, 无法像 BitChord 那样越出栏体 —— 胶囊裁剪) */
+private const val LENS_BASE_HEIGHT = 44f
+private const val LENS_LIFT_HEIGHT = 8f
+
+/**
+ * 滑镜运动学 — 移植自 BitChord (github.com/kushagrasinghx/BitChord) 的 GlassPillMotion,
+ * 其物理源自 liquid_glass_easy 的 LiquidGlassLensMotion (MIT, Copyright (c) 2025 Ahmed Gamil)。
+ *
+ * 三路弹簧/模型:
+ * - travel: 位置弹簧 (欠阻尼 → 落位回弹)
+ * - lift: 点按即"抬起"镜片 (弹簧过冲再回落), 旅程中保持, 行进 92% 后释放 → 落地放气
+ * - squash: 对位置二次差分 → 出发拉伸 / 刹车压扁的液体形变, 宽 ×(1+d) 高 ×(1-d)
+ *
+ * 相对 BitChord 的简化: 不支持拖拽 (Tab 只点按); 无背景折射 (需 vendored backdrop 库, 另立工作项)。
+ *
+ * @param initialIndex 初始选中 Tab (位置以 tab 步长为单位, 0 = 第一个)
+ */
+@Stable
+internal class LensMotion(
+    private val scope: CoroutineScope,
+    initialIndex: Int,
+) {
+    /** 镜片位置, 以 tab 步长为单位 (0 = 第一个) */
+    var position by mutableFloatStateOf(initialIndex.toFloat())
+        private set
+
+    /** 抬升度 0..1 (欠阻尼弹簧, 会过冲) */
+    var lift by mutableFloatStateOf(0f)
+        private set
+
+    /** 加速形变: 宽 ×(1+squash), 高 ×(1-squash); 出发为正 (拉伸), 刹车为负 (压扁) */
+    var squash by mutableFloatStateOf(0f)
+        private set
+
+    /** 当前选中 Tab */
+    var index: Int = initialIndex
+        private set
+
+    private var travelPos = initialIndex.toDouble()
+    private var travelVel = 0.0
+    private var travelFrom = travelPos
+    private var travelTarget = travelPos
+
+    private var lifted = false
+    private var liftPos = 0.0
+    private var liftVel = 0.0
+
+    private var running = false
+    private val squashModel = PillSquashModel()
+
+    /** 选中了新 Tab: 抬起镜片并弹簧滑行过去。重选当前 Tab 是 no-op。 */
+    fun animateTo(next: Int) {
+        if (next == index) return
+        index = next
+        lifted = true
+        travelFrom = travelPos
+        travelTarget = next.toDouble()
+        squashModel.start()
+        start()
+    }
+
+    private fun start() {
+        if (running) return
+        running = true
+        scope.launch {
+            var last = -1L
+            try {
+                while (true) {
+                    val now = withFrameNanos { it }
+                    val dt = if (last < 0) 0.0 else (now - last) / 1e9
+                    last = now
+                    if (!tick(dt, now / 1e9)) break
+                }
+            } finally {
+                running = false
+            }
+        }
+    }
+
+    /** 一帧的全部。全部沉降后返回 false 结束循环。 */
+    private fun tick(dt: Double, now: Double): Boolean {
+        // 1) 位置弹簧
+        var travelSettled = true
+        if (travelPos != travelTarget) {
+            val r = springStep(travelPos, travelVel, travelTarget, dt, TRAVEL_STIFFNESS, TRAVEL_DAMPING)
+            travelPos = r.first
+            travelVel = r.second
+            travelSettled = abs(travelPos - travelTarget) < 0.003 && abs(travelVel) < 0.05
+            if (travelSettled) {
+                travelPos = travelTarget
+                travelVel = 0.0
+            }
+        }
+
+        // 2) 抬升: 旅程保持, 行进 >=92% 落地释放 → 弹簧回落时先瘪后涨
+        if (travelSettled || travelProgress() >= HANDOVER_START) lifted = false
+        val liftTarget = if (lifted) 1.0 else 0.0
+        springStep(liftPos, liftVel, liftTarget, dt, LIFT_STIFFNESS, LIFT_DAMPING).let {
+            liftPos = it.first
+            liftVel = it.second
+        }
+        if (!lifted && abs(liftPos) < 0.0008 && abs(liftVel) < 0.01) {
+            liftPos = 0.0
+            liftVel = 0.0
+        }
+        val liftSettled = liftPos == 0.0
+
+        // 3) 液体形变: 采样本帧位置, 二次差分平滑
+        squash = squashModel.track(travelPos, now, dt).toFloat()
+
+        // 发布
+        position = travelPos.toFloat()
+        lift = liftPos.toFloat()
+
+        return !(travelSettled && liftSettled)
+    }
+
+    /** 本次行程的完成度 0..1 */
+    private fun travelProgress(): Double {
+        val span = travelTarget - travelFrom
+        if (span == 0.0) return 1.0
+        return ((travelPos - travelFrom) / span).coerceIn(0.0, 1.0)
+    }
+
+    companion object {
+        const val TRAVEL_STIFFNESS = 280.0
+        const val TRAVEL_DAMPING = 31.4
+        const val LIFT_STIFFNESS = 250.0
+        const val LIFT_DAMPING = 19.0
+        const val HANDOVER_START = 0.92
+
+        /** 半隐式欧拉弹簧积分, 240Hz 子步 (帧间隔大时切细步保稳定) */
+        fun springStep(
+            x: Double,
+            vel: Double,
+            target: Double,
+            dt: Double,
+            stiffness: Double,
+            damping: Double,
+        ): Pair<Double, Double> {
+            var t = dt
+            var px = x
+            var pv = vel
+            while (t > 0) {
+                val step = if (t > 1 / 240.0) 1 / 240.0 else t
+                val accel = -stiffness * (px - target) - damping * pv
+                pv += accel * step
+                px += pv * step
+                t -= step
+            }
+            return px to pv
+        }
+    }
+}
+
+/**
+ * 位置的二次差分 → 加速形变。窗口内平均加速度 × 灵敏度, 限幅后按响应时间趋近。
+ * 出发时位置加速 → 形变为正 (宽拉伸/高压扁); 刹车时为负 (宽压扁/高拉伸)。
+ * 常量同 BitChord/liquid_glass_easy。
+ */
+private class PillSquashModel {
+    private val history = ArrayList<Pair<Double, Double>>()
+    private var tracking = false
+    private var value = 0.0
+
+    fun start() {
+        history.clear()
+        value = 0.0
+        tracking = true
+    }
+
+    fun track(x: Double, now: Double, dt: Double): Double {
+        if (!tracking) return value
+        history.add(x to now)
+        history.removeAll { it.second < now - SAMPLE_WINDOW }
+        val raw = (averageAcceleration() * SENSITIVITY).coerceIn(-MAX_DEFORMATION, MAX_DEFORMATION)
+        value += (raw - value) * (dt / RESPONSE_TIME).coerceIn(0.0, 1.0)
+        return value
+    }
+
+    private fun averageAcceleration(): Double {
+        if (history.size < 3) return 0.0
+        val velocities = ArrayList<Pair<Double, Double>>(history.size)
+        for (i in 1 until history.size) {
+            val dt = history[i].second - history[i - 1].second
+            if (dt <= 0) continue
+            velocities.add(
+                (history[i].first - history[i - 1].first) / dt to
+                    (history[i].second + history[i - 1].second) / 2,
+            )
+        }
+        if (velocities.size < 2) return 0.0
+        var total = 0.0
+        var count = 0
+        for (i in 1 until velocities.size) {
+            val dt = velocities[i].second - velocities[i - 1].second
+            if (dt <= 0) continue
+            total += (velocities[i].first - velocities[i - 1].first) / dt
+            count++
+        }
+        return if (count == 0) 0.0 else total / count
+    }
+
+    companion object {
+        const val SAMPLE_WINDOW = 0.3
+        const val SENSITIVITY = 0.00007
+        const val MAX_DEFORMATION = 0.12
+        const val RESPONSE_TIME = 0.18
     }
 }
 
