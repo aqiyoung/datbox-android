@@ -37,7 +37,6 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var previewPath by remember { mutableStateOf<String?>(null) }
     var previewName by remember { mutableStateOf("") }
-    var searchTrigger by remember { mutableIntStateOf(0) }
     var searchActive by remember { mutableStateOf(false) }
 
     // ── 文件预览全屏模式: 隐藏底部栏 ──
@@ -94,7 +93,6 @@ fun MainScreen(
                             previewPath = path
                             previewName = name
                         },
-                        searchTrigger = searchTrigger,
                         searchActive = searchActive,
                         onSearchActiveChange = { searchActive = it },
                     )
@@ -120,7 +118,6 @@ fun MainScreen(
                     } else {
                         if (selectedTab != 0) selectedTab = 0
                         searchActive = true
-                        searchTrigger++
                     }
                 },
                 searchActive = searchActive,
