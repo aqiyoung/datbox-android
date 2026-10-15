@@ -33,8 +33,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -60,7 +58,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -71,7 +68,6 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -80,8 +76,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxScope
 import com.datbox.app.ui.theme.BorderLight
 import com.datbox.app.ui.theme.GlassBorder
-import com.datbox.app.ui.theme.GlassShadow
-import com.datbox.app.ui.theme.GlassWhite
 import com.datbox.app.ui.theme.MiSansFamily
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
@@ -133,14 +127,13 @@ fun LiquidGlassCard(
  *
  * iOS 27 特征:
  * - 圆角 16dp
- * - 中性玻璃, 选中态只提高白纱浓度 (更"实"), 不引入颜色
+ * - 中性玻璃, 不引入颜色
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LiquidGlassRow(
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 16.dp,
-    selected: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -153,7 +146,7 @@ fun LiquidGlassRow(
     FrostedGlass(
         shape = shape,
         modifier = modifier.fillMaxWidth(),
-        veilAlpha = if (selected) 0.62f else 0.50f,
+        veilAlpha = 0.50f,
         onClick = onClick,
         onLongClick = onLongClick,
     ) {
@@ -192,108 +185,12 @@ fun LiquidGlassRow(
 }
 
 /**
- * 玻璃 TopAppBar (iOS 27 风格)
- *
- * iOS 27 特征:
- * - 底部大圆角 24dp
- * - 中性磨砂白 (无色彩)
- * - 底部发丝边 + 标题加粗 Semibold
- */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-@Composable
-fun LiquidGlassTopBar(
-    title: String,
-    leadingIcon: ImageVector? = null,
-    navigationIcon: (@Composable () -> Unit)? = null,
-    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
-) {
-    val topBarShape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
-    val titleTextStyle = TextStyle(
-        color = Color(0xFF141413),
-        fontSize = 20.sp,
-        fontWeight = FontWeight.Bold,
-        fontFamily = MiSansFamily,
-        shadow = Shadow(
-            color = GlassShadow,
-            offset = Offset(0f, 1f),
-            blurRadius = 1f,
-        ),
-    )
-    FrostedGlass(
-        shape = topBarShape,
-        modifier = Modifier.fillMaxWidth(),
-        veilAlpha = 0.55f,
-        withShadow = false,
-    ) {
-        TopAppBar(
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (leadingIcon != null) {
-                        Icon(
-                            imageVector = leadingIcon,
-                            contentDescription = null,
-                            tint = Color(0xFF141413).copy(alpha = 0.95f),
-                            modifier = Modifier.size(24.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Text(
-                        text = title,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        style = titleTextStyle,
-                    )
-                }
-            },
-            navigationIcon = navigationIcon ?: {},
-            actions = actions,
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                titleContentColor = Color(0xFF141413),
-                navigationIconContentColor = Color(0xFF141413).copy(alpha = 0.95f),
-                actionIconContentColor = Color(0xFF141413).copy(alpha = 0.95f),
-            ),
-        )
-    }
-}
-
-/**
- * 玻璃圆形 FAB
- *
- * iOS 27 特征:
- * - 56dp 圆形
- * - 中性磨砂白 (无色彩)
- * - 0.5dp 玻璃发丝边
- */
-@Composable
-fun LiquidGlassFab(
-    icon: ImageVector,
-    onClick: () -> Unit,
-    size: Dp = 56.dp,
-    enabled: Boolean = true,
-) {
-    FrostedGlass(
-        shape = CircleShape,
-        modifier = Modifier.size(size),
-        veilAlpha = if (enabled) 0.55f else 0.70f,
-        onClick = if (enabled) onClick else null,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = Color(0xFF141413).copy(alpha = if (enabled) 1f else 0.4f),
-            modifier = Modifier.size(26.dp).align(Alignment.Center),
-        )
-    }
-}
-
-/**
  * 液态玻璃底部 Dock — 浮动玻璃药丸条 + 滑镜 (样式对齐 FlClash dev 分支的 NavigationDock)
  *
  * 设计参数参照 aqiyoung/FlClash@dev 的 NavigationDock (GPL-3.0, fork of chen08209/FlClash),
  * 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
- * - 条宽 = 屏宽 × 55%, 屏内居中
+ * - 条宽 = 屏宽 × 60%, 屏内居中
  * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
@@ -561,8 +458,8 @@ private fun DockTabItem(
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
 
-/** 条宽占屏宽比例 (用户指定 55%): 比例而非固定 dp, 各尺寸屏观感一致 */
-private const val DOCK_WIDTH_FRACTION = 0.55f
+/** 条宽占屏宽比例 (用户指定 60%): 比例而非固定 dp, 各尺寸屏观感一致 */
+private const val DOCK_WIDTH_FRACTION = 0.60f
 
 /** 首帧步距估算用的条目宽度 (实际条宽以屏宽占比为准, 随后以 onSizeChanged 实测校正) */
 private const val DOCK_ITEM_MAX = 80f

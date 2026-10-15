@@ -184,22 +184,5 @@ interface ManagementApi {
 
     @POST("api/admin/setting/delete")
     suspend fun optionDelete(@Query("key") key: String): ManagementResponse
-
-    // ===== 仪表盘 (Public) =====
-    @GET("api/public/info")
-    suspend fun publicInfo(): ObjResponse<Map<String, String>>
-
-    // ===== 文件操作 (FS) =====
-    @POST("api/fs/mkdir")
-    suspend fun mkdir(@Body req: Map<String, String>): ManagementResponse
-
-    @POST("api/fs/rename")
-    suspend fun rename(@Body req: Map<String, String>): ManagementResponse
-
-    @POST("api/fs/move")
-    suspend fun move(@Body req: Map<String, String>): ManagementResponse
-
-    @POST("api/fs/remove")
-    suspend fun delete(@Body req: Map<String, String>): ManagementResponse
 }
 
