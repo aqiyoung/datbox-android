@@ -55,6 +55,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -280,7 +282,8 @@ fun LiquidGlassFab(
  * 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
  * - 条宽 = 条目数×86 + 16, 屏内居中, 左右边距 21
- * - 滑镜: 宽 = 步距+8 (每侧悬出 4), 静高 54; 抬升每侧充气 8 → 可越出条体
+ * - 滑镜: 宽 = 步距+8 (每侧悬出 4), 静高 54; 抬升每侧充气 8, 越出部分由药丸形裁剪 (同 FlClash)
+ * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 形变纵横比 1.4 (出发拉伸 / 刹车压扁), travel 弹簧带回弹
  * - 搜索是条内第三个条目 (此前独立摆放的搜索屡被报告丢失)
  * 简化 (相对 FlClash): 无 shader 折射/色差、无悬停磁吸与按压辉光; 玻璃材质沿用 FrostedGlass v2。
@@ -302,10 +305,11 @@ fun LiquidGlassBottomBar(
     val mLift = motion.lift
     val mSquash = motion.squash
 
-    // iOS 式排布: 步距按条目数均分, 镜片悬出步距每侧 4
+    // iOS 式排布: 步距按条目数均分; 首帧用静态条宽公式, 随后以实测条宽为准 —
+    // 保证任何屏宽/约束行为下滑镜与条目严格对齐 (此前静态假设 274 曾致错位)
     val count = tabs.size + 1 // 条目 = Tab + 搜索
     val barW = DOCK_ITEM_MAX * count + DOCK_BAR_PADDING * 4
-    val pitch = (barW - DOCK_BAR_PADDING * 2) / count
+    var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
     val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
     val lensH =
         (DOCK_BAR_HEIGHT - DOCK_BAR_PADDING * 2 + DOCK_LENS_GROWTH * 2 * mLift) *
@@ -325,11 +329,17 @@ fun LiquidGlassBottomBar(
                 .widthIn(max = barW.dp),
             horizontalArrangement = Arrangement.Center,
         ) {
-            // 玻璃药丸条 — 三层分层: 条体 → 滑镜 → 条目 (镜片抬升时可越出条体)
+            // 玻璃药丸条 — 三层分层: 条体 → 滑镜 → 条目
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(DOCK_BAR_HEIGHT.dp),
+                    .height(DOCK_BAR_HEIGHT.dp)
+                    .onSizeChanged { size ->
+                        // 实测条宽 → 步距, 与条目行同一坐标系
+                        val w = with(LocalDensity.current) { size.width.toDp().value }
+                        val p = (w - DOCK_ITEM_INSET * 2) / count
+                        if (abs(p - pitch) > 0.01f) pitch = p
+                    },
             ) {
                 // 1) 条体: 中性玻璃药丸
                 FrostedGlass(
@@ -345,34 +355,42 @@ fun LiquidGlassBottomBar(
                         )
                     ),
                 ) {}
-                // 2) 液态滑镜: 在条体之上、条目之下; 尺寸随抬升/形变逐帧变化
-                val lensX = DOCK_BAR_PADDING + (mPos + 0.5f) * pitch - lensW / 2f
-                val lensY = (DOCK_BAR_HEIGHT - lensH) / 2f
-                val lensShape = RoundedCornerShape((lensH / 2f).dp)
+                // 2) 液态滑镜: 在条体之上、条目之下; 裁剪在药丸形内 (同 FlClash 由 Material 裁剪) —
+                //    抬升越出药丸的部分被裁掉, 端点条目不会戳出圆角
                 Box(
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .offset(x = lensX.dp, y = lensY.dp)
-                        .width(lensW.dp)
-                        .height(lensH.dp)
-                        .clip(lensShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.60f * lensClear),
-                                    Color.White.copy(alpha = 0.08f * lensClear),
-                                    Color.Black.copy(alpha = 0.05f * lensClear),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(DOCK_BAR_HEIGHT.dp)
+                        .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
+                ) {
+                    val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
+                    val lensY = (DOCK_BAR_HEIGHT - lensH) / 2f
+                    val lensShape = RoundedCornerShape((lensH / 2f).dp)
+                    Box(
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .offset(x = lensX.dp, y = lensY.dp)
+                            .width(lensW.dp)
+                            .height(lensH.dp)
+                            .clip(lensShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.60f * lensClear),
+                                        Color.White.copy(alpha = 0.08f * lensClear),
+                                        Color.Black.copy(alpha = 0.05f * lensClear),
+                                    )
                                 )
                             )
-                        )
-                        .border(0.5.dp, Color.Black.copy(alpha = 0.09f), lensShape),
-                )
+                            .border(0.5.dp, Color.Black.copy(alpha = 0.09f), lensShape),
+                    )
+                }
                 // 3) 条目: 均分步距, 图标 + 文字
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp)
-                        .padding(horizontal = DOCK_BAR_PADDING.dp),
+                        .padding(horizontal = DOCK_ITEM_INSET.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     tabs.forEachIndexed { index, tab ->
@@ -449,6 +467,9 @@ private const val DOCK_ITEM_MAX = 86f
 
 /** 条内边距: 滑镜静止时悬出条目每侧 4 */
 private const val DOCK_BAR_PADDING = 4f
+
+/** 条目行内边距 = 外 4 + 内 4 (FlClash 双层内缩) → 端点镜片与药丸边缘留 4 */
+private const val DOCK_ITEM_INSET = 8f
 
 private const val DOCK_BAR_HEIGHT = 62f
 
