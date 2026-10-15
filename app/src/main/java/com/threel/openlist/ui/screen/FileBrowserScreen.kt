@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -30,6 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import com.threel.openlist.ui.theme.StoneGray
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -616,7 +618,10 @@ private fun FabMenuItemRow(item: FabMenuItem) {
 }
 
 // ===== 内联搜索 (无弹窗) =====
-/** 内联搜索条 — 搜索态替换顶部栏 (不弹窗); 进入即自动聚焦拉起键盘 */
+/**
+ * 内联搜索条 — 搜索态替换顶部栏 (不弹窗)。
+ * 玻璃胶囊字段: 返回按钮 + 药丸玻璃容器 (前置搜索图标 / 透明输入框 / 清除按钮), 进入即聚焦。
+ */
 @Composable
 private fun SearchBarRow(
     query: String,
@@ -640,19 +645,60 @@ private fun SearchBarRow(
         IconButton(onClick = onClose) {
             Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = Color(0xFF141413))
         }
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            placeholder = { Text("搜索全盘文件...", color = Color(0xFF87867F)) },
-            singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF141413),
-                unfocusedBorderColor = Color(0xFFD9D8D4),
-            ),
+        LiquidGlassCard(
             modifier = Modifier
                 .weight(1f)
-                .focusRequester(focusRequester),
-        )
+                .height(48.dp),
+            cornerRadius = 24.dp,
+            contentPadding = 0.dp,
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.Search,
+                    contentDescription = null,
+                    tint = Color(0xFF87867F),
+                    modifier = Modifier.size(20.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    singleLine = true,
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF141413)),
+                    cursorBrush = SolidColor(Color(0xFF141413)),
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (query.isEmpty()) {
+                                Text("搜索全盘文件...", color = Color(0xFF87867F))
+                            }
+                            inner()
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .focusRequester(focusRequester),
+                )
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onQueryChange("") },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = "清除",
+                            tint = Color(0xFF87867F),
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -678,6 +724,14 @@ private fun SearchResultsList(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = modifier,
         ) {
+            item(key = "header") {
+                Text(
+                    text = "“${state.searchQuery.trim()}” · ${state.searchResults.size} 个结果",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF87867F),
+                    modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 4.dp),
+                )
+            }
             items(state.searchResults) { hit ->
                 val hitPath = if (hit.parent.isEmpty() || hit.parent == "/") {
                     "/${hit.name}"

@@ -282,9 +282,9 @@ fun LiquidGlassFab(
  * 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
  * - 条宽 = 条目数×86 + 16, 屏内居中, 左右边距 21
- * - 滑镜: 宽 = 步距+8 (每侧悬出 4), 静高 54; 抬升每侧充气 8, 越出部分由药丸形裁剪 (同 FlClash)
+ * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
- * - 形变纵横比 1.4 (出发拉伸 / 刹车压扁), travel 弹簧带回弹
+ * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
  * - 搜索是条内第三个条目 (此前独立摆放的搜索屡被报告丢失)
  * 简化 (相对 FlClash): 无 shader 折射/色差、无悬停磁吸与按压辉光; 玻璃材质沿用 FrostedGlass v2。
  */
@@ -312,9 +312,6 @@ fun LiquidGlassBottomBar(
     val density = LocalDensity.current
     var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
     val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
-    val lensH =
-        (DOCK_BAR_HEIGHT - DOCK_BAR_PADDING * 2 + DOCK_LENS_GROWTH * 2 * mLift) *
-            (1f - mSquash * DOCK_LENS_JELLY_ASPECT)
     val lensClear = 1f - 0.5f * mLift // 抬升时镜片转清 (FlClash: 升起后是清玻璃)
 
     Box(
@@ -330,7 +327,7 @@ fun LiquidGlassBottomBar(
                 .widthIn(max = barW.dp),
             horizontalArrangement = Arrangement.Center,
         ) {
-            // 玻璃药丸条 — 三层分层: 条体 → 滑镜 → 条目
+            // 单层玻璃药丸: 条体与滑镜光斑同处一层轮廓内 → 视觉上只有一枚胶囊
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -342,22 +339,22 @@ fun LiquidGlassBottomBar(
                         if (abs(p - pitch) > 0.01f) pitch = p
                     },
             ) {
-                // 1) 条体: 中性玻璃药丸
+                // 1) 条体: 中性透明玻璃药丸 (低白纱 + 低染, 透明感靠发丝边与投影定义)
                 FrostedGlass(
                     shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp),
-                    veilAlpha = 0.22f,
+                    veilAlpha = 0.14f,
                     tintGradient = Brush.verticalGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.62f),
-                            Color(0xFFF4F4F4).copy(alpha = 0.46f),
+                            Color.White.copy(alpha = 0.48f),
+                            Color(0xFFF4F4F4).copy(alpha = 0.32f),
                         )
                     ),
                 ) {}
-                // 2) 液态滑镜: 在条体之上、条目之下; 裁剪在药丸形内 (同 FlClash 由 Material 裁剪) —
-                //    抬升越出药丸的部分被裁掉, 端点条目不会戳出圆角
+                // 2) 液态滑镜: 全高横向渐变光斑 — 边缘渐隐、无自身轮廓, 与药丸同高同裁剪,
+                //    不再是嵌套的第二枚胶囊; 抬升时经 lensClear 转清
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -365,25 +362,21 @@ fun LiquidGlassBottomBar(
                         .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
                 ) {
                     val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
-                    val lensY = (DOCK_BAR_HEIGHT - lensH) / 2f
-                    val lensShape = RoundedCornerShape((lensH / 2f).dp)
                     Box(
                         Modifier
                             .align(Alignment.TopStart)
-                            .offset(x = lensX.dp, y = lensY.dp)
+                            .offset(x = lensX.dp)
                             .width(lensW.dp)
-                            .height(lensH.dp)
-                            .clip(lensShape)
+                            .fillMaxHeight()
                             .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.60f * lensClear),
-                                        Color.White.copy(alpha = 0.08f * lensClear),
-                                        Color.Black.copy(alpha = 0.05f * lensClear),
+                                Brush.horizontalGradient(
+                                    colorStops = arrayOf(
+                                        0f to Color.Transparent,
+                                        0.5f to Color.Black.copy(alpha = 0.10f * lensClear),
+                                        1f to Color.Transparent,
                                     )
                                 )
                             )
-                            .border(0.5.dp, Color.Black.copy(alpha = 0.09f), lensShape),
                     )
                 }
                 // 3) 条目: 均分步距, 图标 + 文字
@@ -476,12 +469,6 @@ private const val DOCK_BAR_HEIGHT = 62f
 
 /** 条体距屏幕边缘 */
 private const val DOCK_EDGE_MARGIN = 21f
-
-/** 滑镜抬升时每侧充气高度 (分层绘制, 镜片可越出条体) */
-private const val DOCK_LENS_GROWTH = 8f
-
-/** 形变纵横比: 出发时宽 ×(1+d), 高 ×(1-d×1.4) — FlClash jellyAspect */
-private const val DOCK_LENS_JELLY_ASPECT = 1.4f
 
 // ===== 液态滑镜运动学 (移植) =====
 
