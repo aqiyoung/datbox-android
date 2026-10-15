@@ -147,10 +147,13 @@ internal object LiquidGlassBackdrop {
             float cover = uTint.a;
             float3 glass = color * (1.0 - cover) + uTint.rgb * cover;
 
-            // rim 高光: iOS 只照亮上下缘, 且在边线内侧 (within) 一小段
+            // rim 高光 (iOS Liquid Glass): 上下缘主光带 + 全周细 rim, 均在边线内侧 —
+            // 边线附近一圈提亮而非穹顶聚光, 玻璃感的主要来源
             float within = max(inset - uLine, 0.0);
-            float shine = uRim * smoothstep(0.65, 0.95, abs(normal.y))
-                * clamp(1.0 - within / 10.0, 0.0, 1.0);
+            float cap = clamp(1.0 - within / 12.0, 0.0, 1.0);
+            float band = smoothstep(0.55, 0.95, abs(normal.y));            // 上下缘主带
+            float rim = smoothstep(0.45, 1.0, band + 0.55 * abs(normal.x)); // 混入左右细边
+            float shine = uRim * rim * cap;
             glass += (1.0 - glass) * min(shine, 1.0);
 
             // iOS 暗边线: 最外 ~1dp 一圈压暗 (对照 FlClash kLine/kLineCap 的取值)
