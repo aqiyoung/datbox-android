@@ -55,10 +55,14 @@ fun ManagementScreen(
                             Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
                         }
                     },
+                    // 外层 MainScreen 已给状态栏 inset, 这里不再叠加 (否则返回行离状态栏双倍空隙)
+                    windowInsets = WindowInsets(0.dp),
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
             },
             containerColor = Color.Transparent,
+            // 同理: safeDrawing inset 外层已给, 内容直接贴顶
+            contentWindowInsets = WindowInsets(0.dp),
         ) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                 // 错误提示
