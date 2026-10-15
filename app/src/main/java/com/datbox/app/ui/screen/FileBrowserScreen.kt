@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -27,9 +28,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import com.datbox.app.ui.theme.StoneGray
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -942,118 +951,207 @@ private fun humanSize(b: Long): String = when {
 }
 
 /**
- * 文件类型视觉描述：圆角方块底色 + 前景色 + 可选的 1~4 字符短码或 Material 图标。
- * "letter-avatar" 风格（macOS Finder / Notion / Google Drive 列表同款），
- * 让 7z vs ISO vs TAR 这类同大类细分类型也能一眼区分。
+ * 文件类型图标 (iOS Files 风): 统一「文档页 / 文件夹」底形 + 类型符号,
+ * 配色收敛到 iOS 系统系柔和色调; 类型细分靠符号而不是短码文字。
  */
-private data class FileStyle(
-    val bg: Color,
-    val fg: Color,
-    val label: String? = null,
-    val icon: ImageVector? = null,
-)
+private enum class FileKind(val bg: Color, val fg: Color) {
+    FOLDER(Color(0xFFE7F0FE), Color(0xFF3B82F6)),
+    DOC(Color(0xFFE8EFFC), Color(0xFF2563EB)),
+    TEXT(Color(0xFFF1F0EC), Color(0xFF6B7280)),
+    IMAGE(Color(0xFFFDE8ED), Color(0xFFE5484D)),
+    VIDEO(Color(0xFFE5EBFB), Color(0xFF4C6EF5)),
+    AUDIO(Color(0xFFFDF1DE), Color(0xFFC2751A)),
+    ARCHIVE(Color(0xFFFBEBDA), Color(0xFFA05517)),
+    CODE(Color(0xFFEDE9FB), Color(0xFF7C5CD6)),
+    SHEET(Color(0xFFE2F5E9), Color(0xFF1F9D55)),
+    SLIDE(Color(0xFFFCEBDA), Color(0xFFD97706)),
+    PDF(Color(0xFFFDE7E4), Color(0xFFDC2626)),
+    APK(Color(0xFFE1F7E9), Color(0xFF16A34A)),
+    DISK(Color(0xFFE3E9FB), Color(0xFF3B5BDB)),
+    EXEC(Color(0xFFE9EFF5), Color(0xFF334155)),
+    UNKNOWN(Color(0xFFF0EDE5), Color(0xFF57544C)),
+}
+
+private data class FileStyle(val bg: Color, val fg: Color, val kind: FileKind)
 
 private fun fileStyleFor(name: String, isDir: Boolean): FileStyle {
-    if (isDir) return FileStyle(bg = Color(0xFFFCEEDC), fg = Color(0xFFB0701F), icon = Icons.Outlined.Folder)
-    val ext = name.substringAfterLast('.', "").lowercase()
-    if (ext.isEmpty()) return FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), icon = Icons.Outlined.InsertDriveFile)
-    return when (ext) {
-        // ---- 压缩包：每种格式一个色相 + 短码 ----
-        "zip" -> FileStyle(bg = Color(0xFFFFEAD3), fg = Color(0xFF9A4F12), label = "ZIP")
-        "7z"  -> FileStyle(bg = Color(0xFFFFE0CC), fg = Color(0xFF8A3F08), label = "7Z")
-        "rar" -> FileStyle(bg = Color(0xFFFFE0CC), fg = Color(0xFF8A3F08), label = "RAR")
-        "jar" -> FileStyle(bg = Color(0xFFFFEAD3), fg = Color(0xFF9A4F12), label = "JAR")
-        "tar", "tgz"   -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "TAR")
-        "gz", "gzip"   -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "GZ")
-        "bz2", "tbz2"  -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "BZ2")
-        "xz", "txz"    -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = "XZ")
-        "lz", "lzma", "zst" -> FileStyle(bg = Color(0xFFE6E0CF), fg = Color(0xFF4A2F12), label = ext.uppercase().take(3))
+    val kind = fileKindFor(name, isDir)
+    return FileStyle(kind.bg, kind.fg, kind)
+}
 
-        // ---- 碟镜像：深蓝 ----
-        "iso", "img", "dmg" -> FileStyle(bg = Color(0xFFDDE4FB), fg = Color(0xFF2742A0), label = ext.uppercase())
-
-        // ---- Android 包：保留 Android 机器头图标 ----
-        "apk" -> FileStyle(bg = Color(0xFFDCFCE7), fg = Color(0xFF1F8A4D), icon = Icons.Outlined.Android)
-
-        // ---- 可执行 / 脚本：石板灰 + 短码 ----
-        "exe", "msi", "bat", "cmd" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "EXE")
-        "sh", "bash", "zsh", "fish" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "SH")
-        "ps1" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "PS1")
-        "deb" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "DEB")
-        "rpm" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "RPM")
-        "bin", "run" -> FileStyle(bg = Color(0xFFE8EEF4), fg = Color(0xFF334155), label = "BIN")
-
-        // ---- 多媒体：保留通用图标（图 / 胶片 / 音符） ----
-        "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif", "ico", "raw", "tiff", "tif" ->
-            FileStyle(bg = Color(0xFFFCE4EC), fg = Color(0xFFB23155), icon = Icons.Outlined.Image)
-        "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm", "ts", "m2ts", "3gp" ->
-            FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), icon = Icons.Outlined.Movie)
-        "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" ->
-            FileStyle(bg = Color(0xFFFFEED4), fg = Color(0xFF8C5010), icon = Icons.Outlined.MusicNote)
-
-        // ---- PDF：全球通用短码 ----
-        "pdf" -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "PDF")
-
-        // ---- 代码：按语言细分配色，短码即语言名 ----
-        "py"  -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "PY")
-        "js", "jsx" -> FileStyle(bg = Color(0xFFFEF3C7), fg = Color(0xFF854F0B), label = "JS")
-        "ts", "tsx" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), label = "TS")
-        "java" -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "JAVA")
-        "kt", "kts" -> FileStyle(bg = Color(0xFFE0EAFE), fg = Color(0xFF2742A0), label = "KT")
-        "go"  -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "GO")
-        "rs", "rust" -> FileStyle(bg = Color(0xFFFEF3C7), fg = Color(0xFF854F0B), label = "RS")
-        "swift" -> FileStyle(bg = Color(0xFFFCEAD3), fg = Color(0xFF9A4F12), label = "SWIFT")
-        "rb"  -> FileStyle(bg = Color(0xFFFCE0DC), fg = Color(0xFF8C1810), label = "RB")
-        "php" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "PHP")
-        "c", "h" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "C")
-        "cpp", "cc", "cxx", "hpp" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "C++")
-        "sql" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "SQL")
-        "json" -> FileStyle(bg = Color(0xFFE6F0E8), fg = Color(0xFF246F44), label = "JSON")
-        "xml" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF2742A0), label = "XML")
-        "yaml", "yml" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "YML")
-        "toml", "ini", "conf" -> FileStyle(bg = Color(0xFFFBEED1), fg = Color(0xFF7A4D08), label = "CFG")
-        "gradle" -> FileStyle(bg = Color(0xFFE1F5EE), fg = Color(0xFF0F6E56), label = "GRD")
-        "dart" -> FileStyle(bg = Color(0xFFE0E8FE), fg = Color(0xFF1F3F8E), label = "DART")
-        "html", "htm" -> FileStyle(bg = Color(0xFFFCEAD3), fg = Color(0xFF9A4F12), label = "HTML")
-        "css", "scss", "sass", "less" -> FileStyle(bg = Color(0xFFE0E0F8), fg = Color(0xFF3A2F88), label = "CSS")
-
-        // ---- 文本 ----
-        "txt" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "TXT")
-        "md", "markdown" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "MD")
-        "log" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = "LOG")
-        "rst", "tex" -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = ext.uppercase().take(3))
-
-        // ---- Office 套件：W / X / P 通用约定 ----
-        "doc", "docx", "rtf", "odt" -> FileStyle(bg = Color(0xFFE0EAFE), fg = Color(0xFF1548A0), label = "W")
-        "xls", "xlsx", "ods", "csv" -> FileStyle(bg = Color(0xFFDEF4E8), fg = Color(0xFF126F44), label = "X")
-        "ppt", "pptx", "odp", "key" -> FileStyle(bg = Color(0xFFFCE9DB), fg = Color(0xFF97441A), label = "P")
-
-        // ---- 兜底：未知扩展名也走短码（最多 4 字符） ----
-        else -> FileStyle(bg = Color(0xFFF0EDE5), fg = Color(0xFF57544C), label = ext.uppercase().take(4))
+private fun fileKindFor(name: String, isDir: Boolean): FileKind {
+    if (isDir) return FileKind.FOLDER
+    return when (name.substringAfterLast('.', "").lowercase()) {
+        "" -> FileKind.UNKNOWN
+        // 压缩包
+        "zip", "7z", "rar", "jar", "tar", "tgz", "gz", "gzip", "bz2", "tbz2",
+        "xz", "txz", "lz", "lzma", "zst" -> FileKind.ARCHIVE
+        // 碟镜像
+        "iso", "img", "dmg" -> FileKind.DISK
+        // 安装包 / 可执行 / 脚本
+        "apk" -> FileKind.APK
+        "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1",
+        "deb", "rpm", "bin", "run" -> FileKind.EXEC
+        // 多媒体
+        "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif",
+        "ico", "raw", "tiff", "tif" -> FileKind.IMAGE
+        "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm",
+        "ts", "m2ts", "3gp" -> FileKind.VIDEO
+        "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" -> FileKind.AUDIO
+        "pdf" -> FileKind.PDF
+        // 代码 / 配置
+        "py", "js", "jsx", "ts", "tsx", "java", "kt", "kts", "go", "rs", "swift",
+        "rb", "php", "c", "h", "cpp", "cc", "cxx", "hpp", "sql", "json", "xml",
+        "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "html", "htm",
+        "css", "scss", "sass", "less" -> FileKind.CODE
+        // 文本
+        "txt", "md", "markdown", "log", "rst", "tex" -> FileKind.TEXT
+        // Office 三件套
+        "doc", "docx", "rtf", "odt" -> FileKind.DOC
+        "xls", "xlsx", "ods", "csv" -> FileKind.SHEET
+        "ppt", "pptx", "odp", "key" -> FileKind.SLIDE
+        else -> FileKind.UNKNOWN
     }
 }
 
-/** 渲染文件类型徽章：bg 圆角色块 + 短码文字 或 Material 图标 */
+/** 渲染文件类型图标: 文件夹底形, 或 文档页底形 + 类型符号 (Canvas 绘制, iOS Files 语言) */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.size(46.dp).clip(RoundedCornerShape(12.dp)).background(style.bg),
-        contentAlignment = Alignment.Center,
-    ) {
-        when {
-            style.label != null -> Text(
-                text = style.label,
+    Canvas(modifier.size(46.dp)) {
+        if (style.kind == FileKind.FOLDER) {
+            // 文件夹: 顶舌 + 主体 (同色叠加成一体)
+            drawRoundRect(
                 color = style.fg,
-                fontWeight = FontWeight.Bold,
-                fontSize = when (style.label.length) { 1 -> 22.sp; 2 -> 15.sp; else -> 12.sp },
-                maxLines = 1,
+                topLeft = Offset(8.5f, 12.5f),
+                size = Size(13f, 8f),
+                cornerRadius = CornerRadius(2.5f, 2.5f),
             )
-            style.icon != null -> Icon(
-                imageVector = style.icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = style.fg,
+            drawRoundRect(
+                color = style.fg,
+                topLeft = Offset(8.5f, 15.5f),
+                size = Size(29f, 20f),
+                cornerRadius = CornerRadius(5f, 5f),
             )
+        } else {
+            drawDocSheet(style.bg, style.fg)
+            drawKindGlyph(style.kind, style.bg, style.fg)
+        }
+    }
+}
+
+/** 文档页底形: 浅底页身 + 右上折角 + 细描边 */
+private fun DrawScope.drawDocSheet(bg: Color, fg: Color) {
+    val tl = Offset(12.5f, 7.5f)
+    val sz = Size(21f, 30f)
+    val cr = CornerRadius(4f, 4f)
+    drawRoundRect(bg, tl, sz, cr)
+    val fold = Path().apply {
+        moveTo(26.5f, 7.5f); lineTo(33.5f, 14.5f); lineTo(26.5f, 14.5f); close()
+    }
+    drawPath(fold, fg.copy(alpha = 0.22f))
+    drawRoundRect(fg.copy(alpha = 0.28f), tl, sz, cr, style = Stroke(width = 1.1f))
+}
+
+/** 类型符号: 画在页身中央 (x 15~31, y 19~32) */
+private fun DrawScope.drawKindGlyph(kind: FileKind, bg: Color, fg: Color) {
+    val sw = 1.8f
+    val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
+    when (kind) {
+        FileKind.IMAGE -> {
+            drawCircle(fg, radius = 1.7f, center = Offset(19.5f, 21.5f))
+            drawPath(
+                Path().apply {
+                    moveTo(15.5f, 31.5f); lineTo(20.5f, 25.5f); lineTo(23.5f, 28.5f)
+                    lineTo(26.5f, 25f); lineTo(30.5f, 31.5f)
+                },
+                fg, style = stroke,
+            )
+        }
+        FileKind.VIDEO -> drawPath(
+            Path().apply {
+                moveTo(18.5f, 20.5f); lineTo(29.5f, 25.5f); lineTo(18.5f, 30.5f); close()
+            },
+            fg,
+        )
+        FileKind.AUDIO -> {
+            drawCircle(fg, radius = 2.3f, center = Offset(18.8f, 29f))
+            drawLine(fg, Offset(21f, 29f), Offset(21f, 20.5f), sw, StrokeCap.Round)
+            drawPath(
+                Path().apply {
+                    moveTo(21f, 20.5f); lineTo(26.5f, 22f); lineTo(26.5f, 25f); lineTo(21f, 23.5f); close()
+                },
+                fg,
+            )
+        }
+        FileKind.ARCHIVE -> {
+            drawRoundRect(fg, Offset(21.6f, 19f), Size(3.2f, 13f), CornerRadius(1.2f, 1.2f))
+            listOf(21.3f, 24.3f, 27.3f).forEach { y ->
+                drawRoundRect(bg, Offset(21.6f, y), Size(3.2f, 1.2f), CornerRadius(0.6f, 0.6f))
+            }
+        }
+        FileKind.CODE -> {
+            drawPath(
+                Path().apply { moveTo(19.5f, 20.5f); lineTo(16f, 25.5f); lineTo(19.5f, 30.5f) },
+                fg, style = stroke,
+            )
+            drawPath(
+                Path().apply { moveTo(26.5f, 20.5f); lineTo(30f, 25.5f); lineTo(26.5f, 30.5f) },
+                fg, style = stroke,
+            )
+            drawLine(fg, Offset(24.4f, 19.5f), Offset(22.6f, 31.5f), sw, StrokeCap.Round)
+        }
+        FileKind.SHEET -> {
+            drawRoundRect(
+                fg, Offset(15.5f, 20f), Size(15f, 12f), CornerRadius(2f, 2f),
+                style = Stroke(width = 1.5f),
+            )
+            drawLine(fg, Offset(15.5f, 26f), Offset(30.5f, 26f), 1.5f)
+            drawLine(fg, Offset(23f, 20f), Offset(23f, 32f), 1.5f)
+        }
+        FileKind.SLIDE -> {
+            drawRoundRect(fg, Offset(15.5f, 26f), Size(3.4f, 6f), CornerRadius(1f, 1f))
+            drawRoundRect(fg, Offset(21f, 20.5f), Size(3.4f, 11.5f), CornerRadius(1f, 1f))
+            drawRoundRect(fg, Offset(26.5f, 23.5f), Size(3.4f, 8.5f), CornerRadius(1f, 1f))
+        }
+        FileKind.PDF -> {
+            drawLine(fg, Offset(16.5f, 22.5f), Offset(29.5f, 22.5f), 2.2f, StrokeCap.Round)
+            drawLine(fg, Offset(16.5f, 27f), Offset(24.5f, 27f), 2.2f, StrokeCap.Round)
+        }
+        FileKind.DOC -> {
+            drawLine(fg, Offset(16.5f, 22f), Offset(29.5f, 22f), sw, StrokeCap.Round)
+            drawLine(fg, Offset(16.5f, 26f), Offset(29.5f, 26f), sw, StrokeCap.Round)
+            drawLine(fg, Offset(16.5f, 30f), Offset(24f, 30f), sw, StrokeCap.Round)
+        }
+        FileKind.TEXT -> {
+            drawLine(fg, Offset(17f, 23.5f), Offset(29f, 23.5f), 1.7f, StrokeCap.Round)
+            drawLine(fg, Offset(17f, 28.5f), Offset(25f, 28.5f), 1.7f, StrokeCap.Round)
+        }
+        FileKind.DISK -> {
+            drawCircle(fg, radius = 5.7f, center = Offset(23f, 25.5f), style = Stroke(width = 2.4f))
+            drawCircle(fg, radius = 1.8f, center = Offset(23f, 25.5f))
+        }
+        FileKind.EXEC -> {
+            drawPath(
+                Path().apply { moveTo(17.5f, 20.5f); lineTo(21.5f, 25f); lineTo(17.5f, 29.5f) },
+                fg, style = stroke,
+            )
+            drawLine(fg, Offset(23.5f, 29.5f), Offset(28.5f, 29.5f), sw, StrokeCap.Round)
+        }
+        FileKind.APK -> {
+            // 安卓机器人: 半圆头 + 触角 + 眼
+            drawArc(
+                color = fg, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+                topLeft = Offset(18f, 20.5f), size = Size(10f, 10f),
+            )
+            drawLine(fg, Offset(19.5f, 19.5f), Offset(21f, 21.5f), 1.4f, StrokeCap.Round)
+            drawLine(fg, Offset(26.5f, 19.5f), Offset(25f, 21.5f), 1.4f, StrokeCap.Round)
+            drawCircle(bg, radius = 1f, center = Offset(20.7f, 24.5f))
+            drawCircle(bg, radius = 1f, center = Offset(25.3f, 24.5f))
+        }
+        // 兜底文本 / 理论上的文件夹分支: 两条文档线
+        FileKind.UNKNOWN, FileKind.FOLDER -> {
+            drawLine(fg, Offset(16.5f, 23f), Offset(29.5f, 23f), 1.7f, StrokeCap.Round)
+            drawLine(fg, Offset(16.5f, 28f), Offset(24f, 28f), 1.7f, StrokeCap.Round)
         }
     }
 }
