@@ -21,18 +21,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.theme.StoneGray
+import com.threel.openlist.ui.viewmodel.ProfileViewModel
 
 /**
- * "我的"页面 — 合并管理 + 关于 + 上传
+ * "我的"页面
  *
  * 入口:
  * - 用户管理 (ManagementScreen)
  * - 关于 (AboutScreen)
- * - 上传文件
  * - 退出登录
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -40,7 +41,9 @@ import com.threel.openlist.ui.theme.StoneGray
 fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit = {},
+    vm: ProfileViewModel = hiltViewModel(),
 ) {
+    val user by vm.user.collectAsState()
     var showManagement by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
 
@@ -119,14 +122,20 @@ fun ProfileScreen(
                         Spacer(Modifier.width(14.dp))
                         Column {
                             Text(
-                                "liyang",
+                                user?.username ?: "—",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
                                 color = Color(0xFF141413),
                             )
                             Spacer(Modifier.height(2.dp))
                             Text(
-                                "管理员",
+                                // role: 0=普通用户 1=游客 2=管理员 (OpenList internal/model/user.go)
+                                when (user?.role) {
+                                    2 -> "管理员"
+                                    1 -> "游客"
+                                    0 -> "普通用户"
+                                    else -> "—"
+                                },
                                 fontSize = 12.sp,
                                 color = StoneGray,
                             )
