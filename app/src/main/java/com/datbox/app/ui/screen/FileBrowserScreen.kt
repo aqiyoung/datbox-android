@@ -955,25 +955,30 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
-        // 图形按比例绘制在 46dp 画布中央, 原尺寸偏小 (页身仅占 ~46%) → 整体放大 1.3x
-        scale(1.3f) {
-            if (style.kind == FileKind.FOLDER) {
-                // 文件夹: 顶舌 + 主体 (同色叠加成一体)
-                drawRoundRect(
-                    color = style.fg,
-                    topLeft = Offset(8.5f, 12.5f),
-                    size = Size(13f, 8f),
-                    cornerRadius = CornerRadius(2.5f, 2.5f),
-                )
-                drawRoundRect(
-                    color = style.fg,
-                    topLeft = Offset(8.5f, 15.5f),
-                    size = Size(29f, 20f),
-                    cornerRadius = CornerRadius(5f, 5f),
-                )
-            } else {
-                drawDocSheet(style.bg, style.fg)
-                drawKindGlyph(style.kind, style.bg, style.fg)
+        // 画布尺寸是 dp, 但 draw* 的坐标单位是 px: 图形按 46 设计单位给出,
+        // 必须按画布实际像素宽归一化, 否则高密度屏上图形只占画布的 ~1/density → 显得极小, 描边细到看不见.
+        val unit = size.width / 46f
+        scale(unit, pivot = Offset.Zero) {
+            // 归一化后再整体放大 1.3, 让页身/文件夹填满图标区
+            scale(1.3f, pivot = Offset(23f, 23f)) {
+                if (style.kind == FileKind.FOLDER) {
+                    // 文件夹: 顶舌 + 主体 (同色叠加成一体)
+                    drawRoundRect(
+                        color = style.fg,
+                        topLeft = Offset(8.5f, 12.5f),
+                        size = Size(13f, 8f),
+                        cornerRadius = CornerRadius(2.5f, 2.5f),
+                    )
+                    drawRoundRect(
+                        color = style.fg,
+                        topLeft = Offset(8.5f, 15.5f),
+                        size = Size(29f, 20f),
+                        cornerRadius = CornerRadius(5f, 5f),
+                    )
+                } else {
+                    drawDocSheet(style.bg, style.fg)
+                    drawKindGlyph(style.kind, style.bg, style.fg)
+                }
             }
         }
     }

@@ -6,6 +6,7 @@ import com.datbox.app.data.model.FsSearchResponse
 import com.datbox.app.data.model.LoginResponse
 import com.datbox.app.data.model.UserInfo
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 import kotlinx.serialization.Serializable
 
