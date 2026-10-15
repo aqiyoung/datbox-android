@@ -272,9 +272,10 @@ fun LiquidGlassFab(
 /**
  * 液态玻璃底部 Dock (iOS 27 悬浮胶囊)
  *
- * iOS 27 极简布局 (参照 BitChord 的 iOS 26 Apple Music 式摆位):
- * - 主胶囊只放 2 个 Tab 图标 (无文字、无分隔线), 宽度贴合内容, 直接居中悬浮
- * - 搜索是独立的玻璃圆钮, 锚定在右侧边缘, 与底坞彻底分离, 不要任何多余装饰
+ * iOS 27 极简布局:
+ * - 主胶囊只放 2 个 Tab 图标 (无文字、无分隔线), 宽度贴合内容
+ * - 搜索是独立的小玻璃圆钮 (44dp, 比胶囊矮一截), 与胶囊隔 20dp → 一眼读作两个独立容器
+ * - 胶囊 + 间距 + 搜索圆钮 整组水平居中, 不要任何多余装饰
  * - 选中态是"液态滑镜": 唯一一块镜片在 Tab 之间弹簧滑行, 行进中拉伸回弹
  * - 全部中性无色: 玻璃体半透明白, 页面纯白上呈悬浮磨砂
  */
@@ -306,61 +307,58 @@ fun LiquidGlassBottomBar(
             .padding(horizontal = 20.dp, vertical = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        // 主胶囊: 2 Tab 图标, 宽度贴合内容, 居中悬浮 (与搜索彻底分离)
-        FrostedGlass(
-            shape = RoundedCornerShape(29.dp),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .height(58.dp),
-            veilAlpha = 0.30f,
-            tintGradient = Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.82f),
-                    Color(0xFFF0F1F4).copy(alpha = 0.76f),
-                )
-            ),
-        ) {
-            Box {
-                // —— 液态滑镜: 唯一的选中底, 画在图标之下; 尺寸随抬升/形变逐帧变化 ——
-                val lensShape = RoundedCornerShape((lensH / 2f).dp)
-                Box(
-                    Modifier
-                        .align(Alignment.CenterStart)
-                        .offset(x = 8.dp + (mPos * TAB_STEP_DP).dp)
-                        .width(lensW.dp)
-                        .height(lensH.dp)
-                        .clip(lensShape)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.60f),
-                                    Color.White.copy(alpha = 0.08f),
-                                    Color.Black.copy(alpha = 0.05f),
+        // 两容器挨着成组、整组居中: 主胶囊(2 Tab) + 20dp 间距 + 独立搜索圆钮(44dp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // 主胶囊: 宽度贴合内容, 只装图标
+            FrostedGlass(
+                shape = RoundedCornerShape(29.dp),
+                modifier = Modifier.height(58.dp),
+                veilAlpha = 0.30f,
+                tintGradient = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.82f),
+                        Color(0xFFF0F1F4).copy(alpha = 0.76f),
+                    )
+                ),
+            ) {
+                Box {
+                    // —— 液态滑镜: 唯一的选中底, 画在图标之下; 尺寸随抬升/形变逐帧变化 ——
+                    val lensShape = RoundedCornerShape((lensH / 2f).dp)
+                    Box(
+                        Modifier
+                            .align(Alignment.CenterStart)
+                            .offset(x = 8.dp + (mPos * TAB_STEP_DP).dp)
+                            .width(lensW.dp)
+                            .height(lensH.dp)
+                            .clip(lensShape)
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.60f),
+                                        Color.White.copy(alpha = 0.08f),
+                                        Color.Black.copy(alpha = 0.05f),
+                                    )
                                 )
                             )
-                        )
-                        .border(0.5.dp, Color.Black.copy(alpha = 0.08f), lensShape),
-                )
-                Row(
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    tabs.forEachIndexed { index, tab ->
-                        DockTabItem(
-                            tab = tab,
-                            selected = index == selectedIndex,
-                            onClick = { onSelected(index) },
-                        )
+                            .border(0.5.dp, Color.Black.copy(alpha = 0.08f), lensShape),
+                    )
+                    Row(
+                        modifier = Modifier.padding(start = 8.dp, end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            DockTabItem(
+                                tab = tab,
+                                selected = index == selectedIndex,
+                                onClick = { onSelected(index) },
+                            )
+                        }
                     }
                 }
             }
+            Spacer(Modifier.width(20.dp))
+            DockSearchButton(active = searchActive, onClick = onSearchClick)
         }
-        // 搜索: 独立玻璃圆钮, 锚定右侧边缘, 不与底坞连成一排
-        DockSearchButton(
-            active = searchActive,
-            onClick = onSearchClick,
-            modifier = Modifier.align(Alignment.CenterEnd),
-        )
     }
 }
 
@@ -398,13 +396,12 @@ private fun DockTabItem(
 }
 
 /**
- * 独立搜索圆钮 — 与主胶囊同一种玻璃, 锚定 Dock 右侧, 激活时内部浮现同一套镜片。
+ * 独立搜索圆钮 (44dp, 比胶囊矮一截 → 明确是另一个容器) — 与主胶囊同一种玻璃, 激活时内部浮现镜片。
  */
 @Composable
 private fun DockSearchButton(
     active: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val t = animateFloatAsState(
         targetValue = if (active) 1f else 0f,
@@ -412,7 +409,7 @@ private fun DockSearchButton(
     ).value
     FrostedGlass(
         shape = CircleShape,
-        modifier = modifier.size(52.dp),
+        modifier = Modifier.size(44.dp),
         veilAlpha = 0.30f,
         tintGradient = Brush.verticalGradient(
             colors = listOf(
@@ -427,7 +424,7 @@ private fun DockSearchButton(
             Box(
                 Modifier
                     .align(Alignment.Center)
-                    .size(44.dp)
+                    .size(36.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.verticalGradient(
@@ -447,7 +444,7 @@ private fun DockSearchButton(
             tint = if (active) Color(0xFF141413) else StoneGray,
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(24.dp),
+                .size(22.dp),
         )
     }
 }
