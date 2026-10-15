@@ -1,6 +1,6 @@
-package com.threel.openlist.data.api
+package com.datbox.app.data.api
 
-import com.threel.openlist.data.model.Mount
+import com.datbox.app.data.model.Mount
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.boolean

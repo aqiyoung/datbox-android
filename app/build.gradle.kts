@@ -36,17 +36,17 @@ android {
         }
     }
 
-    namespace = "com.threel.openlist"
+    namespace = "com.datbox.app"
     compileSdk = 34
 
     defaultConfig {
         // Synapse 套路: 单一 applicationId, 不加 .beta / .debug suffix
         // 老板手机只装一个包, 后续版本能覆盖装
-        applicationId = "com.threel.openlist"
+        applicationId = "com.datbox.app"
         minSdk = 26  // Android 8.0
         targetSdk = 34
-        versionCode = 127
-        versionName = "0.3.127"
+        versionCode = 10000
+        versionName = "1.0.0"
     }
 
     buildTypes {

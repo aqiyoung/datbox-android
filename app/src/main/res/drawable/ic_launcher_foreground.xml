@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  数匣 DATBOX 图形: 白匣 + 掀开的盖 + 数据条
+  - 盖 (31,28)-(77,41) r5, 略窄悬浮于身之上
+  - 身 (34,46)-(74,78) r8, 盖与身之间留 5px 背景缝 (开盖感)
+  - 数据条两条 (#20C997), 匣中"装着数据"
+  全部图形落在 adaptive icon 安全区 (108 canvas 中央 66dp 圆内)。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 盒盖 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,28 h36 a5,5 0 0 1 5,5 v3 a5,5 0 0 1 -5,5 h-36 a5,5 0 0 1 -5,-5 v-3 a5,5 0 0 1 5,-5 z" />
+
+    <!-- 盒身 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M34,54 a8,8 0 0 1 8,-8 h24 a8,8 0 0 1 8,8 v16 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 z" />
+
+    <!-- 数据条 -->
+    <path
+        android:fillColor="#20C997"
+        android:pathData="M42,55 h20 a2.5,2.5 0 0 1 0,5 h-20 a2.5,2.5 0 0 1 0,-5 z" />
+    <path
+        android:fillColor="#20C997"
+        android:pathData="M42,65 h14 a2.5,2.5 0 0 1 0,5 h-14 a2.5,2.5 0 0 1 0,-5 z" />
+</vector>

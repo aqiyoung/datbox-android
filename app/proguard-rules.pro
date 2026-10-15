@@ -33,8 +33,8 @@
 -dontwarn coil.**
 
 # ---- App model / API layer (serialized DTOs) ----
--keep class com.threel.openlist.data.model.** { *; }
--keep class com.threel.openlist.data.api.** { *; }
+-keep class com.datbox.app.data.model.** { *; }
+-keep class com.datbox.app.data.api.** { *; }
 
 # ---- Compose (keep @Composable, avoid stripping) ----
 -dontwarn androidx.compose.**
