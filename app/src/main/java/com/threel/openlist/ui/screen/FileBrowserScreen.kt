@@ -26,8 +26,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -635,14 +633,6 @@ private fun SearchBarRow(
     onQueryChange: (String) -> Unit,
     onClose: () -> Unit,
 ) {
-    val focusRequester = remember { FocusRequester() }
-    LaunchedEffect(Unit) {
-        try {
-            focusRequester.requestFocus()
-        } catch (_: IllegalStateException) {
-            // 首帧未附着时忽略, 用户仍可点按输入框
-        }
-    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -687,9 +677,7 @@ private fun SearchBarRow(
                             inner()
                         }
                     },
-                    modifier = Modifier
-                        .weight(1f)
-                        .focusRequester(focusRequester),
+                    modifier = Modifier.weight(1f),
                 )
                 if (query.isNotEmpty()) {
                     IconButton(

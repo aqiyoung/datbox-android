@@ -62,17 +62,15 @@ fun AboutScreen(onBack: () -> Unit) {
     val autoCheck by updateManager.autoCheckEnabled.collectAsState(initial = true)
 
     GlassDecorBackground {
-        Scaffold(
-            containerColor = Color.Transparent,
-        ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(bottom = 96.dp), // bottom: dock 悬浮区留白
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
+        // 不套自己的 Scaffold: 外层 MainScreen 已给足状态栏 inset,
+        // 再吃一遍会让返回行离状态栏空出双倍距离
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            contentPadding = PaddingValues(bottom = 96.dp), // bottom: dock 悬浮区留白
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
                 // 顶部返回 + 标题（内联，避免透明 TopAppBar 预留空白）
                 item {
                     Row(
@@ -232,7 +230,6 @@ fun AboutScreen(onBack: () -> Unit) {
                 item { Text("© 2026 三页云盘 · 仅供学习交流", fontSize = 11.sp, color = Color(0xFFAAAAAA)) }
                 item { Spacer(Modifier.height(16.dp)) }
             }
-        }
     }
 
     if (showUpdate && updateInfo != null) {

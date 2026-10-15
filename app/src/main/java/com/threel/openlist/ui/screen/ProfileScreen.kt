@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.threel.openlist.ui.component.GlassDecorBackground
-import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassRow
 import com.threel.openlist.ui.theme.StoneGray
 import com.threel.openlist.ui.viewmodel.ProfileViewModel
@@ -91,55 +90,53 @@ fun ProfileScreen(
                 }
             }
 
-            // 用户信息卡片
+            // 用户信息 (无卡片容器: 白底上裸排, 头像 + 账号/角色)
             item {
-                LiquidGlassCard(
-                    cornerRadius = 20.dp,
-                    contentPadding = 18.dp,
+                Row(
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            Color(0xFF20C997).copy(alpha = 0.18f),
-                                            Color(0xFF3A7BD5).copy(alpha = 0.14f),
-                                        )
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF20C997).copy(alpha = 0.18f),
+                                        Color(0xFF3A7BD5).copy(alpha = 0.14f),
                                     )
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                Icons.Outlined.Person,
-                                contentDescription = null,
-                                tint = Color(0xFF20C997),
-                                modifier = Modifier.size(30.dp),
-                            )
-                        }
-                        Spacer(Modifier.width(14.dp))
-                        Column {
-                            Text(
-                                user?.username ?: "—",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = Color(0xFF141413),
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                // role: 0=普通用户 1=游客 2=管理员 (OpenList internal/model/user.go)
-                                when (user?.role) {
-                                    2 -> "管理员"
-                                    1 -> "游客"
-                                    0 -> "普通用户"
-                                    else -> "—"
-                                },
-                                fontSize = 12.sp,
-                                color = StoneGray,
-                            )
-                        }
+                                )
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.Person,
+                            contentDescription = null,
+                            tint = Color(0xFF20C997),
+                            modifier = Modifier.size(30.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column {
+                        Text(
+                            user?.username ?: "—",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = Color(0xFF141413),
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            // role: 0=普通用户 1=游客 2=管理员 (OpenList internal/model/user.go)
+                            when (user?.role) {
+                                2 -> "管理员"
+                                1 -> "游客"
+                                0 -> "普通用户"
+                                else -> "—"
+                            },
+                            fontSize = 12.sp,
+                            color = StoneGray,
+                        )
                     }
                 }
             }
