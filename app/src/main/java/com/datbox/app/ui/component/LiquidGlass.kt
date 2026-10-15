@@ -293,7 +293,7 @@ fun LiquidGlassFab(
  * 设计参数参照 aqiyoung/FlClash@dev 的 NavigationDock (GPL-3.0, fork of chen08209/FlClash),
  * 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
- * - 条宽 = 条目数×80 + 16, 屏内居中, 左右边距 21
+ * - 条宽 = 屏宽 × 55%, 屏内居中
  * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
@@ -360,14 +360,16 @@ fun LiquidGlassBottomBar(
             .fillMaxWidth()
             // 不再加 navigationBarsPadding: Scaffold content padding 已含导航栏 inset,
             // Dock 改为悬浮在 content Box 内, 再加会双重内边距把胶囊顶高
-            .padding(horizontal = DOCK_EDGE_MARGIN.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                // 直接给死条宽 (勿改回 fillMaxWidth().widthIn(max): fillMaxWidth 会把约束
-                // 固定为整屏宽, widthIn 的 max 限制随之失效 — 药丸条会一直是全屏宽)
-                .width(barW.dp),
+                // 条宽 = 屏宽占比 (55%), 比例而非固定 dp → 各尺寸屏观感一致。
+                // 勿改回 fillMaxWidth().widthIn(max): fillMaxWidth 会把约束固定为整屏宽,
+                // widthIn 的 max 限制随之失效 — 药丸条会一直是全屏宽。
+                // 外层 Box 不加横向 padding, 故此处的 fillMaxWidth(fraction) 以整屏宽为基。
+                .fillMaxWidth(DOCK_WIDTH_FRACTION),
             horizontalArrangement = Arrangement.Center,
         ) {
             // 单层玻璃药丸: 条体与滑镜光斑同处一层轮廓内 → 视觉上只有一枚胶囊
@@ -559,7 +561,10 @@ private fun DockTabItem(
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
 
-/** 条目最大宽度: 条宽 = 条目数×80 + 内边距×4, 屏内居中 (136 仍偏短→加长至 176dp) */
+/** 条宽占屏宽比例 (用户指定 55%): 比例而非固定 dp, 各尺寸屏观感一致 */
+private const val DOCK_WIDTH_FRACTION = 0.55f
+
+/** 首帧步距估算用的条目宽度 (实际条宽以屏宽占比为准, 随后以 onSizeChanged 实测校正) */
 private const val DOCK_ITEM_MAX = 80f
 
 /** 条内边距: 滑镜静止时悬出条目每侧 4 */
@@ -569,9 +574,6 @@ private const val DOCK_BAR_PADDING = 4f
 private const val DOCK_ITEM_INSET = 8f
 
 private const val DOCK_BAR_HEIGHT = 62f
-
-/** 条体距屏幕边缘 */
-private const val DOCK_EDGE_MARGIN = 21f
 
 // ===== 液态滑镜运动学 (移植) =====
 
