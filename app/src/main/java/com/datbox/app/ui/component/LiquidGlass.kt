@@ -544,12 +544,12 @@ private fun DockTabItem(
             icon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.height(2.dp))
         Text(
             label,
-            fontSize = 9.sp,
+            fontSize = 10.sp,
             fontWeight = FontWeight.W500,
             maxLines = 1,
             color = tint,
@@ -559,8 +559,8 @@ private fun DockTabItem(
 
 // ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
 
-/** 条目最大宽度: 条宽 = 条目数×40 + 内边距×4, 屏内居中 (86→66→52→40: 两项 dock 收紧至 96dp) */
-private const val DOCK_ITEM_MAX = 40f
+/** 条目最大宽度: 条宽 = 条目数×60 + 内边距×4, 屏内居中 (96 局促→回调至 136dp, iOS 比例) */
+private const val DOCK_ITEM_MAX = 60f
 
 /** 条内边距: 滑镜静止时悬出条目每侧 4 */
 private const val DOCK_BAR_PADDING = 4f
