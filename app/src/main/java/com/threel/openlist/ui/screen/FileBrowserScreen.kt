@@ -25,6 +25,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -43,6 +45,7 @@ import com.threel.openlist.data.api.ManagementRepository
 import com.threel.openlist.data.api.OpenListRepository
 import com.threel.openlist.data.download.AppDownloadManager
 import com.threel.openlist.data.model.FsItem
+import com.threel.openlist.data.model.FsSearchNode
 import com.threel.openlist.ui.component.LiquidGlassAlertDialog
 import com.threel.openlist.ui.component.LiquidGlassCard
 import com.threel.openlist.ui.component.LiquidGlassPrimaryButton
@@ -52,7 +55,9 @@ import com.threel.openlist.ui.component.GlassDecorBackground
 import com.threel.openlist.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -70,6 +75,9 @@ data class FileBrowserState(
     val loading: Boolean = false,
     val error: String? = null,
     val searchQuery: String = "",
+    val searching: Boolean = false,
+    val searchResults: List<FsSearchNode> = emptyList(),
+    val searchError: String? = null,
     val sortMode: SortMode = SortMode.DEFAULT,
     val isRefreshing: Boolean = false,
 )
@@ -107,7 +115,47 @@ class FileBrowserViewModel @Inject constructor(
             }
         }
 
-    fun updateSearchQuery(query: String) { _state.value = _state.value.copy(searchQuery = query) }
+    private var searchJob: Job? = null
+
+    /** 输入关键词 → 350ms 防抖 → 服务端检索 (取消上一轮在途请求, 结果不会串) */
+    fun updateSearchQuery(query: String) {
+        _state.value = _state.value.copy(searchQuery = query)
+        searchJob?.cancel()
+        val q = query.trim()
+        if (q.isEmpty()) {
+            _state.value = _state.value.copy(searching = false, searchResults = emptyList(), searchError = null)
+            return
+        }
+        // 按键即置 searching, 覆盖防抖窗口, 避免在旧结果为空时闪现「没有找到」
+        _state.value = _state.value.copy(searching = true, searchError = null)
+        searchJob = viewModelScope.launch {
+            delay(350)
+            val result = repo.search(q)
+            // repo 的 runCatching 会吞掉 CancellationException: 已被新输入取消就直接终止, 不写状态
+            ensureActive()
+            result.onSuccess { hits ->
+                _state.value = _state.value.copy(searching = false, searchResults = hits)
+            }.onFailure { e ->
+                _state.value = _state.value.copy(
+                    searching = false,
+                    searchResults = emptyList(),
+                    searchError = e.message ?: "搜索失败",
+                )
+            }
+        }
+    }
+
+    /** 退出搜索态: 清查询/结果/在途请求 */
+    fun closeSearch() {
+        searchJob?.cancel()
+        _state.value = _state.value.copy(
+            searchQuery = "",
+            searching = false,
+            searchResults = emptyList(),
+            searchError = null,
+        )
+    }
+
     fun updateSortMode(mode: SortMode) { _state.value = _state.value.copy(sortMode = mode) }
 
     fun load(path: String) {
@@ -243,9 +291,14 @@ fun FileBrowserScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 系统返回手势 / 返回键: 子目录内拦截 = 返回上一级; 根目录放行交给系统退出
-    BackHandler(enabled = state.path != "/") {
-        vm.load(vm.goUp())
+    // 系统返回: 搜索态先退出搜索; 子目录拦截 = 返回上一级; 根目录放行交给系统退出
+    BackHandler(enabled = searchActive || state.path != "/") {
+        if (searchActive) {
+            onSearchActiveChange(false)
+            vm.closeSearch()
+        } else {
+            vm.load(vm.goUp())
+        }
     }
 
     var menuItem by remember { mutableStateOf<FsItem?>(null) }
@@ -295,17 +348,6 @@ fun FileBrowserScreen(
         }
     }
 
-    // 搜索弹窗
-    if (searchActive) {
-        SearchDialog(
-            query = state.searchQuery,
-            onQueryChange = vm::updateSearchQuery,
-            onSortSelected = { mode -> vm.updateSortMode(mode) },
-            sortMode = state.sortMode,
-            onDismiss = { onSearchActiveChange(false); vm.updateSearchQuery("") },
-        )
-    }
-
     GlassDecorBackground(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -328,16 +370,44 @@ fun FileBrowserScreen(
                     )
                 }
         ) {
-            // 顶部栏: 仅退出按钮 + 上传 (搜索已移至底部导航栏)
-            FileBrowserTopBar(
-                path = state.path,
-                onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
-                onLogout = onLogout,
-                onUpload = { pickFileLauncher.launch("*/*") },
-            )
+            // 顶部栏: 搜索态换成内联搜索条 (不弹窗), 浏览态保留返回/标题/排序/上传
+            if (searchActive) {
+                SearchBarRow(
+                    query = state.searchQuery,
+                    onQueryChange = vm::updateSearchQuery,
+                    onClose = {
+                        onSearchActiveChange(false)
+                        vm.closeSearch()
+                    },
+                )
+            } else {
+                FileBrowserTopBar(
+                    path = state.path,
+                    onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
+                    onLogout = onLogout,
+                    onUpload = { pickFileLauncher.launch("*/*") },
+                    onSortSelected = vm::updateSortMode,
+                )
+            }
 
-            // 文件列表
-            when {
+            // 列表: 搜索态显示服务端检索结果, 否则文件列表
+            if (searchActive) {
+                SearchResultsList(
+                    state = state,
+                    onRetry = { vm.updateSearchQuery(state.searchQuery) },
+                    modifier = Modifier.weight(1f),
+                    onOpen = { path, name, isDir ->
+                        if (isDir) {
+                            // 点目录结果 → 退出搜索并进入该目录
+                            onSearchActiveChange(false)
+                            vm.closeSearch()
+                            vm.load(path)
+                        } else {
+                            onPreview(path, name)
+                        }
+                    },
+                )
+            } else when {
                 state.loading -> CenterLoading()
                 state.error != null -> CenterMessage(state.error!!, "刷新")
                 state.items.isEmpty() -> CenterMessage(
@@ -451,7 +521,9 @@ private fun FileBrowserTopBar(
     onBack: (() -> Unit)?,
     onLogout: () -> Unit,
     onUpload: () -> Unit = {},
+    onSortSelected: (SortMode) -> Unit = {},
 ) {
+    var sortMenuExpanded by remember { mutableStateOf(false) }
     val title = if (path == "/") "三页云盘" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
@@ -478,6 +550,29 @@ private fun FileBrowserTopBar(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+
+        // 排序 (原搜索弹窗里的入口)
+        Box {
+            IconButton(onClick = { sortMenuExpanded = true }) {
+                Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = Color(0xFF141413))
+            }
+            DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
+                listOf(
+                    SortMode.DEFAULT to "默认排序",
+                    SortMode.NAME_ASC to "名称 A→Z",
+                    SortMode.NAME_DESC to "名称 Z→A",
+                    SortMode.SIZE_ASC to "大小 小→大",
+                    SortMode.SIZE_DESC to "大小 大→小",
+                    SortMode.DATE_ASC to "日期 旧→新",
+                    SortMode.DATE_DESC to "日期 新→旧",
+                ).forEach { (mode, label) ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = { onSortSelected(mode); sortMenuExpanded = false },
+                    )
+                }
+            }
+        }
 
         // 上传按钮 (右上角加号)
         IconButton(onClick = onUpload) {
@@ -520,73 +615,87 @@ private fun FabMenuItemRow(item: FabMenuItem) {
     }
 }
 
-// ===== 搜索弹窗 =====
-@OptIn(ExperimentalMaterial3Api::class)
+// ===== 内联搜索 (无弹窗) =====
+/** 内联搜索条 — 搜索态替换顶部栏 (不弹窗); 进入即自动聚焦拉起键盘 */
 @Composable
-private fun SearchDialog(
+private fun SearchBarRow(
     query: String,
     onQueryChange: (String) -> Unit,
-    onSortSelected: (SortMode) -> Unit,
-    sortMode: SortMode,
-    onDismiss: () -> Unit,
+    onClose: () -> Unit,
 ) {
-    var sortMenuExpanded by remember { mutableStateOf(false) }
-
-    LiquidGlassAlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("搜索文件", color = Color(0xFF141413)) },
-        text = {
-            Column {
-                OutlinedTextField(
-                    value = query, onValueChange = onQueryChange,
-                    placeholder = { Text("输入文件名...", color = Color(0xFF87867F)) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF141413),
-                        unfocusedBorderColor = Color(0xFFD9D8D4),
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(12.dp))
-                // 排序选择
-                Box {
-                    TextButton(onClick = { sortMenuExpanded = true }) {
-                        Icon(Icons.Outlined.Sort, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("排序: ${sortModeLabel(sortMode)}", color = Color(0xFF141413))
-                    }
-                    DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                        listOf(
-                            SortMode.DEFAULT to "默认排序",
-                            SortMode.NAME_ASC to "名称 A→Z",
-                            SortMode.NAME_DESC to "名称 Z→A",
-                            SortMode.SIZE_ASC to "大小 小→大",
-                            SortMode.SIZE_DESC to "大小 大→小",
-                            SortMode.DATE_ASC to "日期 旧→新",
-                            SortMode.DATE_DESC to "日期 新→旧",
-                        ).forEach { (mode, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = { onSortSelected(mode); sortMenuExpanded = false },
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("完成", color = Color(0xFF141413))
-            }
-        },
-    )
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) {
+        try {
+            focusRequester.requestFocus()
+        } catch (_: IllegalStateException) {
+            // 首帧未附着时忽略, 用户仍可点按输入框
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onClose) {
+            Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = Color(0xFF141413))
+        }
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            placeholder = { Text("搜索全盘文件...", color = Color(0xFF87867F)) },
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF141413),
+                unfocusedBorderColor = Color(0xFFD9D8D4),
+            ),
+            modifier = Modifier
+                .weight(1f)
+                .focusRequester(focusRequester),
+        )
+    }
 }
 
-private fun sortModeLabel(mode: SortMode) = when (mode) {
-    SortMode.DEFAULT -> "默认"
-    SortMode.NAME_ASC, SortMode.NAME_DESC -> "名称"
-    SortMode.SIZE_ASC, SortMode.SIZE_DESC -> "大小"
-    SortMode.DATE_ASC, SortMode.DATE_DESC -> "日期"
+/**
+ * 搜索结果列表 — 服务端检索 (POST /api/fs/search, parent="/" 全盘, 350ms 防抖)。
+ * 点目录 → 退出搜索并进入该目录; 点文件 → 预览。不弹任何窗。
+ * 结果不带长按菜单 (菜单路径依赖当前目录, 与结果所在目录不符)。
+ */
+@Composable
+private fun SearchResultsList(
+    state: FileBrowserState,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpen: (path: String, name: String, isDir: Boolean) -> Unit,
+) {
+    when {
+        state.searchQuery.isBlank() -> CenterMessage("输入关键词, 搜索全盘文件")
+        state.searching -> CenterLoading()
+        state.searchError != null -> CenterMessage("搜索失败: ${state.searchError}", "重试", onRetry)
+        state.searchResults.isEmpty() -> CenterMessage("没有找到「${state.searchQuery.trim()}」")
+        else -> LazyColumn(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = modifier,
+        ) {
+            items(state.searchResults) { hit ->
+                val hitPath = if (hit.parent.isEmpty() || hit.parent == "/") {
+                    "/${hit.name}"
+                } else {
+                    "${hit.parent.trimEnd('/')}/${hit.name}"
+                }
+                FileRow(
+                    icon = { FileTypeIconBox(fileStyleFor(hit.name, hit.isDir)) },
+                    name = hit.name,
+                    size = if (hit.isDir) "" else humanSize(hit.size),
+                    modified = "",
+                    onClick = { onOpen(hitPath, hit.name, hit.isDir) },
+                    onLongClick = null,
+                    onMenuClick = null,
+                )
+            }
+        }
+    }
 }
 
 // ===== 文件行 =====

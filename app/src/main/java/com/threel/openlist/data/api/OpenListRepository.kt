@@ -138,6 +138,13 @@ class OpenListRepository @Inject constructor(
         resp.data?.content ?: emptyList()
     }
 
+    /** POST /api/fs/search — 服务端检索 (parent="/" 全盘, scope 0=目录+文件)。需服务端开启搜索索引, 否则报错。 */
+    suspend fun search(keywords: String, parent: String = "/", scope: Int = 0): Result<List<com.threel.openlist.data.model.FsSearchNode>> = runCatching {
+        val resp = api.search(FsSearchRequest(parent = parent, keywords = keywords, scope = scope))
+        if (resp.code != 200) error("搜索失败: ${resp.message}")
+        resp.data?.content ?: emptyList()
+    }
+
     suspend fun get(path: String): Result<com.threel.openlist.data.model.FsItem?> = runCatching {
         val resp = api.get(FsListRequest(path = path))
         if (resp.code != 200) error("获取失败: ${resp.message}")

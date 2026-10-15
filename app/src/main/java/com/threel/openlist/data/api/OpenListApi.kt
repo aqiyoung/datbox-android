@@ -2,6 +2,7 @@ package com.threel.openlist.data.api
 
 import com.threel.openlist.data.model.FsGetResponse
 import com.threel.openlist.data.model.FsListResponse
+import com.threel.openlist.data.model.FsSearchResponse
 import com.threel.openlist.data.model.LoginResponse
 import com.threel.openlist.data.model.UserInfo
 import retrofit2.http.Body
@@ -29,6 +30,16 @@ data class FsListRequest(
 @Serializable
 data class FsGetRequest(
     val path: String,
+)
+
+/** POST /api/fs/search 请求体 (parent="/" 为全盘; scope: 0=全部, 1=仅目录, 2=仅文件; 需服务端开启搜索索引) */
+@Serializable
+data class FsSearchRequest(
+    val parent: String = "/",
+    val keywords: String,
+    val scope: Int = 0,
+    val page: Int = 1,
+    @kotlinx.serialization.SerialName("per_page") val perPage: Int = 50,
 )
 
 /** 老板 6/13 v0.3.0: 上传响应 */
@@ -63,6 +74,9 @@ interface OpenListApi {
 
     @POST("api/fs/list")
     suspend fun list(@Body req: FsListRequest): FsListResponse
+
+    @POST("api/fs/search")
+    suspend fun search(@Body req: FsSearchRequest): FsSearchResponse
 
     @POST("api/fs/get")
     suspend fun get(@Body req: FsListRequest): FsGetResponse
