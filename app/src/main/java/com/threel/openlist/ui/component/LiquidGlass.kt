@@ -309,6 +309,7 @@ fun LiquidGlassBottomBar(
     // 保证任何屏宽/约束行为下滑镜与条目严格对齐 (此前静态假设 274 曾致错位)
     val count = tabs.size + 1 // 条目 = Tab + 搜索
     val barW = DOCK_ITEM_MAX * count + DOCK_BAR_PADDING * 4
+    val density = LocalDensity.current
     var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
     val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
     val lensH =
@@ -336,7 +337,7 @@ fun LiquidGlassBottomBar(
                     .height(DOCK_BAR_HEIGHT.dp)
                     .onSizeChanged { size ->
                         // 实测条宽 → 步距, 与条目行同一坐标系
-                        val w = with(LocalDensity.current) { size.width.toDp().value }
+                        val w = with(density) { size.width.toDp().value }
                         val p = (w - DOCK_ITEM_INSET * 2) / count
                         if (abs(p - pitch) > 0.01f) pitch = p
                     },
