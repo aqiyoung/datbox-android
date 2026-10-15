@@ -37,12 +37,11 @@ class TokenStore @Inject constructor(
         ctx.dataStore.edit { it[TOKEN_KEY] = token }
     }
 
-    /** 退出登录: 清 token + 缓存的密码（密码不该在退出后还留在盘上）；保留用户名方便下次输入。 */
+    /** 退出登录: 只清 token; 「记住我」存下的用户名+密码保留 — 用户要求退出后密码还在, 下次打开自动填上 */
     suspend fun clear() {
         cachedToken = ""
         ctx.dataStore.edit {
             it.remove(TOKEN_KEY)
-            it.remove(PASSWORD_KEY)
         }
     }
 

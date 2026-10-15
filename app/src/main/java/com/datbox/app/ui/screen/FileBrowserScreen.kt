@@ -374,7 +374,6 @@ fun FileBrowserScreen(
             } else {
                 FileBrowserTopBar(
                     path = state.path,
-                    onBack = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                     onLogout = onLogout,
                     onUpload = { pickFileLauncher.launch("*/*") },
                     onSortSelected = vm::updateSortMode,
@@ -505,11 +504,10 @@ fun FileBrowserScreen(
     }
 }
 
-// ===== 顶部栏: 仅退出 + 上传 =====
+// ===== 顶部栏: 品牌标识 + 排序 + 上传 (无返回箭头, 上一级走系统返回) =====
 @Composable
 private fun FileBrowserTopBar(
     path: String,
-    onBack: (() -> Unit)?,
     onLogout: () -> Unit,
     onUpload: () -> Unit = {},
     onSortSelected: (SortMode) -> Unit = {},
@@ -519,24 +517,15 @@ private fun FileBrowserTopBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 返回按钮 (仅非根目录显示)
-        if (onBack != null) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
-            }
-        } else {
-            Spacer(Modifier.width(8.dp))
-        }
-
-        // 标题
+        // 标题 / 根目录即品牌标识: 放大加粗 (iOS 大标题感)
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.ExtraBold,
             color = Color(0xFF141413),
-            fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

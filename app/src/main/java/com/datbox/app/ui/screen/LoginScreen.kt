@@ -168,11 +168,11 @@ fun LoginScreen(
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier.size(72.dp),
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(R.drawable.datbox_logo),
                         contentDescription = "数匣 DATBOX",
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(52.dp)
                     )
                 }
             }
