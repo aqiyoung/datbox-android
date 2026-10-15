@@ -318,7 +318,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "v${BuildConfig.VERSION_NAME} · 三页札记",
+                "v${BuildConfig.VERSION_NAME} · DATBOX",
                 fontSize = 12.sp,
                 color = Color(0xFFCCCCCC)
             )

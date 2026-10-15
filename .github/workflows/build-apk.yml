@@ -68,7 +68,7 @@ jobs:
 
           if [ "$IS_STABLE" = "true" ]; then
             echo "tag=v$SEMVER" >> $GITHUB_OUTPUT
-            echo "name=三页云盘 v$SEMVER" >> $GITHUB_OUTPUT
+            echo "name=数匣 v$SEMVER" >> $GITHUB_OUTPUT
             echo "prerelease=false" >> $GITHUB_OUTPUT
           else
             # Beta: 查找同版本已有的 beta tag, 自动递增 (Synapse 套路)
@@ -80,7 +80,7 @@ jobs:
               BETA_NUM=$((BETA_NUM + 1))
             fi
             echo "tag=v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
-            echo "name=三页云盘 v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
+            echo "name=数匣 v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
 
@@ -119,15 +119,15 @@ jobs:
         if: success()
         run: |
           mv app/build/outputs/apk/release/app-release.apk \
-             app/build/outputs/apk/release/sanyun-${{ steps.tag.outputs.tag }}.apk
+             app/build/outputs/apk/release/datbox-${{ steps.tag.outputs.tag }}.apk
           ls -lh app/build/outputs/apk/release/
 
       - name: Upload APK artifact
         if: success()
         uses: actions/upload-artifact@v5
         with:
-          name: sanyun-${{ steps.tag.outputs.tag }}
-          path: app/build/outputs/apk/release/sanyun-${{ steps.tag.outputs.tag }}.apk
+          name: datbox-${{ steps.tag.outputs.tag }}
+          path: app/build/outputs/apk/release/datbox-${{ steps.tag.outputs.tag }}.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -145,7 +145,7 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.name }}
-          files: app/build/outputs/apk/release/sanyun-${{ steps.tag.outputs.tag }}.apk
+          files: app/build/outputs/apk/release/datbox-${{ steps.tag.outputs.tag }}.apk
           generate_release_notes: true
           prerelease: ${{ steps.tag.outputs.prerelease }}
         env:
@@ -153,7 +153,7 @@ jobs:
 
       - name: 推送新版本到 Telegram（私人）
         # 参照 sanyelive release.yml 的 Telegram 推送步骤：构建成功才发，只发 APK 直链 + 构建日志。
-        # 机密 TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 需在仓库 Settings 配置（注意 APK 实际名为 sanyun-*）。
+        # 机密 TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 需在仓库 Settings 配置（注意 APK 实际名为 datbox-*）。
         if: success() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         env:
           TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -162,10 +162,10 @@ jobs:
           set -e
           TAG="${{ steps.tag.outputs.tag }}"
           PROXY="https://gh-proxy.com/"
-          DL="${PROXY}https://github.com/aqiyoung/openlist-android/releases/download/${TAG}/sanyun-${TAG}.apk"
+          DL="${PROXY}https://github.com/aqiyoung/openlist-android/releases/download/${TAG}/datbox-${TAG}.apk"
           LOG_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
           {
-            echo "📦 三页云盘 $TAG 构建成功"
+            echo "📦 数匣 $TAG 构建成功"
             echo ""
             echo "APK 下载：${DL}"
             echo ""

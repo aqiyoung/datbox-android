@@ -515,7 +515,7 @@ private fun FileBrowserTopBar(
     onSortSelected: (SortMode) -> Unit = {},
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    val title = if (path == "/") "三页云盘" else path.substringAfterLast('/')
+    val title = if (path == "/") "数匣" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -229,7 +229,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
 
                 item { Spacer(Modifier.height(20.dp)) }
-                item { Text("© 2026 三页云盘 · 仅供学习交流", fontSize = 11.sp, color = Color(0xFFAAAAAA)) }
+                item { Text("© 2026 数匣 · 仅供学习交流", fontSize = 11.sp, color = Color(0xFFAAAAAA)) }
                 item { Spacer(Modifier.height(16.dp)) }
             }
     }
