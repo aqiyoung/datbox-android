@@ -1,5 +1,7 @@
 package com.datbox.app.ui.screen
 
+import com.datbox.app.R
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +21,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -166,11 +169,10 @@ fun LoginScreen(
                 modifier = Modifier.size(72.dp),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        Icons.Outlined.Cloud,
-                        contentDescription = null,
-                        tint = Color(0xFF20C997),
-                        modifier = Modifier.size(36.dp)
+                    Image(
+                        painter = painterResource(R.drawable.datbox_logo),
+                        contentDescription = "数匣 DATBOX",
+                        modifier = Modifier.size(44.dp)
                     )
                 }
             }
