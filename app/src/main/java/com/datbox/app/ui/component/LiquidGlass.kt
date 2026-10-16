@@ -170,7 +170,7 @@ fun LiquidGlassRow(
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF87867F),
+                        color = StoneGray,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -443,7 +443,7 @@ private fun DockTabItem(
             icon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(30.dp),
+            modifier = Modifier.size(32.dp),
         )
         Spacer(Modifier.height(2.dp))
         Text(
@@ -806,12 +806,12 @@ fun LiquidGlassPrimaryButton(
             horizontalArrangement = Arrangement.Center,
         ) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, tint = Color(0xFF141413), modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, tint = NearBlack, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
             }
             Text(
                 text = text,
-                color = Color(0xFF141413).copy(alpha = if (enabled) 1f else 0.5f),
+                color = NearBlack.copy(alpha = if (enabled) 1f else 0.5f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = MiSansFamily,

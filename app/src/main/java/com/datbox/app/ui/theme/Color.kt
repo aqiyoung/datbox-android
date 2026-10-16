@@ -25,3 +25,18 @@ val GlassBorder = Color.Black.copy(alpha = 0.07f)
 
 // Dark variants
 val WarmSilver = Color(0xFFB0AEA5)
+
+// ===== 语义色: 从散落的 inline Color(0xFF…) 收敛而来, 值与原处逐字一致 (观感不变) =====
+val BrandGreen = Color(0xFF20C997)      // 主品牌绿 (按钮 / 选中 / 强调)
+val SuccessGreen = Color(0xFF34C759)    // 成功
+val WarningOrange = Color(0xFFFF9500)   // 警告
+val DangerRed = Color(0xFFFF3B30)       // 危险 / 删除
+val ErrorRedSoft = Color(0xFFFF6B6B)    // 错误文案
+val FieldBg = Color(0xFFF5F7FB)         // 输入框浅底
+val TextStrong = Color(0xFF2A2925)      // 主文字
+val TextBody = Color(0xFF333333)        // 正文
+val TextMuted = Color(0xFF888888)       // 次要文字
+val TextFaint = Color(0xFFAAAAAA)       // 更弱 (图标 / 单位)
+val TextFainter = Color(0xFFBBBBBB)     // 占位符
+val TextGhost = Color(0xFFCCCCCC)       // 极弱 (版本号等)
+// 注: TextMuted / TextFaint / TextFainter / TextGhost 是四个相近灰阶, 值不同故暂各自保留, 后续可合并为两档

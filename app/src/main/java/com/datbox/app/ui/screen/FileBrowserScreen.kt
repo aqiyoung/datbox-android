@@ -42,7 +42,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
+import com.datbox.app.ui.theme.TextStrong
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -511,12 +515,14 @@ private fun FileBrowserTopBar(
     onSortSelected: (SortMode) -> Unit = {},
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
+    // 顶栏标题: headlineSmall (M3 默认 24sp) 降一档到 20sp, 缩小与文件名 16sp 的落差
+    val titleStyle = MaterialTheme.typography.headlineSmall.copy(fontSize = 20.sp, lineHeight = 26.sp)
     // 根目录: 左上角显示品牌 logo + 名称; 子目录显示当前目录名
     val title = if (path == "/") "" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // 根目录: 左上角放品牌 logo + 名称 (原来根目录大标题留空, 左上角显得空)
@@ -529,14 +535,14 @@ private fun FileBrowserTopBar(
                     painter = painterResource(R.drawable.datbox_logo),
                     // 紧邻的品牌文字已表达名称, 图片设为装饰, 避免 TalkBack 连读两次
                     contentDescription = null,
-                    modifier = Modifier.size(30.dp),
+                    modifier = Modifier.size(32.dp),
                 )
-                Spacer(Modifier.width(9.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = AppConfig.BRAND,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = titleStyle,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFF141413),
+                    color = NearBlack,
                     maxLines = 1,
                 )
             }
@@ -544,9 +550,9 @@ private fun FileBrowserTopBar(
             // 子目录: 显示当前目录名 (放大加粗, iOS 大标题感)
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = titleStyle,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF141413),
+                color = NearBlack,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -555,13 +561,13 @@ private fun FileBrowserTopBar(
 
         // 搜索入口 (从 dock 移至顶栏: 点开 SearchBarRow 内联搜索, 不弹窗)
         IconButton(onClick = onSearchClick) {
-            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = Color(0xFF141413))
+            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = NearBlack)
         }
 
         // 排序 (原搜索弹窗里的入口)
         Box {
             IconButton(onClick = { sortMenuExpanded = true }) {
-                Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = Color(0xFF141413))
+                Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = NearBlack)
             }
             DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
                 listOf(
@@ -583,7 +589,7 @@ private fun FileBrowserTopBar(
 
         // 上传按钮 (右上角加号)
         IconButton(onClick = onUpload) {
-            Icon(Icons.Outlined.Add, contentDescription = "上传", tint = Color(0xFF141413))
+            Icon(Icons.Outlined.Add, contentDescription = "上传", tint = NearBlack)
         }
     }
 }
@@ -602,11 +608,11 @@ private fun SearchBarRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onClose) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = Color(0xFF141413))
+            Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = NearBlack)
         }
         LiquidGlassCard(
             modifier = Modifier
@@ -619,13 +625,13 @@ private fun SearchBarRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.Outlined.Search,
                     contentDescription = null,
-                    tint = Color(0xFF87867F),
+                    tint = StoneGray,
                     modifier = Modifier.size(20.dp),
                 )
                 Spacer(Modifier.width(8.dp))
@@ -633,12 +639,12 @@ private fun SearchBarRow(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color(0xFF141413)),
-                    cursorBrush = SolidColor(Color(0xFF141413)),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = NearBlack),
+                    cursorBrush = SolidColor(NearBlack),
                     decorationBox = { inner ->
                         Box(contentAlignment = Alignment.CenterStart) {
                             if (query.isEmpty()) {
-                                Text("搜索全盘文件...", color = Color(0xFF87867F))
+                                Text("搜索全盘文件...", color = StoneGray)
                             }
                             inner()
                         }
@@ -653,7 +659,7 @@ private fun SearchBarRow(
                         Icon(
                             Icons.Outlined.Close,
                             contentDescription = "清除",
-                            tint = Color(0xFF87867F),
+                            tint = StoneGray,
                             modifier = Modifier.size(18.dp),
                         )
                     }
@@ -689,8 +695,8 @@ private fun SearchResultsList(
                 Text(
                     text = "“${state.searchQuery.trim()}” · ${state.searchResults.size} 个结果",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF87867F),
-                    modifier = Modifier.padding(start = 6.dp, end = 6.dp, bottom = 4.dp),
+                    color = StoneGray,
+                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp),
                 )
             }
             items(state.searchResults) { hit ->
@@ -743,7 +749,7 @@ private fun FileRow(
 
 @Composable
 private fun CenterLoading() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    CircularProgressIndicator(color = Color(0xFF141413))
+    CircularProgressIndicator(color = NearBlack)
 }
 
 @Composable
@@ -751,7 +757,7 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         LiquidGlassCard(modifier = Modifier.padding(32.dp).widthIn(max = 320.dp), cornerRadius = 24.dp, contentPadding = 24.dp) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(msg, color = Color(0xFF141413), style = MaterialTheme.typography.bodyLarge)
+                Text(msg, color = NearBlack, style = MaterialTheme.typography.bodyLarge)
                 if (actionLabel != null && onAction != null) {
                     Spacer(Modifier.height(12.dp))
                     LiquidGlassPrimaryButton(text = actionLabel, onClick = onAction, icon = Icons.Outlined.ArrowBack)
@@ -782,61 +788,61 @@ private fun GlassActionDialog(
         sheetState = sheetState,
         containerColor = Color(0xFFFBFAF7),
         dragHandle = {
-            Box(Modifier.fillMaxWidth().padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFD8D6CF)))
             }
         },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // Header
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                 FileTypeIconBox(fileStyle)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(fileName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (shareUrl == null) "文件操作" else "分享此文件", fontSize = 12.sp, color = Color(0xFF87867F))
+                    Text(fileName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (shareUrl == null) "文件操作" else "分享此文件", fontSize = 12.sp, color = StoneGray)
                 }
             }
             HorizontalDivider(color = Color(0xFFECEAE3))
             Spacer(Modifier.height(2.dp))
 
             // 下载
-            GlassActionItem(icon = Icons.Outlined.Download, iconTint = Color(0xFF141413), label = "下载到本地", subLabel = "保存到下载目录", onClick = onDownload)
+            GlassActionItem(icon = Icons.Outlined.Download, iconTint = NearBlack, label = "下载到本地", subLabel = "保存到下载目录", onClick = onDownload)
 
             // 分享区块
             when {
                 shareLoading -> {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color(0xFF20C997))
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = BrandGreen)
                         Spacer(Modifier.width(12.dp))
-                        Text("正在生成分享链接…", fontSize = 14.sp, color = Color(0xFF87867F))
+                        Text("正在生成分享链接…", fontSize = 14.sp, color = StoneGray)
                     }
                 }
                 shareUrl == null -> {
-                    GlassActionItem(icon = Icons.Outlined.Share, iconTint = Color(0xFF141413), label = "分享链接", subLabel = "获取可分享短链", onClick = onRequestShare)
+                    GlassActionItem(icon = Icons.Outlined.Share, iconTint = NearBlack, label = "分享链接", subLabel = "获取可分享短链", onClick = onRequestShare)
                 }
                 else -> {
                     LiquidGlassSurface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                     ) {
-                        Text(shareUrl, fontSize = 12.sp, color = Color(0xFF56544E), modifier = Modifier.fillMaxWidth().padding(14.dp), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text(shareUrl, fontSize = 12.sp, color = Color(0xFF56544E), modifier = Modifier.fillMaxWidth().padding(16.dp), maxLines = 3, overflow = TextOverflow.Ellipsis)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare), color = Color(0xFF20C997)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare), color = BrandGreen) {
                             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("复制链接", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
                         }
-                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = { onSystemShare(shareUrl) }), color = Color(0xFF2A2925)) {
+                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = { onSystemShare(shareUrl) }), color = TextStrong) {
                             Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                                Spacer(Modifier.width(6.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             }
                         }
@@ -844,8 +850,8 @@ private fun GlassActionDialog(
                 }
             }
 
-            GlassActionItem(icon = Icons.Outlined.Edit, iconTint = Color(0xFF141413), label = "重命名", subLabel = "修改文件名", onClick = onRename)
-            GlassActionItem(icon = Icons.Outlined.Delete, iconTint = Color(0xFFFF3B30), label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
+            GlassActionItem(icon = Icons.Outlined.Edit, iconTint = NearBlack, label = "重命名", subLabel = "修改文件名", onClick = onRename)
+            GlassActionItem(icon = Icons.Outlined.Delete, iconTint = DangerRed, label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
         }
     }
 }
@@ -857,14 +863,14 @@ private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, s
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(iconTint.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
                 Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
             }
-            Spacer(Modifier.width(14.dp))
+            Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF2A2925), fontWeight = FontWeight.Medium)
-                Text(subLabel, style = MaterialTheme.typography.bodySmall, color = Color(0xFF87867F))
+                Text(label, style = MaterialTheme.typography.bodyLarge, color = TextStrong, fontWeight = FontWeight.Medium)
+                Text(subLabel, style = MaterialTheme.typography.bodySmall, color = StoneGray)
             }
         }
     }
@@ -992,7 +998,7 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
                 // 正方形圆角底块 (所有类型统一, 不再用竖长文档页 / 横长文件夹)
                 val tileTopLeft = Offset(7f, 7f)
                 val tileSize = Size(32f, 32f)
-                val tileCorner = CornerRadius(8f, 8f)
+                val tileCorner = CornerRadius(9f, 9f)
                 drawRoundRect(style.bg, tileTopLeft, tileSize, tileCorner)
                 drawRoundRect(
                     style.fg.copy(alpha = 0.18f),
@@ -1001,7 +1007,7 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
                 )
 
                 // 类型符号: 符号按旧「文档页」坐标设计 (光学中心偏下 ~2.5), 上移归中后再略放大
-                scale(1.2f, pivot = Offset(23f, 23f)) {
+                scale(1.25f, pivot = Offset(23f, 23f)) {
                     translate(top = -2.5f) {
                         if (style.kind == FileKind.FOLDER) {
                             drawFolderGlyph(style.fg)

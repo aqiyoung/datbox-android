@@ -24,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.datbox.app.ui.component.GlassDecorBackground
 import com.datbox.app.ui.component.LiquidGlassRow
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.viewmodel.ProfileViewModel
 
@@ -67,7 +70,7 @@ fun ProfileScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 顶部栏
             item {
@@ -78,12 +81,12 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF141413))
+                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = NearBlack)
                     }
                     Text(
                         text = "我的",
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color(0xFF141413),
+                        color = NearBlack,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
@@ -93,7 +96,7 @@ fun ProfileScreen(
             // 用户信息 (无卡片容器: 白底上裸排, 头像 + 账号/角色)
             item {
                 Row(
-                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 10.dp),
+                    modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(
@@ -103,7 +106,7 @@ fun ProfileScreen(
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        Color(0xFF20C997).copy(alpha = 0.18f),
+                                        BrandGreen.copy(alpha = 0.18f),
                                         Color(0xFF3A7BD5).copy(alpha = 0.14f),
                                     )
                                 )
@@ -113,17 +116,17 @@ fun ProfileScreen(
                         Icon(
                             Icons.Outlined.Person,
                             contentDescription = null,
-                            tint = Color(0xFF20C997),
+                            tint = BrandGreen,
                             modifier = Modifier.size(30.dp),
                         )
                     }
-                    Spacer(Modifier.width(14.dp))
+                    Spacer(Modifier.width(16.dp))
                     Column {
                         Text(
                             user?.username ?: "—",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = Color(0xFF141413),
+                            color = NearBlack,
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -151,7 +154,7 @@ fun ProfileScreen(
                         Icon(
                             item.icon,
                             contentDescription = null,
-                            tint = Color(0xFF141413),
+                            tint = NearBlack,
                             modifier = Modifier.size(22.dp),
                         )
                     },
@@ -178,7 +181,7 @@ fun ProfileScreen(
                         Icon(
                             Icons.Outlined.Logout,
                             contentDescription = null,
-                            tint = Color(0xFFFF3B30),
+                            tint = DangerRed,
                             modifier = Modifier.size(22.dp),
                         )
                     },

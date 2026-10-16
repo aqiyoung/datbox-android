@@ -34,6 +34,14 @@ import com.datbox.app.BuildConfig
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.api.TokenStore
 import com.datbox.app.ui.component.LiquidGlassSurface
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.ErrorRedSoft
+import com.datbox.app.ui.theme.FieldBg
+import com.datbox.app.ui.theme.TextBody
+import com.datbox.app.ui.theme.TextFaint
+import com.datbox.app.ui.theme.TextFainter
+import com.datbox.app.ui.theme.TextGhost
+import com.datbox.app.ui.theme.TextMuted
 import com.datbox.app.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,13 +145,13 @@ fun LoginScreen(
                 modifier = Modifier,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(Icons.Filled.Storage, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
-                    Text("服务器", fontSize = 13.sp, color = Color(0xFF333333))
-                    Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = Color(0xFF333333), modifier = Modifier.size(16.dp))
+                    Icon(Icons.Filled.Storage, contentDescription = null, tint = TextBody, modifier = Modifier.size(16.dp))
+                    Text("服务器", fontSize = 13.sp, color = TextBody)
+                    Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = TextBody, modifier = Modifier.size(16.dp))
                 }
             }
             Spacer(Modifier.height(4.dp))
@@ -213,23 +221,23 @@ fun LoginScreen(
                         color = Color(0xFF1A1A1A)
                     )
 
-                    Spacer(Modifier.height(18.dp))
+                    Spacer(Modifier.height(20.dp))
 
                     // 用户名
                     OutlinedTextField(
                         value = state.username,
                         onValueChange = vm::onUsername,
-                        placeholder = { Text("用户名", color = Color(0xFFBBBBBB)) },
-                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = Color(0xFFAAAAAA), modifier = Modifier.size(18.dp)) },
+                        placeholder = { Text("用户名", color = TextFainter) },
+                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F7FB),
-                            unfocusedContainerColor = Color(0xFFF5F7FB),
-                            focusedBorderColor = Color(0xFF20C997),
+                            focusedContainerColor = FieldBg,
+                            unfocusedContainerColor = FieldBg,
+                            focusedBorderColor = BrandGreen,
                             unfocusedBorderColor = Color.Transparent,
-                            cursorColor = Color(0xFF20C997)
+                            cursorColor = BrandGreen
                         )
                     )
 
@@ -239,8 +247,8 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = state.password,
                         onValueChange = vm::onPassword,
-                        placeholder = { Text("密码", color = Color(0xFFBBBBBB)) },
-                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = Color(0xFFAAAAAA), modifier = Modifier.size(18.dp)) },
+                        placeholder = { Text("密码", color = TextFainter) },
+                        leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         visualTransformation = if (state.passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
@@ -248,7 +256,7 @@ fun LoginScreen(
                                 Icon(
                                     imageVector = if (state.passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                                     contentDescription = if (state.passwordVisible) "隐藏密码" else "显示密码",
-                                    tint = Color(0xFFAAAAAA),
+                                    tint = TextFaint,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -256,15 +264,15 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF5F7FB),
-                            unfocusedContainerColor = Color(0xFFF5F7FB),
-                            focusedBorderColor = Color(0xFF20C997),
+                            focusedContainerColor = FieldBg,
+                            unfocusedContainerColor = FieldBg,
+                            focusedBorderColor = BrandGreen,
                             unfocusedBorderColor = Color.Transparent,
-                            cursorColor = Color(0xFF20C997)
+                            cursorColor = BrandGreen
                         )
                     )
 
-                    Spacer(Modifier.height(14.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     // 记住我（可点击切换）
                     Row(
@@ -276,18 +284,18 @@ fun LoginScreen(
                         Icon(
                             if (state.rememberMe) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
                             contentDescription = null,
-                            tint = if (state.rememberMe) Color(0xFF20C997) else Color(0xFFCCCCCC),
+                            tint = if (state.rememberMe) BrandGreen else TextGhost,
                             modifier = Modifier.size(18.dp)
                         )
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
                             "记住我",
                             fontSize = 13.sp,
-                            color = if (state.rememberMe) Color(0xFF20C997) else Color(0xFF888888)
+                            color = if (state.rememberMe) BrandGreen else TextMuted
                         )
                     }
 
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
 
                     // 登录按钮（渐变绿）
                     Box(
@@ -297,7 +305,7 @@ fun LoginScreen(
                             .clip(RoundedCornerShape(14.dp))
                             .background(
                                 Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFF20C997), Color(0xFF12B886))
+                                    colors = listOf(BrandGreen, Color(0xFF12B886))
                                 )
                             )
                             .clickable(enabled = !state.loading && state.username.isNotBlank() && state.password.isNotBlank()) { vm.submit() },
@@ -312,7 +320,7 @@ fun LoginScreen(
 
                     if (state.error != null) {
                         Spacer(Modifier.height(12.dp))
-                        Text(state.error!!, color = Color(0xFFFF6B6B), style = MaterialTheme.typography.bodySmall)
+                        Text(state.error!!, color = ErrorRedSoft, style = MaterialTheme.typography.bodySmall)
                     }
 
                 }
@@ -323,7 +331,7 @@ fun LoginScreen(
             Text(
                 "v${BuildConfig.VERSION_NAME} · ${AppConfig.BRAND}",
                 fontSize = 12.sp,
-                color = Color(0xFFCCCCCC)
+                color = TextGhost
             )
         }
     }
