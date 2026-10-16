@@ -27,6 +27,7 @@ import com.datbox.app.data.model.Overview
 import com.datbox.app.data.model.Share
 import com.datbox.app.data.model.User
 import com.datbox.app.ui.viewmodel.ManagementViewModel
+import com.datbox.app.util.AppConfig
 
 enum class ManagementTab(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     USERS("用户", Icons.Outlined.Person),
@@ -605,7 +606,7 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
             CardItem {
                 Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                 Spacer(Modifier.height(8.dp))
-                Text("Datbox v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
+                Text("${AppConfig.BRAND} v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
                 Text("基于官方 OpenList 开发", color = Color(0xFF888888))
             }
         }
