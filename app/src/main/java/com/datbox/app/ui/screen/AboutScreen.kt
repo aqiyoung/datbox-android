@@ -39,6 +39,11 @@ import com.datbox.app.data.update.AppUpdateManager
 import com.datbox.app.data.update.GitHubUpdateResult
 import com.datbox.app.ui.component.GlassDecorBackground
 import com.datbox.app.ui.component.LiquidGlassSurface
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.ErrorRedSoft
+import com.datbox.app.ui.theme.TextFaint
+import com.datbox.app.ui.theme.TextMuted
+import com.datbox.app.ui.theme.TextStrong
 import com.datbox.app.util.AppConfig
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -82,13 +87,13 @@ fun AboutScreen(onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
                         }
                         Text(
                             text = "关于",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = Color(0xFF2A2925),
+                            color = TextStrong,
                         )
                     }
                 }
@@ -102,26 +107,26 @@ fun AboutScreen(onBack: () -> Unit) {
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)),
                         )
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(12.dp))
                         Text(
                             text = AppConfig.BRAND,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF2A2925),
+                            color = TextStrong,
                         )
                         Text(
                             text = AppConfig.BRAND_SUBTITLE,
                             fontSize = 12.sp,
-                            color = Color(0xFF888888),
+                            color = TextMuted,
                         )
-                        Spacer(Modifier.height(10.dp))
-                        Surface(shape = RoundedCornerShape(999.dp), color = Color(0xFF20C997).copy(alpha = 0.12f)) {
+                        Spacer(Modifier.height(12.dp))
+                        Surface(shape = RoundedCornerShape(999.dp), color = BrandGreen.copy(alpha = 0.12f)) {
                             Text(
                                 text = AppConfig.fullVersionString(context),
                                 fontSize = 12.sp,
                                 color = Color(0xFF1A9E80),
                                 fontWeight = FontWeight.Medium,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
                         }
                     }
@@ -136,7 +141,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             modifier = Modifier.weight(1f),
                             label = if (updateChecking) "检查中…" else "检查更新",
                             icon = Icons.Filled.SystemUpdate,
-                            tint = Color(0xFF20C997),
+                            tint = BrandGreen,
                             showProgress = updateChecking,
                             onClick = {
                                 updateChecking = true
@@ -163,7 +168,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             modifier = Modifier.weight(1f),
                             label = "开源仓库",
                             customPainter = painterResource(R.drawable.ic_github_cat),
-                            tint = Color(0xFF2A2925),
+                            tint = TextStrong,
                             onClick = {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/aqiyoung/datbox-android")))
                             },
@@ -180,18 +185,18 @@ fun AboutScreen(onBack: () -> Unit) {
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("启动时检查更新", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color(0xFF2A2925))
+                                Text("启动时检查更新", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = TextStrong)
                                 Spacer(Modifier.height(2.dp))
-                                Text("自动检测 GitHub 上的新版本", fontSize = 12.sp, color = Color(0xFF888888))
+                                Text("自动检测 GitHub 上的新版本", fontSize = 12.sp, color = TextMuted)
                             }
                             Switch(
                                 checked = autoCheck,
                                 onCheckedChange = { scope.launch { updateManager.setAutoCheckEnabled(it) } },
-                                colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF20C997)),
+                                colors = SwitchDefaults.colors(checkedTrackColor = BrandGreen),
                             )
                         }
                     }
@@ -206,8 +211,8 @@ fun AboutScreen(onBack: () -> Unit) {
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text("开源信息", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
-                            Spacer(Modifier.height(10.dp))
+                            Text("开源信息", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextStrong)
+                            Spacer(Modifier.height(12.dp))
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -216,12 +221,12 @@ fun AboutScreen(onBack: () -> Unit) {
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(20.dp))
-                                Spacer(Modifier.width(10.dp))
+                                Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(AppConfig.UPSTREAM_NOTE, fontSize = 13.sp, color = Color(0xFF2A2925))
+                                    Text(AppConfig.UPSTREAM_NOTE, fontSize = 13.sp, color = TextStrong)
                                     Spacer(Modifier.height(2.dp))
-                                    Text(AppConfig.UPSTREAM_REPO, fontSize = 11.sp, color = Color(0xFF888888), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Text(AppConfig.UPSTREAM_REPO, fontSize = 11.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                         }
@@ -229,7 +234,7 @@ fun AboutScreen(onBack: () -> Unit) {
                 }
 
                 item { Spacer(Modifier.height(20.dp)) }
-                item { Text("© 2026 Datbox · 仅供学习交流", fontSize = 11.sp, color = Color(0xFFAAAAAA)) }
+                item { Text("© 2026 Datbox · 仅供学习交流", fontSize = 11.sp, color = TextFaint) }
                 item { Spacer(Modifier.height(16.dp)) }
             }
     }
@@ -270,7 +275,7 @@ private fun ActionCard(
                 icon != null -> Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = Color(0xFF2A2925))
+            Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = TextStrong)
         }
     }
 }
@@ -299,24 +304,24 @@ private fun UpdateFoundDialog(
             ) {
                 // 图标 + 标题 (居中式弹窗头)
                 Box(
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(0xFF20C997).copy(alpha = 0.15f)),
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(BrandGreen.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Filled.SystemUpdate,
                         contentDescription = null,
-                        tint = Color(0xFF20C997),
+                        tint = BrandGreen,
                         modifier = Modifier.size(26.dp),
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("发现新版本", fontSize = 13.sp, color = Color(0xFF888888))
+                Text("发现新版本", fontSize = 13.sp, color = TextMuted)
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = result.latestVersion,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2A2925),
+                    color = TextStrong,
                 )
 
                 Spacer(Modifier.height(20.dp))
@@ -327,20 +332,20 @@ private fun UpdateFoundDialog(
                         modifier = Modifier.weight(1f),
                         title = "当前版本",
                         version = manager.currentVersionName,
-                        accent = Color(0xFF888888),
+                        accent = TextMuted,
                     )
                     VersionCompareCard(
                         modifier = Modifier.weight(1f),
                         title = "最新版本",
                         version = result.latestVersion,
-                        accent = Color(0xFF20C997),
+                        accent = BrandGreen,
                     )
                 }
 
                 // 关键更新警示
                 if (result.isCritical) {
                     Spacer(Modifier.height(16.dp))
-                    Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFFFF6B6B).copy(alpha = 0.1f)) {
+                    Surface(shape = RoundedCornerShape(12.dp), color = ErrorRedSoft.copy(alpha = 0.1f)) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -348,7 +353,7 @@ private fun UpdateFoundDialog(
                             Icon(
                                 imageVector = Icons.Outlined.Warning,
                                 contentDescription = null,
-                                tint = Color(0xFFFF6B6B),
+                                tint = ErrorRedSoft,
                                 modifier = Modifier.size(18.dp),
                             )
                             Spacer(Modifier.width(8.dp))
@@ -362,8 +367,8 @@ private fun UpdateFoundDialog(
                     val body = notes.lines().drop(1).joinToString("\n").trim()
                     if (body.isNotEmpty()) {
                         Spacer(Modifier.height(16.dp))
-                        Text("更新内容", fontSize = 12.sp, color = Color(0xFF888888))
-                        Spacer(Modifier.height(6.dp))
+                        Text("更新内容", fontSize = 12.sp, color = TextMuted)
+                        Spacer(Modifier.height(8.dp))
                         Text(
                             text = if (body.length > 400) body.take(400) + "…" else body,
                             fontSize = 13.sp,
@@ -397,7 +402,7 @@ private fun UpdateFoundDialog(
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                     ) {
                         Text("前往更新", color = Color.White)
                     }
@@ -421,9 +426,9 @@ private fun VersionCompareCard(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
         ) {
-            Text(title, fontSize = 12.sp, color = Color(0xFF888888))
+            Text(title, fontSize = 12.sp, color = TextMuted)
             Spacer(Modifier.height(4.dp))
             Text(
                 text = version,

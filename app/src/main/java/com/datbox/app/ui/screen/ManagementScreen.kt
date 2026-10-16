@@ -27,6 +27,13 @@ import com.datbox.app.data.model.Overview
 import com.datbox.app.data.model.Share
 import com.datbox.app.data.model.User
 import com.datbox.app.ui.viewmodel.ManagementViewModel
+import com.datbox.app.ui.theme.BorderLight
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.SuccessGreen
+import com.datbox.app.ui.theme.TextMuted
+import com.datbox.app.ui.theme.TextStrong
+import com.datbox.app.ui.theme.WarningOrange
 import com.datbox.app.util.AppConfig
 
 enum class ManagementTab(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
@@ -50,10 +57,10 @@ fun ManagementScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("管理", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
+                    title = { Text("管理", fontWeight = FontWeight.Bold, color = TextStrong) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
                         }
                     },
                     // 外层 MainScreen 已给状态栏 inset, 这里不再叠加 (否则返回行离状态栏双倍空隙)
@@ -77,12 +84,12 @@ fun ManagementScreen(
                     ) {
                         Text(
                             state.error!!,
-                            color = Color(0xFFFF3B30),
+                            color = DangerRed,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.weight(1f)
                         )
                         TextButton(onClick = { vm.loadAll() }) {
-                            Text("刷新", color = Color(0xFF20C997))
+                            Text("刷新", color = BrandGreen)
                         }
                     }
                 }
@@ -91,7 +98,7 @@ fun ManagementScreen(
                 TabRow(
                     selectedTabIndex = selectedTab.ordinal,
                     containerColor = Color.Transparent,
-                    contentColor = Color(0xFF2A2925),
+                    contentColor = TextStrong,
                     indicator = {},
                     divider = {}
                 ) {
@@ -103,7 +110,7 @@ fun ManagementScreen(
                             text = {
                                 Text(
                                     tab.label,
-                                    color = if (selected) Color(0xFF20C997) else Color(0xFF888888),
+                                    color = if (selected) BrandGreen else TextMuted,
                                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
                                 )
                             },
@@ -111,14 +118,14 @@ fun ManagementScreen(
                                 Icon(
                                     tab.icon,
                                     contentDescription = tab.label,
-                                    tint = if (selected) Color(0xFF20C997) else Color(0xFF888888)
+                                    tint = if (selected) BrandGreen else TextMuted
                                 )
                             }
                         )
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFFE5E5EA), thickness = 1.dp)
+                HorizontalDivider(color = BorderLight, thickness = 1.dp)
 
                 // 内容区
                 when (selectedTab) {
@@ -161,11 +168,11 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Button(
                     onClick = { showAddDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text("添加用户", color = Color.White)
                 }
             }
@@ -174,13 +181,13 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
         if (loading) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF20C997))
+                    CircularProgressIndicator(color = BrandGreen)
                 }
             }
         } else if (users.isEmpty()) {
             item {
                 CardItem {
-                    Text("暂无用户", color = Color(0xFF888888))
+                    Text("暂无用户", color = TextMuted)
                 }
             }
         } else {
@@ -188,14 +195,14 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                 var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Person, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.Person, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(user.username, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                            Text(user.username, fontWeight = FontWeight.Medium, color = TextStrong)
                             Text(
                                 when (user.role) { 0 -> "普通用户"; 1 -> "游客"; 2 -> "管理员"; else -> "未知" },
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888888)
+                                color = TextMuted
                             )
                             // 权限标签 (位定义见 OpenList internal/model/user.go 的 User.Permission 注释)
                             if (user.permission != 0) {
@@ -207,23 +214,23 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                     if (user.permission and 16384 != 0) PermissionTag("分享")
                                 }
                             } else {
-                                Text("仅浏览 (无上传/分享权限)", style = MaterialTheme.typography.labelSmall, color = Color(0xFF888888))
+                                Text("仅浏览 (无上传/分享权限)", style = MaterialTheme.typography.labelSmall, color = TextMuted)
                             }
                         }
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("编辑", color = Color(0xFF2A2925)) },
+                                    text = { Text("编辑", color = TextStrong) },
                                     onClick = { showMenu = false; editingUser = user },
-                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = Color(0xFF888888)) }
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    text = { Text("删除", color = DangerRed) },
                                     onClick = { showMenu = false; deletingUser = user },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }
@@ -258,16 +265,16 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     deletingUser?.let { user ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingUser = null },
-            title = { Text("删除用户", color = Color(0xFF2A2925)) },
-            text = { Text("确定删除用户「${user.username}」？删除后该账号将无法再登录。", color = Color(0xFF888888)) },
+            title = { Text("删除用户", color = TextStrong) },
+            text = { Text("确定删除用户「${user.username}」？删除后该账号将无法再登录。", color = TextMuted) },
             confirmButton = {
                 Button(
                     onClick = { vm.deleteUser(user.id) { deletingUser = null } },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
                 ) { Text("删除", color = Color.White) }
             },
             dismissButton = {
-                TextButton(onClick = { deletingUser = null }) { Text("取消", color = Color(0xFF888888)) }
+                TextButton(onClick = { deletingUser = null }) { Text("取消", color = TextMuted) }
             },
         )
     }
@@ -281,7 +288,7 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "添加用户" else "编辑用户", color = Color(0xFF2A2925)) },
+        title = { Text(if (user == null) "添加用户" else "编辑用户", color = TextStrong) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -289,8 +296,8 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen, cursorColor = BrandGreen
                     )
                 )
                 OutlinedTextField(
@@ -299,8 +306,8 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen, cursorColor = BrandGreen
                     )
                 )
                 // 角色只读: OpenList 服务端禁止创建游客/管理员、禁止修改角色
@@ -314,8 +321,8 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen
                     )
                 )
             }
@@ -327,11 +334,11 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
                     val target = user ?: User(id = 0, username = "", role = 0, permission = 0)
                     onSave(target.copy(username = username), password)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997))
+                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
             ) { Text("保存", color = Color.White) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消", color = Color(0xFF888888)) }
+            TextButton(onClick = onDismiss) { Text("取消", color = TextMuted) }
         }
     )
 }
@@ -359,11 +366,11 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Button(
                     onClick = { showAddDialog = true },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
+                    Spacer(Modifier.width(8.dp))
                     Text("添加挂载", color = Color.White)
                 }
             }
@@ -372,60 +379,60 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
         if (loading) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF20C997))
+                    CircularProgressIndicator(color = BrandGreen)
                 }
             }
         } else if (mounts.isEmpty()) {
             item {
-                CardItem { Text("暂无挂载", color = Color(0xFF888888)) }
+                CardItem { Text("暂无挂载", color = TextMuted) }
             }
         } else {
             items(mounts) { mount ->
                 var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Storage, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.Storage, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(mount.mountPath, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
+                            Text(mount.mountPath, fontWeight = FontWeight.Medium, color = TextStrong)
                             Text(
                                 mount.driver,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF888888)
+                                color = TextMuted
                             )
                             // 状态标签
                             if (mount.status == "work") {
-                                Text("● 工作中", style = MaterialTheme.typography.labelSmall, color = Color(0xFF34C759))
+                                Text("● 工作中", style = MaterialTheme.typography.labelSmall, color = SuccessGreen)
                             } else {
-                                Text("● ${mount.status}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9500))
+                                Text("● ${mount.status}", style = MaterialTheme.typography.labelSmall, color = WarningOrange)
                             }
                         }
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("编辑", color = Color(0xFF2A2925)) },
+                                    text = { Text("编辑", color = TextStrong) },
                                     onClick = { showMenu = false; editingMount = mount },
-                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = Color(0xFF888888)) }
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("启用", color = Color(0xFF34C759)) },
+                                    text = { Text("启用", color = SuccessGreen) },
                                     onClick = { showMenu = false; vm.enableMount(mount.id) },
-                                    leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null, tint = Color(0xFF34C759)) },
+                                    leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null, tint = SuccessGreen) },
                                     enabled = mount.disabled
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("禁用", color = Color(0xFFFF9500)) },
+                                    text = { Text("禁用", color = WarningOrange) },
                                     onClick = { showMenu = false; vm.disableMount(mount.id) },
-                                    leadingIcon = { Icon(Icons.Outlined.Pause, contentDescription = null, tint = Color(0xFFFF9500)) },
+                                    leadingIcon = { Icon(Icons.Outlined.Pause, contentDescription = null, tint = WarningOrange) },
                                     enabled = !mount.disabled
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    text = { Text("删除", color = DangerRed) },
                                     onClick = { showMenu = false; deletingMount = mount },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }
@@ -459,16 +466,16 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
     deletingMount?.let { mount ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingMount = null },
-            title = { Text("删除挂载", color = Color(0xFF2A2925)) },
-            text = { Text("确定删除挂载「${mount.mountPath}」？仅移除挂载配置, 不会删除存储上的数据。", color = Color(0xFF888888)) },
+            title = { Text("删除挂载", color = TextStrong) },
+            text = { Text("确定删除挂载「${mount.mountPath}」？仅移除挂载配置, 不会删除存储上的数据。", color = TextMuted) },
             confirmButton = {
                 Button(
                     onClick = { vm.deleteMount(mount.id) { deletingMount = null } },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF3B30)),
+                    colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
                 ) { Text("删除", color = Color.White) }
             },
             dismissButton = {
-                TextButton(onClick = { deletingMount = null }) { Text("取消", color = Color(0xFF888888)) }
+                TextButton(onClick = { deletingMount = null }) { Text("取消", color = TextMuted) }
             },
         )
     }
@@ -484,7 +491,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (mount == null) "添加挂载" else "编辑挂载", color = Color(0xFF2A2925)) },
+        title = { Text(if (mount == null) "添加挂载" else "编辑挂载", color = TextStrong) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -492,8 +499,8 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen, cursorColor = BrandGreen
                     )
                 )
                 OutlinedTextField(
@@ -504,8 +511,8 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
                     supportingText = { if (mount != null) Text("编辑时不可修改驱动", style = MaterialTheme.typography.bodySmall) },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen, cursorColor = BrandGreen
                     )
                 )
                 OutlinedTextField(
@@ -513,8 +520,8 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
                     singleLine = true, modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF20C997), unfocusedBorderColor = Color(0xFFE5E5EA),
-                        focusedLabelColor = Color(0xFF20C997), cursorColor = Color(0xFF20C997)
+                        focusedBorderColor = BrandGreen, unfocusedBorderColor = BorderLight,
+                        focusedLabelColor = BrandGreen, cursorColor = BrandGreen
                     )
                 )
             }
@@ -523,11 +530,11 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
             Button(
                 // 透传原 order(之前写死 0, 编辑一次排序就被清零)
                 onClick = { onSave(driver, mountPath, mount?.order ?: 0, remark) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997))
+                colors = ButtonDefaults.buttonColors(containerColor = BrandGreen)
             ) { Text("保存", color = Color.White) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消", color = Color(0xFF888888)) }
+            TextButton(onClick = onDismiss) { Text("取消", color = TextMuted) }
         }
     )
 }
@@ -542,36 +549,36 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
         if (loading) {
             item {
                 Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Color(0xFF20C997))
+                    CircularProgressIndicator(color = BrandGreen)
                 }
             }
         } else if (shares.isEmpty()) {
             item {
-                CardItem { Text("暂无分享", color = Color(0xFF888888)) }
+                CardItem { Text("暂无分享", color = TextMuted) }
             }
         } else {
             items(shares) { share ->
                 var showMenu by remember { mutableStateOf(false) }
                 CardItem {
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Share, contentDescription = null, tint = Color(0xFF20C997), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.Share, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(share.name, fontWeight = FontWeight.Medium, color = Color(0xFF2A2925))
-                            Text(share.path, style = MaterialTheme.typography.bodySmall, color = Color(0xFF888888), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(share.name, fontWeight = FontWeight.Medium, color = TextStrong)
+                            Text(share.path, style = MaterialTheme.typography.bodySmall, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (share.expires.isNotEmpty()) {
-                                Text("过期: ${share.expires}", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFF9500))
+                                Text("过期: ${share.expires}", style = MaterialTheme.typography.labelSmall, color = WarningOrange)
                             }
                         }
                         Box {
                             IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = Color(0xFF888888))
+                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("删除", color = Color(0xFFFF3B30)) },
+                                    text = { Text("删除", color = DangerRed) },
                                     onClick = { showMenu = false; vm.deleteShare(share.id) },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = Color(0xFFFF3B30)) }
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }
@@ -591,23 +598,23 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
     ) {
         item {
             CardItem {
-                Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
+                Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextStrong)
                 Spacer(Modifier.height(8.dp))
-                Text("地址: $serverUrl", color = Color(0xFF888888))
+                Text("地址: $serverUrl", color = TextMuted)
                 overview?.let {
-                    Text("用户数: ${it.userCount}", color = Color(0xFF888888))
-                    Text("挂载数: ${it.mountCount}", color = Color(0xFF888888))
-                    Text("分享数: ${it.shareCount}", color = Color(0xFF888888))
+                    Text("用户数: ${it.userCount}", color = TextMuted)
+                    Text("挂载数: ${it.mountCount}", color = TextMuted)
+                    Text("分享数: ${it.shareCount}", color = TextMuted)
                 }
             }
         }
 
         item {
             CardItem {
-                Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
+                Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextStrong)
                 Spacer(Modifier.height(8.dp))
-                Text("${AppConfig.BRAND} v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
-                Text("基于官方 OpenList 开发", color = Color(0xFF888888))
+                Text("${AppConfig.BRAND} v${BuildConfig.VERSION_NAME}", color = TextMuted)
+                Text("基于官方 OpenList 开发", color = TextMuted)
             }
         }
 
@@ -618,13 +625,13 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
 private fun PermissionTag(label: String) {
     Surface(
         shape = RoundedCornerShape(4.dp),
-        color = Color(0xFF20C997).copy(alpha = 0.1f)
+        color = BrandGreen.copy(alpha = 0.1f)
     ) {
         Text(
             label,
             fontSize = 10.sp,
-            color = Color(0xFF20C997),
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            color = BrandGreen,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
         )
     }
 }

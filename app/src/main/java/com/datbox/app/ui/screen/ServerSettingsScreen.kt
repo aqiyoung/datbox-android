@@ -27,6 +27,14 @@ import com.datbox.app.ui.component.LiquidGlassAlertDialog
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.data.api.ServerProbe
 import com.datbox.app.data.api.TokenStore
+import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.SuccessGreen
+import com.datbox.app.ui.theme.TextFainter
+import com.datbox.app.ui.theme.TextGhost
+import com.datbox.app.ui.theme.TextMuted
+import com.datbox.app.ui.theme.TextStrong
+import com.datbox.app.ui.theme.WarningOrange
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -176,10 +184,10 @@ fun ServerSettingsScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("服务器配置", fontWeight = FontWeight.Bold, color = Color(0xFF2A2925)) },
+                    title = { Text("服务器配置", fontWeight = FontWeight.Bold, color = TextStrong) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = Color(0xFF2A2925))
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
                         }
                     },
                     actions = {
@@ -191,10 +199,10 @@ fun ServerSettingsScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color(0xFF20C997)
+                                    color = BrandGreen
                                 )
                             } else {
-                                Icon(Icons.Filled.FlashOn, contentDescription = "自动选择最快", tint = Color(0xFF20C997))
+                                Icon(Icons.Filled.FlashOn, contentDescription = "自动选择最快", tint = BrandGreen)
                             }
                         }
                     },
@@ -217,7 +225,7 @@ fun ServerSettingsScreen(
                         "当前服务器",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2A2925)
+                        color = TextStrong
                     )
                     Spacer(Modifier.height(8.dp))
                     LiquidGlassSurface(
@@ -228,13 +236,13 @@ fun ServerSettingsScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Outlined.Public, contentDescription = null, tint = Color(0xFF20C997))
+                            Icon(Icons.Outlined.Public, contentDescription = null, tint = BrandGreen)
                             Spacer(Modifier.width(12.dp))
                             Text(
                                 state.currentServer,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
-                                color = Color(0xFF2A2925),
+                                color = TextStrong,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -247,7 +255,7 @@ fun ServerSettingsScreen(
                         "自定义服务器",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2A2925)
+                        color = TextStrong
                     )
                     Spacer(Modifier.height(8.dp))
                     var customText by remember { mutableStateOf("") }
@@ -256,21 +264,21 @@ fun ServerSettingsScreen(
                         shape = RoundedCornerShape(16.dp),
                     ) {
                         Row(
-                            modifier = Modifier.padding(start = 14.dp, top = 4.dp, bottom = 4.dp, end = 6.dp),
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
                                 value = customText,
                                 onValueChange = { customText = it },
                                 modifier = Modifier.weight(1f),
-                                placeholder = { Text("例如 https://192.168.1.100:5244", color = Color(0xFFBBBBBB)) },
+                                placeholder = { Text("例如 https://192.168.1.100:5244", color = TextFainter) },
                                 singleLine = true,
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent,
-                                    focusedBorderColor = Color(0xFF20C997),
+                                    focusedBorderColor = BrandGreen,
                                     unfocusedBorderColor = Color.Transparent,
-                                    cursorColor = Color(0xFF20C997)
+                                    cursorColor = BrandGreen
                                 )
                             )
                             IconButton(onClick = {
@@ -283,7 +291,7 @@ fun ServerSettingsScreen(
                                     Toast.makeText(context, "已添加并选中", Toast.LENGTH_SHORT).show()
                                 }
                             }) {
-                                Icon(Icons.Filled.Add, contentDescription = "添加并使用", tint = Color(0xFF20C997))
+                                Icon(Icons.Filled.Add, contentDescription = "添加并使用", tint = BrandGreen)
                             }
                         }
                     }
@@ -291,7 +299,7 @@ fun ServerSettingsScreen(
                     Text(
                         "支持 http/https，可填 IP:端口 或域名；省略协议时自动补 https://。",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF888888)
+                        color = TextMuted
                     )
                 }
 
@@ -306,7 +314,7 @@ fun ServerSettingsScreen(
                             onClick = vm::testConnection,
                             enabled = !state.testing && state.currentServer.isNotBlank(),
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                            colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (state.testing) {
@@ -326,7 +334,7 @@ fun ServerSettingsScreen(
                                 Icon(
                                     if (p.reachable) Icons.Filled.Check else Icons.Filled.Error,
                                     contentDescription = null,
-                                    tint = if (p.reachable) Color(0xFF34C759) else Color(0xFFFF3B30)
+                                    tint = if (p.reachable) SuccessGreen else DangerRed
                                 )
                                 Spacer(Modifier.width(4.dp))
                                 Text(
@@ -341,7 +349,7 @@ fun ServerSettingsScreen(
                                             append("无法连接")
                                         }
                                     },
-                                    color = if (p.reachable) Color(0xFF34C759) else Color(0xFFFF3B30),
+                                    color = if (p.reachable) SuccessGreen else DangerRed,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -355,7 +363,7 @@ fun ServerSettingsScreen(
                         "服务器列表",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF2A2925)
+                        color = TextStrong
                     )
                 }
 
@@ -373,13 +381,13 @@ fun ServerSettingsScreen(
                             Icon(
                                 if (isActive) Icons.Filled.CheckCircle else Icons.Outlined.Public,
                                 contentDescription = null,
-                                tint = if (isActive) Color(0xFF20C997) else Color(0xFFCCCCCC)
+                                tint = if (isActive) BrandGreen else TextGhost
                             )
                             Spacer(Modifier.width(12.dp))
                             Text(
                                 server.url,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = Color(0xFF2A2925),
+                                color = TextStrong,
                                 modifier = Modifier.weight(1f)
                             )
                             server.probe?.let { p ->
@@ -390,13 +398,13 @@ fun ServerSettingsScreen(
                                             p.ipv6Ms?.let { append("v6:${it}") }
                                         }.trim(),
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = if ((p.bestMs ?: 9999) < 100) Color(0xFF34C759) else Color(0xFFFF9500)
+                                        color = if ((p.bestMs ?: 9999) < 100) SuccessGreen else WarningOrange
                                     )
                                 } else {
                                     Text(
                                         "不可达",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color(0xFFFF3B30)
+                                        color = DangerRed
                                     )
                                 }
                             }
@@ -406,7 +414,7 @@ fun ServerSettingsScreen(
                                     Icon(
                                         Icons.Outlined.Delete,
                                         contentDescription = "删除服务器",
-                                        tint = Color(0xFFFF3B30)
+                                        tint = DangerRed
                                     )
                                 }
                             }
@@ -426,7 +434,7 @@ fun ServerSettingsScreen(
                         },
                         enabled = state.currentServer.isNotBlank(),
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF20C997)),
+                        colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Icon(Icons.Filled.Save, contentDescription = null)
@@ -438,7 +446,7 @@ fun ServerSettingsScreen(
                     Text(
                         "说明：自定义服务器会自动保存，下次打开仍在；点击右侧删除图标可移除自定义服务器（预设不可删）。测速同时探测 IPv4/IPv6 双栈，任一可达即视为可连接。保存当前服务器后立即生效，返回登录页即可登录（token 与服务器绑定，需重新登录）。",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF888888)
+                        color = TextMuted
                     )
                 }
             }
@@ -454,7 +462,7 @@ fun ServerSettingsScreen(
                             pendingDelete = null
                             Toast.makeText(context, "已删除", Toast.LENGTH_SHORT).show()
                         }) {
-                            Text("删除", color = Color(0xFFFF3B30))
+                            Text("删除", color = DangerRed)
                         }
                     },
                     dismissButton = {
