@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -59,7 +61,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.lerp
@@ -96,18 +100,19 @@ data class BottomTab(
 // ===== iOS 26/27 风格液态玻璃组件库 =====
 
 /**
- * 玻璃卡 (FlClash 平玻璃风格)
+ * 玻璃卡
  *
- * 视觉要素 (自下而上, v3 平玻璃):
- * 1. 平染色玻璃体 (单层平涂, 无立体渐变层)
+ * 视觉要素 (自下而上, v4 液态玻璃):
+ * 1. 半透玻璃体 (中性微灰渐变, 比纯白页面略暗 → 读得出"一片玻璃")
  * 2. 白纱 veil 磨砂浓度 + 顶部柔光带 (环境光渐隐)
- * 3. 0.5dp 单层发丝边 (均匀定义边 + 极淡受光白边)
- * 4. 内容区 (清晰)
+ * 3. 光学层: 边缘透镜环带 + 角向 rim (左上亮/右下暗) + 镜面高光
+ * 4. 0.5dp 单层发丝边 (定义边)
+ * 5. 内容区 (清晰)
  *
  * 特征:
  * - 大圆角 24dp
- * - 玻璃无自身色彩, 颜色全部来自背后 (当前背景是纯色 → 玻璃即近白磨砂)
- * - 边界靠发丝边 + 柔和投影定义, 不靠色块、不靠厚度
+ * - 玻璃无自身色彩, 色相一律中性; 颜色只来自内容
+ * - 边界靠发丝边 + 光学层 + 柔和投影定义, 不靠色块
  */
 @Composable
 fun LiquidGlassCard(
@@ -117,7 +122,7 @@ fun LiquidGlassCard(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(cornerRadius)
-    FrostedGlass(shape = shape, modifier = modifier, veilAlpha = 0.48f) {
+    FrostedGlass(shape = shape, modifier = modifier, veilAlpha = 0.30f) {
         Box(modifier = Modifier.padding(contentPadding)) { content() }
     }
 }
@@ -146,7 +151,7 @@ fun LiquidGlassRow(
     FrostedGlass(
         shape = shape,
         modifier = modifier.fillMaxWidth(),
-        veilAlpha = 0.50f,
+        veilAlpha = 0.30f,
         onClick = onClick,
         onLongClick = onLongClick,
     ) {
@@ -328,13 +333,15 @@ fun LiquidGlassBottomBar(
                     },
             ) {
                 // 1) 条体: backdrop 折射开启时体色交给 shader 内的平涂染色,
-                //    这里只留顶部柔光/发丝边/投影; 降级设备回落 v3 平玻璃体
+                //    这里只留顶部柔光/发丝边/投影; 降级设备回落 v4 光学层 (见 optical)
                 FrostedGlass(
                     shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp),
                     veilAlpha = 0f,
+                    // shader 折射已自带 rim 与边缘光, 光学层只在降级路径 (API < 33) 补上
+                    optical = backdropEffect == null,
                     tintGradient = if (backdropEffect != null) {
                         Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                     } else {
@@ -686,18 +693,19 @@ private class PillSquashModel {
 /**
  * 真·液态玻璃填充层 (所有玻璃件共用: 卡片 / 行 / 底部栏 / FAB / 按钮 / 顶栏)
  *
- * v3 平玻璃 (对齐 FlClash liquid_glass 的形态):
- * FlClash 的玻璃是"单层平染色 + shader 折射" — 内部没有任何立体层;
- * 我们没有 shader, 因此把此前画进图层的立体元素全部移除 (底缘厚度带、
- * 反光双线、方向性暗斜边、穹顶聚光池), 只保留:
- * 1. 平染色玻璃体 (调用方 tint, 单层平涂)
- * 2. 白纱 veil 控制磨砂浓度
+ * v4 液态玻璃 (iOS 26/27 Liquid Glass):
+ * 页面背景是纯白, 所以"白纱 / 白色受光带 / 白色 rim / 镜面高光"在纯白上全部不可见 ——
+ * 这正是 v3 看起来像"白方片"的根因: 玻璃与该页面的明度差是零, 只剩发丝边和投影在分层。
+ * v4 因此让玻璃体真正"有体", 并把光学行为补回来:
+ * 1. 半透玻璃体 (中性微灰渐变 #FCFCFD → #E9E9EE): 玻璃比页面略暗, 才读得出"一片玻璃"
+ * 2. 白纱 veil: 磨砂浓度, 由调用方控制
  * 3. 顶部柔光带 (一条极淡的环境光渐隐, 非穹顶)
- * 4. 单层发丝边界: 均匀定义边 + 极淡受光白边
- * 5. 外部柔投影 (FlClash dockShadows 配方: 浅而散, 只画在形状之外)
+ * 4. 光学层 [GlassOptics]: 边缘透镜环带 + 角向 rim + 镜面高光
+ * 5. 单层发丝边界 (GlassBorder): 纯白背景上唯一可见的边界定义
+ * 6. 外部柔投影 (FlClash dockShadows 配方: 浅而散, 只画在形状之外)
  *
- * [veilAlpha] = 磨砂浓度 (白纱): 越大越实、越遮背后的內容。
- * 不画彩色光斑、不加背景色 —— 颜色只能来自页面背景 (当前是纯色)。
+ * [veilAlpha] 越大越实、越遮背后的内容。
+ * 不画彩色光斑 —— 颜色只能来自内容本身。
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -705,16 +713,37 @@ private fun FrostedGlass(
     shape: CornerBasedShape,
     modifier: Modifier = Modifier,
     tintGradient: Brush = Brush.verticalGradient(
-        colors = listOf(Color.White, Color(0xFFF0F1F4))
+        colors = listOf(Color(0xFFFCFCFD), Color(0xFFE9E9EE))
     ),
-    veilAlpha: Float = 0.42f,
+    veilAlpha: Float = 0.30f,
     withShadow: Boolean = true,
+    optical: Boolean = true,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val isClickable = onClick != null || onLongClick != null
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val pressProgress by animateFloatAsState(
+        targetValue = if (pressed) 1f else 0f,
+        animationSpec = tween(durationMillis = 160),
+    )
+
     Box(
         modifier = modifier
+            // iOS 26 交互反馈: 按下的玻璃轻微内收, 松手弹回 (液态玻璃的"受力"感)
+            .then(
+                if (isClickable) {
+                    Modifier.graphicsLayer {
+                        val squeeze = 1f - 0.02f * pressProgress
+                        scaleX = squeeze
+                        scaleY = squeeze
+                    }
+                } else {
+                    Modifier
+                }
+            )
             .then(
                 if (withShadow) {
                     // FlClash dockShadows 配方: 浅而散的浮影 (只在形状外, 不制造厚度感)
@@ -730,9 +759,9 @@ private fun FrostedGlass(
             )
             .clip(shape)
             .then(
-                if (onClick != null || onLongClick != null) {
+                if (isClickable) {
                     Modifier.combinedClickable(
-                        interactionSource = MutableInteractionSource(),
+                        interactionSource = interaction,
                         indication = null,
                         onClick = { onClick?.invoke() },
                         onLongClick = onLongClick,
@@ -742,7 +771,7 @@ private fun FrostedGlass(
                 }
             )
     ) {
-        // 1) 平染色玻璃体: 单层平涂 (FlClash: tint 单色, 内部无立体渐变层)
+        // 1) 半透玻璃体: 中性微灰渐变 — 明度略低于纯白页面, 玻璃才"有体"
         Box(Modifier.matchParentSize().background(tintGradient))
         // 2) 磨砂白纱: 整体浓度 (调用方控制)
         Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
@@ -757,25 +786,96 @@ private fun FrostedGlass(
                 )
             )
         )
-        // 4) 内容 (图标 / 文字 / 分段)
-        content()
-        // 5) 单层发丝边界: 均匀定义边 (GlassBorder, 纯白背景上可见) + 极淡受光白边。
-        //    不再叠加方向性暗斜边与底缘厚度双线 — 那是"立体感"的来源, FlClash 由 shader 承担
-        Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
-        Box(
-            Modifier.matchParentSize().border(
-                width = 0.5.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.45f),
-                        Color.White.copy(alpha = 0.10f),
-                    ),
-                ),
-                shape = shape,
+        // 4) 光学层: 边缘透镜环带 + 角向 rim + 镜面高光
+        //    (Dock 走 shader 折射时传 optical = false, 避免与 shader 的 rim 叠加)
+        if (optical) GlassOptics(shape)
+        // 5) 按下提亮: 玻璃受光变亮, 不改变内容对比
+        if (isClickable && pressProgress > 0f) {
+            Box(
+                Modifier.matchParentSize()
+                    .background(Color.White.copy(alpha = 0.09f * pressProgress))
             )
-        )
+        }
+        // 6) 内容 (图标 / 文字 / 分段)
+        content()
+        // 7) 发丝定义边: 纯白背景上唯一可见的边界定义 (GlassBorder)
+        Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
     }
 }
+
+/**
+ * 液态玻璃光学层 (iOS 26/27 Liquid Glass 里"玻璃感"的真正来源)。
+ *
+ * 之前的降级材质是"磨砂白方片": 均匀白边 + 上亮下暗的平渐变 — 平得没有光学行为,
+ * 所以看起来像纸而不像玻璃。这里补回三件事:
+ *
+ * 1. **边缘透镜环带** — 沿边 3 圈同心内缩的角向渐变细环。玻璃在边缘变厚, 光被聚到
+ *    边上再向内散开。内圈半径 = 外圈半径 - 内缩 (同心圆角), 保证圆角处环带等宽,
+ *    这是靠 [CornerSize.toPx] 现算半径做到的, 不能直接用 padding + border。
+ * 2. **角向 rim** — 光从左上来: 上缘最亮 (峰值落在 0.62 ≈ 左上), 下缘带一点暗边。
+ *    改为角向 (sweep) 渐变后才有方向性, 不再是"上白下灰"。
+ * 3. **镜面高光** — 左上 → 右下的斜向柔光洗过, "湿"的观感。
+ *
+ * 环带全部画在形状内 6.2dp 以内, 内容区不受影响。
+ */
+@Composable
+private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
+    Box(
+        Modifier.matchParentSize().drawWithCache {
+            val outerRadius = shape.topStart.toPx(size, this)
+            val sweepCenter = Offset(size.width / 2f, size.height / 2f)
+            // 角向坐标: 0.0=右, 0.25=下, 0.5=左, 0.75=上
+            fun rimBrush(light: Float, dark: Float) = Brush.sweepGradient(
+                colorStops = arrayOf(
+                    0.00f to Color.White.copy(alpha = 0.30f * light),
+                    0.15f to Color.Black.copy(alpha = 0.16f * dark),
+                    0.38f to Color.White.copy(alpha = 0.14f * light),
+                    0.62f to Color.White.copy(alpha = 0.95f * light),
+                    0.85f to Color.White.copy(alpha = 0.20f * light),
+                    1.00f to Color.White.copy(alpha = 0.30f * light),
+                ),
+                center = sweepCenter,
+            )
+            // (内缩 px, 环宽 px, 亮度, 暗边强度) — 由外向内递减, 构成透镜的衰减尾
+            val rings = listOf(
+                Ring(0.7.dp.toPx(), 1.2.dp.toPx(), 0.36f, 1.00f),
+                Ring(2.4.dp.toPx(), 3.6.dp.toPx(), 0.16f, 0.35f),
+                Ring(6.6.dp.toPx(), 5.2.dp.toPx(), 0.06f, 0.10f),
+            )
+            val brushes = rings.map { rimBrush(it.light, it.dark) }
+            onDrawBehind {
+                rings.forEachIndexed { index, ring ->
+                    val inset = ring.inset
+                    val innerW = size.width - inset * 2f
+                    val innerH = size.height - inset * 2f
+                    if (innerW <= 0f || innerH <= 0f) return@forEachIndexed
+                    drawRoundRect(
+                        brush = brushes[index],
+                        topLeft = Offset(inset, inset),
+                        size = Size(innerW, innerH),
+                        cornerRadius = CornerRadius((outerRadius - inset).coerceAtLeast(0f)),
+                        style = Stroke(width = ring.width),
+                    )
+                }
+            }
+        }
+    )
+    // 镜面高光: 左上 → 右下的斜向柔光 (默认 start/end 即贴合绘制边界对角线)
+    Box(
+        Modifier.matchParentSize().background(
+            Brush.linearGradient(
+                colorStops = arrayOf(
+                    0f to Color.White.copy(alpha = 0.18f),
+                    0.42f to Color.White.copy(alpha = 0.04f),
+                    1f to Color.Transparent,
+                )
+            )
+        )
+    )
+}
+
+/** 一圈边缘环带的几何与强度 */
+private data class Ring(val inset: Float, val width: Float, val light: Float, val dark: Float)
 
 /**
  * 玻璃主操作按钮
@@ -836,7 +936,7 @@ fun LiquidGlassSurface(
     FrostedGlass(
         shape = shape,
         modifier = modifier,
-        veilAlpha = 0.50f,
+        veilAlpha = 0.30f,
         onClick = onClick,
     ) {
         content()
