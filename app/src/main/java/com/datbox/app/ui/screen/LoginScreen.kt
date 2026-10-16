@@ -171,7 +171,7 @@ fun LoginScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(R.drawable.datbox_logo),
-                        contentDescription = "DATBOX",
+                        contentDescription = "Datbox",
                         modifier = Modifier.size(52.dp)
                     )
                 }
@@ -320,7 +320,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "v${BuildConfig.VERSION_NAME} · DATBOX",
+                "v${BuildConfig.VERSION_NAME} · Datbox",
                 fontSize = 12.sp,
                 color = Color(0xFFCCCCCC)
             )

@@ -526,12 +526,12 @@ private fun FileBrowserTopBar(
             ) {
                 Image(
                     painter = painterResource(R.drawable.datbox_logo),
-                    contentDescription = "DATBOX",
+                    contentDescription = "Datbox",
                     modifier = Modifier.size(30.dp),
                 )
                 Spacer(Modifier.width(9.dp))
                 Text(
-                    text = "DATBOX",
+                    text = "Datbox",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF141413),
