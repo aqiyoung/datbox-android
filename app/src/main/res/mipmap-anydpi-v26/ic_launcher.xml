@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 数匣 DATBOX adaptive icon: 品牌绿渐变底 + 白匣前景 (盖微开, 数据条透出) -->
+<!-- DATBOX adaptive icon: 品牌绿渐变底 + 白匣前景 (盖微开, 数据条透出) -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@drawable/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />

@@ -17,9 +17,9 @@ import com.datbox.app.BuildConfig
  */
 object AppConfig {
 
-    const val BRAND = "数匣"
+    const val BRAND = "DATBOX"
     const val BRAND_EN = "DATBOX"
-    const val BRAND_SUBTITLE = "数匣 · 云盘聚合"
+    const val BRAND_SUBTITLE = "DATBOX · 云盘聚合"
     // 老板 6/14 拍: 在 About 页面标注 "基于官方 OpenList 开发" + 给上游仓库加链接
     const val UPSTREAM_NAME = "OpenList"
     const val UPSTREAM_REPO = "https://github.com/OpenListTeam/OpenList"
