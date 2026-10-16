@@ -45,7 +45,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
 import com.datbox.app.ui.theme.IconCutout
-import com.datbox.app.ui.theme.IconInk
 import com.datbox.app.ui.theme.IconTileBorder
 import com.datbox.app.ui.theme.IconTileBottom
 import com.datbox.app.ui.theme.IconTileTop
@@ -927,24 +926,25 @@ private fun humanSize(b: Long): String = when {
 }
 
 /**
- * 文件类型图标: 统一「暖灰玻璃方块 + 灰墨符号」底, 类型只靠符号形状区分 (零彩色)。
+ * 文件类型图标: 白玻璃方片底 + 类型色符号。颜色只由符号承载, 形状负责区分具体类型。
+ * 取色对齐 iOS 系统色系, 并刻意避开重复色相 (文件/文档/视频/表格/安装包各占一色)。
  */
-private enum class FileKind {
-    FOLDER,
-    DOC,
-    TEXT,
-    IMAGE,
-    VIDEO,
-    AUDIO,
-    ARCHIVE,
-    CODE,
-    SHEET,
-    SLIDE,
-    PDF,
-    APK,
-    DISK,
-    EXEC,
-    UNKNOWN,
+private enum class FileKind(val tint: Color) {
+    FOLDER(Color(0xFF007AFF)),
+    DOC(Color(0xFF5856D6)),
+    TEXT(Color(0xFF8E8E93)),
+    IMAGE(Color(0xFFFF2D55)),
+    VIDEO(Color(0xFFAF52DE)),
+    AUDIO(Color(0xFFFF9500)),
+    ARCHIVE(Color(0xFFA2845E)),
+    CODE(Color(0xFF32ADE6)),
+    SHEET(Color(0xFF00C7BE)),
+    SLIDE(Color(0xFFFFB800)),
+    PDF(Color(0xFFFF3B30)),
+    APK(Color(0xFF16A34A)),
+    DISK(Color(0xFF64748B)),
+    EXEC(Color(0xFF6B7280)),
+    UNKNOWN(Color(0xFFA8A29E)),
 }
 
 private data class FileStyle(val kind: FileKind)
@@ -987,7 +987,7 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     }
 }
 
-/** 渲染文件类型图标: 统一「暖灰玻璃方块」底 + 灰墨符号 */
+/** 渲染文件类型图标: 白玻璃方片底 + 类型色符号 */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
@@ -1014,8 +1014,8 @@ private const val TILE_S = 32f
 private const val TILE_R = 9f
 
 /**
- * 方块底: 落地投影 → 暖灰玻璃渐变 → 发丝边。所有类型共用同一块底,
- * 类型信息全部由符号形状承载 (零彩色)。
+ * 方片底: 落地投影 → 白玻璃渐变 → 发丝边。所有类型共用同一块底,
+ * 颜色全部交给符号, 底保持中性 → 列表安静但每个类型仍有色彩身份。
  */
 private fun DrawScope.drawTile() {
     val tl = Offset(TILE_L, TILE_T)
@@ -1035,7 +1035,7 @@ private fun DrawScope.drawTile() {
 
 /** 类型符号: 按设计坐标 (x 15~31, y 19~32) 绘制, 由调用方平移到方块中央 */
 private fun DrawScope.drawKindGlyph(kind: FileKind) {
-    val ink = IconInk
+    val ink = kind.tint
     val sw = 1.8f
     val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
     when (kind) {
@@ -1118,13 +1118,14 @@ private fun DrawScope.drawKindGlyph(kind: FileKind) {
             drawLine(ink, Offset(19f, 28.4f), Offset(28f, 28.4f), 1.6f, StrokeCap.Round)
         }
         FileKind.DOC -> {
-            drawLine(ink, Offset(16.5f, 22f), Offset(29.5f, 22f), sw, StrokeCap.Round)
-            drawLine(ink, Offset(16.5f, 26f), Offset(29.5f, 26f), sw, StrokeCap.Round)
-            drawLine(ink, Offset(16.5f, 30f), Offset(24f, 30f), sw, StrokeCap.Round)
+            // 实心文本条 (细描边在小尺寸下显廉价)
+            drawRoundRect(ink, Offset(16.5f, 21f), Size(13f, 1.9f), CornerRadius(0.95f, 0.95f))
+            drawRoundRect(ink, Offset(16.5f, 25f), Size(13f, 1.9f), CornerRadius(0.95f, 0.95f))
+            drawRoundRect(ink, Offset(16.5f, 29f), Size(7.5f, 1.9f), CornerRadius(0.95f, 0.95f))
         }
         FileKind.TEXT -> {
-            drawLine(ink, Offset(17f, 23.5f), Offset(29f, 23.5f), 1.7f, StrokeCap.Round)
-            drawLine(ink, Offset(17f, 28.5f), Offset(25f, 28.5f), 1.7f, StrokeCap.Round)
+            drawRoundRect(ink, Offset(17f, 22.6f), Size(12f, 1.9f), CornerRadius(0.95f, 0.95f))
+            drawRoundRect(ink, Offset(17f, 27.6f), Size(8f, 1.9f), CornerRadius(0.95f, 0.95f))
         }
         FileKind.DISK -> {
             drawCircle(ink, radius = 5.7f, center = Offset(23f, 25.5f), style = Stroke(width = 2.4f))
@@ -1148,10 +1149,10 @@ private fun DrawScope.drawKindGlyph(kind: FileKind) {
             drawCircle(IconCutout, radius = 1f, center = Offset(20.7f, 24.5f))
             drawCircle(IconCutout, radius = 1f, center = Offset(25.3f, 24.5f))
         }
-        // 兜底: 两条文档线
+        // 兜底: 两条文档条
         FileKind.UNKNOWN -> {
-            drawLine(ink, Offset(16.5f, 23f), Offset(29.5f, 23f), 1.7f, StrokeCap.Round)
-            drawLine(ink, Offset(16.5f, 28f), Offset(24f, 28f), 1.7f, StrokeCap.Round)
+            drawRoundRect(ink, Offset(17f, 22.6f), Size(11f, 1.9f), CornerRadius(0.95f, 0.95f))
+            drawRoundRect(ink, Offset(17f, 27.6f), Size(7.5f, 1.9f), CornerRadius(0.95f, 0.95f))
         }
     }
 }
