@@ -41,7 +41,6 @@ data class FsSearchRequest(
     @kotlinx.serialization.SerialName("per_page") val perPage: Int = 50,
 )
 
-/** 老板 6/13 v0.3.0: 上传响应 */
 @Serializable
 data class FsUploadResponse(
     val code: Int,
@@ -58,7 +57,7 @@ data class FsUploadData(
 data class FsUploadTask(
     val id: String = "",
     val name: String = "",
-    val state: Int = 0,  // 0=pending 1=running 2=success 3=failed 4=canceled
+    val state: Int = 0,
     val status: String = "",
     val progress: Double = 0.0,
     val error: String = "",
@@ -80,6 +79,4 @@ interface OpenListApi {
     @POST("api/fs/get")
     suspend fun get(@Body req: FsListRequest): FsGetResponse
 
-    // 老板 6/14: 上传改用 OkHttp 直发 (File-Path header), 不走 Retrofit
-    // 详见 OpenListRepository.upload
 }

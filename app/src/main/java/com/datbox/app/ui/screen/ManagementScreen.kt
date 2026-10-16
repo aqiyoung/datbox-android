@@ -1,6 +1,5 @@
 package com.datbox.app.ui.screen
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -63,17 +62,14 @@ fun ManagementScreen(
                             Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
                         }
                     },
-                    // 外层 MainScreen 已给状态栏 inset, 这里不再叠加 (否则返回行离状态栏双倍空隙)
                     windowInsets = WindowInsets(0.dp),
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                 )
             },
             containerColor = Color.Transparent,
-            // 同理: safeDrawing inset 外层已给, 内容直接贴顶
             contentWindowInsets = WindowInsets(0.dp),
         ) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // 错误提示
                 if (state.error != null) {
                     Row(
                         modifier = Modifier
@@ -94,7 +90,6 @@ fun ManagementScreen(
                     }
                 }
 
-                // Tab 行
                 TabRow(
                     selectedTabIndex = selectedTab.ordinal,
                     containerColor = Color.Transparent,
@@ -127,7 +122,6 @@ fun ManagementScreen(
 
                 HorizontalDivider(color = BorderLight, thickness = 1.dp)
 
-                // 内容区
                 when (selectedTab) {
                     ManagementTab.USERS -> UsersTab(state.users, state.loading, vm)
                     ManagementTab.MOUNTS -> MountsTab(state.mounts, state.loading, vm)
@@ -139,7 +133,6 @@ fun ManagementScreen(
     }
 }
 
-// ===== 通用卡片样式 =====
 @Composable
 private fun CardItem(
     modifier: Modifier = Modifier,
@@ -153,7 +146,6 @@ private fun CardItem(
     }
 }
 
-// ===== Tab 1: 用户管理 =====
 @Composable
 private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -161,7 +153,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     var deletingUser by remember { mutableStateOf<User?>(null) }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -204,7 +196,6 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextMuted
                             )
-                            // 权限标签 (位定义见 OpenList internal/model/user.go 的 User.Permission 注释)
                             if (user.permission != 0) {
                                 Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                     if (user.permission and 1 != 0) PermissionTag("可见隐藏")
@@ -245,7 +236,6 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             user = null,
             onDismiss = { showAddDialog = false },
             onSave = { u, pw ->
-                // 点击即关(乐观提交): 请求期间按钮不再可点, 防连点重复创建; 失败由顶部错误条提示
                 showAddDialog = false
                 vm.createUser(u.username, pw, u.role, u.permission)
             }
@@ -261,7 +251,6 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             }
         )
     }
-    // 删除确认: 用户删除不可逆 (账号立即失效), 二次确认防误触
     deletingUser?.let { user ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingUser = null },
@@ -343,7 +332,6 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
     )
 }
 
-/** OpenList 角色定义: GENERAL=0, GUEST=1, ADMIN=2 (internal/model/user.go)。 */
 private fun roleLabel(role: Int): String = when (role) {
     0 -> "普通用户"
     1 -> "游客"
@@ -351,7 +339,6 @@ private fun roleLabel(role: Int): String = when (role) {
     else -> "未知"
 }
 
-// ===== Tab 2: 挂载管理 =====
 @Composable
 private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -359,7 +346,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
     var deletingMount by remember { mutableStateOf<Mount?>(null) }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
@@ -400,7 +387,6 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextMuted
                             )
-                            // 状态标签
                             if (mount.status == "work") {
                                 Text("● 工作中", style = MaterialTheme.typography.labelSmall, color = SuccessGreen)
                             } else {
@@ -447,7 +433,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
             mount = null,
             onDismiss = { showAddDialog = false },
             onSave = { d, mp, _, r ->
-                showAddDialog = false   // 乐观关闭, 防连点重复创建
+                showAddDialog = false
                 vm.createMount(d, mp, 0, r)
             },
         )
@@ -457,12 +443,11 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
             mount = mount,
             onDismiss = { editingMount = null },
             onSave = { d, mp, ord, r ->
-                editingMount = null     // 乐观关闭, 防连点重复提交
+                editingMount = null
                 vm.updateMount(mount, driver = d, mountPath = mp, order = ord, remark = r)
             },
         )
     }
-    // 删除确认: 挂载配置删除后需重建 (存储数据不受影响), 二次确认防误触
     deletingMount?.let { mount ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingMount = null },
@@ -486,7 +471,6 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
 private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (String, String, Int, String) -> Unit) {
     var driver by remember { mutableStateOf(mount?.driver ?: "Local") }
     var mountPath by remember { mutableStateOf(mount?.mountPath ?: "") }
-    // 之前初始化为 "" → 编辑已有挂载一保存就把备注清空
     var remark by remember { mutableStateOf(mount?.remark ?: "") }
 
     LiquidGlassAlertDialog(
@@ -539,11 +523,10 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
     )
 }
 
-// ===== Tab 3: 分享管理 =====
 @Composable
 private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewModel) {
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (loading) {
@@ -589,11 +572,10 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
     }
 }
 
-// ===== Tab 4: 设置 =====
 @Composable
 private fun SettingsTab(overview: Overview?, serverUrl: String) {
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {

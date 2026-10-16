@@ -9,7 +9,7 @@ data class User(
     val username: String,
     val password: String = "",
     @SerialName("base_path") val basePath: String = "/",
-    val role: Int = 0,  // 0=普通用户, 1=游客, 2=管理员
+    val role: Int = 0,
     val disabled: Boolean = false,
     val permission: Int = 0,
     @SerialName("sso_id") val ssoId: String = "",

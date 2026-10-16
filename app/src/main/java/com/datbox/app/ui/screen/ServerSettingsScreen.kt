@@ -2,7 +2,6 @@ package com.datbox.app.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,7 +17,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -46,14 +44,14 @@ import javax.inject.Inject
 data class ServerItem(
     val url: String,
     val isPreset: Boolean = false,
-    val probe: ServerProbe? = null  // null = 未测
+    val probe: ServerProbe? = null
 )
 
 data class ServerSettingsState(
     val currentServer: String = "",
     val servers: List<ServerItem> = emptyList(),
     val testing: Boolean = false,
-    val probe: ServerProbe? = null,  // 当前服务器最新测速结果，null=未测
+    val probe: ServerProbe? = null,
     val loading: Boolean = false
 )
 
@@ -72,13 +70,11 @@ class ServerSettingsViewModel @Inject constructor(
     )
 
     init {
-        // runBlocking 读 DataStore 不能在主线程: 挪进 IO 协程, 读完再组装初始 state
         viewModelScope.launch {
             val (current, custom) = withContext(Dispatchers.IO) {
                 tokenStore.serverUrlSync() to tokenStore.customServersSync().map { ServerItem(it) }
             }
             val all = presetServers + custom
-            // 若持久化的当前服务器不在列表中（例如被删），回退到首个可用服务器
             val resolved = if (current.isBlank() || all.none { it.url.equals(current, ignoreCase = true) }) {
                 all.firstOrNull()?.url ?: TokenStore.DEFAULT_SERVER
             } else {
@@ -130,13 +126,11 @@ class ServerSettingsViewModel @Inject constructor(
         }
     }
 
-    /** 自定义服务器：规范化（自动补 https://、去尾斜杠）后加入列表并选中，并持久化到 DataStore。 */
     fun addCustomServer(raw: String) {
         val url = normalizeServerUrl(raw)
         if (url.isBlank()) return
         val current = _state.value.servers
         if (current.any { it.url.equals(url, ignoreCase = true) }) {
-            // 已存在：仅切换选中，不重复入库
             _state.value = _state.value.copy(currentServer = url)
             return
         }
@@ -144,7 +138,6 @@ class ServerSettingsViewModel @Inject constructor(
         viewModelScope.launch { tokenStore.addCustomServer(url) }
     }
 
-    /** 删除自定义服务器（预设不可删）。若删掉的是当前选中，回退到首个服务器。 */
     fun deleteServer(url: String) {
         viewModelScope.launch { tokenStore.removeCustomServer(url) }
         val remaining = _state.value.servers.filter { !it.url.equals(url, ignoreCase = true) }
@@ -219,7 +212,6 @@ fun ServerSettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                // 当前服务器
                 item {
                     Text(
                         "当前服务器",
@@ -249,7 +241,6 @@ fun ServerSettingsScreen(
                     }
                 }
 
-                // 自定义服务器（可输入自有地址）
                 item {
                     Text(
                         "自定义服务器",
@@ -303,7 +294,6 @@ fun ServerSettingsScreen(
                     )
                 }
 
-                // 测试连接
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -357,7 +347,6 @@ fun ServerSettingsScreen(
                     }
                 }
 
-                // 服务器列表
                 item {
                     Text(
                         "服务器列表",
@@ -422,7 +411,6 @@ fun ServerSettingsScreen(
                     }
                 }
 
-                // 保存按钮
                 item {
                     Spacer(Modifier.height(8.dp))
                     Button(

@@ -24,7 +24,6 @@ class RequestSerializationTest {
     private fun String.field(name: String) =
         OpenListJson.parseToJsonElement(this).jsonObject[name]
 
-    // ===== fs/mkdir =====
 
     /** 上游 MkdirOrLinkReq 只收完整的新目录路径，没有 name 字段 */
     @Test
@@ -34,7 +33,6 @@ class RequestSerializationTest {
         assertNull("mkdir 不该发 name 字段(上游无此字段)", json.field("name"))
     }
 
-    // ===== fs/rename =====
 
     @Test
     fun `rename sends full path plus new name`() {
@@ -43,7 +41,6 @@ class RequestSerializationTest {
         assertEquals("b.txt", json.field("name")!!.jsonPrimitive.content)
     }
 
-    // ===== fs/move =====
 
     /** 上游 MoveCopyReq = {src_dir, dst_dir, names}；旧实现发 {path, new_path} 是全错的 */
     @Test
@@ -60,7 +57,6 @@ class RequestSerializationTest {
         assertNull("旧实现的错误字段", json.field("new_path"))
     }
 
-    // ===== fs/remove =====
 
     @Test
     fun `remove sends dir plus names`() {
@@ -70,20 +66,15 @@ class RequestSerializationTest {
         assertEquals("a.txt", names[0].jsonPrimitive.content)
     }
 
-    // ===== fs/get (下载/预览签名) =====
 
-    /** 文件名含引号/反斜杠: 手拼 JSON 产出非法 JSON(400 甚至 JSON 注入), 序列化器必须转义 */
     @Test
     fun `fs get escapes quotes and backslashes in path`() {
         val raw = """/dir/a"b\c.txt"""
         val json = OpenListJson.encodeToString(FsGetRequest(raw))
-        // 序列化产物里必须是转义过的
         assertTrue("引号和反斜杠必须转义", json.contains("""a\"b\\c.txt"""))
-        // 且整体是合法 JSON, 解析回来与原文一致
         assertEquals(raw, json.field("path")!!.jsonPrimitive.content)
     }
 
-    // ===== share/create =====
 
     @Test
     fun `share create sends files array`() {

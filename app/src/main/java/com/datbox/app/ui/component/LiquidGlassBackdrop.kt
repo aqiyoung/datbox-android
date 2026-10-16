@@ -1,7 +1,6 @@
 package com.datbox.app.ui.component
 
 import android.graphics.RuntimeShader
-import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.asComposeRenderEffect
@@ -34,17 +33,6 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
  */
 internal object LiquidGlassBackdrop {
 
-    /**
-     * AGSL (RuntimeShader) 源码。坐标均为 backdrop 纹理像素 (与 layer 同一坐标系)。
-     * uniform:
-     * - uTexSize: 纹理尺寸 (px)
-     * - uOrigin: 药丸左上角在纹理内的位置 (px)
-     * - uPill: 药丸尺寸 (px, <=0 表示未初始化 → 全透传)
-     * - uRadius/uBevel/uRefraction/uBlur/uHaze/uHazeBlur/uRim/uDispersion/uLine: 光学参数 (px / 无量纲)
-     * - uSaturation/uContrast/uEndShade/uEndShadeReach: 观感 (饱和度 / 内容自适应增厚 / 滑镜端部变暗)
-     * - uLensX/uLensW/uLensBevel/uLensDepth: 滑镜几何 (uLensX<0 时关闭)
-     * - uTint: 平涂染色 (straight alpha)
-     */
     @RequiresApi(33)
     const val SHADER: String = """
         uniform float2 uTexSize;
@@ -217,7 +205,6 @@ internal object LiquidGlassBackdrop {
         }
     """
 
-    /** 全效果: shader (折射 + 磨砂 + 色散 + 边线)。uTexture = 被绘制的 layer 内容。 */
     @RequiresApi(33)
     fun createGlassEffect(shader: RuntimeShader): RenderEffect =
         android.graphics.RenderEffect

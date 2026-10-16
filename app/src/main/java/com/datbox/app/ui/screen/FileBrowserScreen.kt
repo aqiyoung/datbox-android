@@ -17,7 +17,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -28,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -54,7 +52,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,7 +134,7 @@ class FileBrowserViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
-    /** 输入关键词 → 350ms 防抖 → 服务端检索 (取消上一轮在途请求, 结果不会串) */
+
     fun updateSearchQuery(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
         searchJob?.cancel()
@@ -146,12 +143,10 @@ class FileBrowserViewModel @Inject constructor(
             _state.value = _state.value.copy(searching = false, searchResults = emptyList(), searchError = null)
             return
         }
-        // 按键即置 searching, 覆盖防抖窗口, 避免在旧结果为空时闪现「没有找到」
         _state.value = _state.value.copy(searching = true, searchError = null)
         searchJob = viewModelScope.launch {
             delay(350)
             val result = repo.search(q)
-            // repo 的 runCatching 会吞掉 CancellationException: 已被新输入取消就直接终止, 不写状态
             ensureActive()
             result.onSuccess { hits ->
                 _state.value = _state.value.copy(searching = false, searchResults = hits)
@@ -165,7 +160,7 @@ class FileBrowserViewModel @Inject constructor(
         }
     }
 
-    /** 退出搜索态: 清查询/结果/在途请求 */
+
     fun closeSearch() {
         searchJob?.cancel()
         _state.value = _state.value.copy(
@@ -284,7 +279,6 @@ fun FileBrowserScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 系统返回: 搜索态先退出搜索; 子目录拦截 = 返回上一级; 根目录放行交给系统退出
     BackHandler(enabled = searchActive || state.path != "/") {
         if (searchActive) {
             onSearchActiveChange(false)
@@ -320,15 +314,12 @@ fun FileBrowserScreen(
         }
     }
 
-    // 点 dock 首页 = 回根目录: 每次点击都生效 (从子目录点 = 回到顶层; 从其它 tab 切回同样落根目录)
-    // 语义是"每次点首页都回根", 所以重新组合时重放也是期望行为, 无 searchTrigger 式误导
     LaunchedEffect(homeReset) {
         if (homeReset > 0 && state.path != "/") {
             vm.load("/")
         }
     }
 
-    // 搜索态退出 (dock toggle / 外部关闭) 时清查询与结果, 与返回箭头路径一致
     LaunchedEffect(searchActive) {
         if (!searchActive && state.searchQuery.isNotEmpty()) {
             vm.closeSearch()
@@ -345,7 +336,6 @@ fun FileBrowserScreen(
     GlassDecorBackground(
         modifier = Modifier.fillMaxSize()
     ) {
-        // 内容区
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -355,7 +345,6 @@ fun FileBrowserScreen(
                         onDragStart = { accX = 0f },
                         onHorizontalDrag = { _, dragAmount -> accX += dragAmount },
                         onDragEnd = {
-                            // 右滑超过阈值且不在根目录时, 返回上一级
                             if (accX > 100f && vm.state.value.path != "/") {
                                 vm.load(vm.goUp())
                             }
@@ -364,7 +353,6 @@ fun FileBrowserScreen(
                     )
                 }
         ) {
-            // 顶部栏: 搜索态换成内联搜索条 (不弹窗), 浏览态保留返回/标题/排序/上传
             if (searchActive) {
                 SearchBarRow(
                     query = state.searchQuery,
@@ -384,7 +372,6 @@ fun FileBrowserScreen(
                 )
             }
 
-            // 列表: 搜索态显示服务端检索结果, 否则文件列表
             if (searchActive) {
                 SearchResultsList(
                     state = state,
@@ -392,7 +379,6 @@ fun FileBrowserScreen(
                     modifier = Modifier.weight(1f),
                     onOpen = { path, name, isDir ->
                         if (isDir) {
-                            // 点目录结果 → 退出搜索并进入该目录
                             onSearchActiveChange(false)
                             vm.closeSearch()
                             vm.load(path)
@@ -411,7 +397,7 @@ fun FileBrowserScreen(
                 )
                 else -> {
                     LazyColumn(
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), // bottom: dock 悬浮区留白 (内容从玻璃下滚过)
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.weight(1f),
                     ) {
@@ -442,7 +428,6 @@ fun FileBrowserScreen(
             }
         }
 
-        // 文件操作弹窗（底部 Sheet）
         val pending = menuItem
         if (pending != null && menuRemotePath != null) {
             val pendingStyle = fileStyleFor(pending.name, pending.isDir)
@@ -456,14 +441,12 @@ fun FileBrowserScreen(
                     menuItem = null; shareSheetUrl = null; shareLoading = false
                 },
                 onRequestShare = {
-                    val target = menuItem        // 捕获目标文件的 state 引用, 回来时比对(读到的是最新值)
+                    val target = menuItem
                     val requestPath = menuRemotePath
                     scope.launch {
                         shareLoading = true
                         try {
                             val url = vm.buildShareUrl(requestPath)
-                            // 请求期间弹窗被关(menuItem=null)/已切到别的文件(换对象) → 丢弃结果,
-                            // 否则上一个文件的链接会残给下一个文件 (串数据)
                             if (menuItem === target) shareSheetUrl = url
                         } catch (e: Exception) {
                             if (menuItem === target) shareSheetUrl = null
@@ -488,18 +471,15 @@ fun FileBrowserScreen(
             )
         }
 
-        // 新建文件夹弹窗
         if (showMkdirDialog) {
             MkdirDialog(onDismiss = { showMkdirDialog = false }, onCreate = { name -> vm.mkdir(name); showMkdirDialog = false })
         }
 
-        // 重命名弹窗
         showRenameDialog?.let { item ->
             val itemPath = if (state.path == "/") "/${item.name}" else "${state.path}/${item.name}"
             RenameDialog(currentName = item.name, onDismiss = { showRenameDialog = null }, onRename = { newName -> vm.rename(itemPath, newName); showRenameDialog = null })
         }
 
-        // 删除弹窗
         showDeleteDialog?.let { item ->
             val dir = state.path
             val name = item.name
@@ -508,7 +488,6 @@ fun FileBrowserScreen(
     }
 }
 
-// ===== 顶部栏: 品牌标识 + 搜索 + 排序 + 上传 (无返回箭头, 上一级走系统返回) =====
 @Composable
 private fun FileBrowserTopBar(
     path: String,
@@ -518,9 +497,7 @@ private fun FileBrowserTopBar(
     onSortSelected: (SortMode) -> Unit = {},
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    // 顶栏标题: headlineSmall (M3 默认 24sp) 降一档到 20sp, 缩小与文件名 16sp 的落差
     val titleStyle = MaterialTheme.typography.headlineSmall.copy(fontSize = 20.sp, lineHeight = 26.sp)
-    // 根目录: 左上角显示品牌 logo + 名称; 子目录显示当前目录名
     val title = if (path == "/") "" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
@@ -528,7 +505,6 @@ private fun FileBrowserTopBar(
             .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 根目录: 左上角放品牌 logo + 名称 (原来根目录大标题留空, 左上角显得空)
         if (path == "/") {
             Row(
                 modifier = Modifier.weight(1f),
@@ -536,7 +512,6 @@ private fun FileBrowserTopBar(
             ) {
                 Image(
                     painter = painterResource(R.drawable.datbox_logo),
-                    // 紧邻的品牌文字已表达名称, 图片设为装饰, 避免 TalkBack 连读两次
                     contentDescription = null,
                     modifier = Modifier.size(32.dp),
                 )
@@ -550,7 +525,6 @@ private fun FileBrowserTopBar(
                 )
             }
         } else {
-            // 子目录: 显示当前目录名 (放大加粗, iOS 大标题感)
             Text(
                 text = title,
                 style = titleStyle,
@@ -562,12 +536,10 @@ private fun FileBrowserTopBar(
             )
         }
 
-        // 搜索入口 (从 dock 移至顶栏: 点开 SearchBarRow 内联搜索, 不弹窗)
         IconButton(onClick = onSearchClick) {
             Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = NearBlack)
         }
 
-        // 排序 (原搜索弹窗里的入口)
         Box {
             IconButton(onClick = { sortMenuExpanded = true }) {
                 Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = NearBlack)
@@ -590,18 +562,13 @@ private fun FileBrowserTopBar(
             }
         }
 
-        // 上传按钮 (右上角加号)
         IconButton(onClick = onUpload) {
             Icon(Icons.Outlined.Add, contentDescription = "上传", tint = NearBlack)
         }
     }
 }
 
-// ===== 内联搜索 (无弹窗) =====
-/**
- * 内联搜索条 — 搜索态替换顶部栏 (不弹窗)。
- * 玻璃胶囊字段: 返回按钮 + 药丸玻璃容器 (前置搜索图标 / 透明输入框 / 清除按钮), 进入即聚焦。
- */
+
 @Composable
 private fun SearchBarRow(
     query: String,
@@ -672,11 +639,7 @@ private fun SearchBarRow(
     }
 }
 
-/**
- * 搜索结果列表 — 服务端检索 (POST /api/fs/search, parent="/" 全盘, 350ms 防抖)。
- * 点目录 → 退出搜索并进入该目录; 点文件 → 预览。不弹任何窗。
- * 结果不带长按菜单 (菜单路径依赖当前目录, 与结果所在目录不符)。
- */
+
 @Composable
 private fun SearchResultsList(
     state: FileBrowserState,
@@ -690,7 +653,7 @@ private fun SearchResultsList(
         state.searchError != null -> CenterMessage("搜索失败: ${state.searchError}", "重试", onRetry)
         state.searchResults.isEmpty() -> CenterMessage("没有找到「${state.searchQuery.trim()}」")
         else -> LazyColumn(
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp), // bottom: dock 悬浮区留白 (内容从玻璃下滚过)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = modifier,
         ) {
@@ -722,7 +685,6 @@ private fun SearchResultsList(
     }
 }
 
-// ===== 文件行 =====
 @Composable
 private fun FileRow(
     icon: @Composable () -> Unit,
@@ -769,7 +731,6 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
         }
     }
 
-// ===== 文件操作弹窗（底部 Sheet）=====
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GlassActionDialog(
@@ -800,7 +761,6 @@ private fun GlassActionDialog(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // Header
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                 FileTypeIconBox(fileStyle)
                 Spacer(Modifier.width(12.dp))
@@ -812,10 +772,8 @@ private fun GlassActionDialog(
             HorizontalDivider(color = Color(0xFFECEAE3))
             Spacer(Modifier.height(2.dp))
 
-            // 下载
             GlassActionItem(icon = Icons.Outlined.Download, iconTint = NearBlack, label = "下载到本地", subLabel = "保存到下载目录", onClick = onDownload)
 
-            // 分享区块
             when {
                 shareLoading -> {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -879,7 +837,6 @@ private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, s
     }
 }
 
-// ===== 文件操作弹窗 =====
 
 @Composable
 private fun MkdirDialog(onDismiss: () -> Unit, onCreate: (String) -> Unit) {
@@ -924,23 +881,7 @@ private fun humanSize(b: Long): String = when {
     else -> "${sizeFmt.format(b / 1024.0 / 1024 / 1024)} GB"
 }
 
-/**
- * 文件类型图标: 真物范式 —— 文件夹画成真文件夹, 文件画成真纸页(带折角)。
- *
- * 之所以改: 上一版是「白玻璃方片 + 一个抽象几何符号」, 一个空白方块上飘一个符号,
- * 无论怎么调符号都不会有真实感。这一版画的是物体本身 ——
- * 纸页有折角、有页头、有内容缩影, 文件夹有前后板与受光。
- *
- * 15 类分三种内容画法:
- *   - 条线类 (DOC/TEXT/PDF/UNKNOWN): 文字条 / 页中之页
- *   - 实物类 (IMAGE/VIDEO/AUDIO/CODE/SHEET/SLIDE): 直接画出那个东西
- *     (照片带天空+山+太阳, 视频是黑框+播放, 音频是波形, 代码是彩色代码窗, 表格是网格, 幻灯片是 16:9)
- *   - 带底板类 (ARCHIVE/DISK/EXEC/APK): 淡彩底板 + 类型色部件 (保证任何配色下都有明度差)
- *
- * 配色 (白纸 + 彩色页头):
- *   页身 = 纸白渐变; 顶部 1/3 = 类型色页头; 折角 = 更浅的同类色; 内容 = 类型色。
- *   既有色彩身份 (扫列表看页头色), 又保住纸张真实度 (页身是纸不是色块)。
- */
+
 private enum class FileKind(val tint: Color) {
     FOLDER(Color(0xFF007AFF)),
     DOC(Color(0xFF5856D6)),
@@ -968,30 +909,23 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     if (isDir) return FileKind.FOLDER
     return when (name.substringAfterLast('.', "").lowercase()) {
         "" -> FileKind.UNKNOWN
-        // 压缩包
         "zip", "7z", "rar", "jar", "tar", "tgz", "gz", "gzip", "bz2", "tbz2",
         "xz", "txz", "lz", "lzma", "zst" -> FileKind.ARCHIVE
-        // 碟镜像
         "iso", "img", "dmg" -> FileKind.DISK
-        // 安装包 / 可执行 / 脚本
         "apk" -> FileKind.APK
         "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1",
         "deb", "rpm", "bin", "run" -> FileKind.EXEC
-        // 多媒体
         "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif",
         "ico", "raw", "tiff", "tif" -> FileKind.IMAGE
         "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm",
         "ts", "m2ts", "3gp" -> FileKind.VIDEO
         "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" -> FileKind.AUDIO
         "pdf" -> FileKind.PDF
-        // 代码 / 配置
         "py", "js", "jsx", "ts", "tsx", "java", "kt", "kts", "go", "rs", "swift",
         "rb", "php", "c", "h", "cpp", "cc", "cxx", "hpp", "sql", "json", "xml",
         "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "html", "htm",
         "css", "scss", "sass", "less" -> FileKind.CODE
-        // 文本
         "txt", "md", "markdown", "log", "rst", "tex" -> FileKind.TEXT
-        // Office 三件套
         "doc", "docx", "rtf", "odt" -> FileKind.DOC
         "xls", "xlsx", "ods", "csv" -> FileKind.SHEET
         "ppt", "pptx", "odp", "key" -> FileKind.SLIDE
@@ -999,15 +933,12 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     }
 }
 
-/** 渲染文件类型图标: 真文件夹 / 真纸页 */
+
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
-        // 画布尺寸是 dp, 但 draw* 的坐标单位是 px: 图形按 46 设计单位给出,
-        // 必须按画布实际像素宽归一化, 否则高密度屏上图形只占画布的 ~1/density → 显得极小, 描边细到看不见.
         val unit = size.width / 46f
         scale(unit, pivot = Offset.Zero) {
-            // 纸页只占 46 空间的 27×36, 略放大让图标区更满 (纸页中心 y 与画布中心重合, 放大是对称的)
             scale(1.08f, pivot = Offset(23f, 23f)) {
                 if (style.kind == FileKind.FOLDER) drawFolderIcon(style.kind.tint)
                 else drawPageIcon(style.kind)
@@ -1016,18 +947,15 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     }
 }
 
-// ===== 几何 (46 设计空间) =====
 
-// 纸页: x 9.5~36.5 (宽 27), y 5~41 (高 36), 圆角 3.2, 右上折角 8.5
 private const val PAGE_L = 9.5f
 private const val PAGE_T = 5f
 private const val PAGE_R = 36.5f
 private const val PAGE_B = 41f
 private const val PAGE_CORNER = 3.2f
 private const val PAGE_FOLD = 8.5f
-private const val PAGE_HEAD = 16.4f          // 彩色页头下沿
+private const val PAGE_HEAD = 16.4f
 
-// 内容区: 用归一化 0..1 描述, 再由下面四个函数换算到设计单位
 private const val CB_X = 13f
 private const val CB_Y = 18f
 private const val CB_W = 20f
@@ -1038,7 +966,7 @@ private fun by(v: Float) = CB_Y + v * CB_H
 private fun bw(u: Float) = u * CB_W
 private fun bh(v: Float) = v * CB_H
 
-/** 同类色加深 (factor < 1) 或向白提亮 (factor > 1) */
+
 private fun tintShade(c: Color, factor: Float): Color =
     if (factor <= 1f) {
         Color(c.red * factor, c.green * factor, c.blue * factor, c.alpha)
@@ -1052,7 +980,7 @@ private fun tintShade(c: Color, factor: Float): Color =
         )
     }
 
-/** 纸页轮廓: 右上角被折掉的圆角矩形 */
+
 private fun pagePath(): Path = Path().apply {
     moveTo(PAGE_L + PAGE_CORNER, PAGE_T)
     lineTo(PAGE_R - PAGE_FOLD, PAGE_T)
@@ -1066,7 +994,7 @@ private fun pagePath(): Path = Path().apply {
     close()
 }
 
-/** 折角翻折面: 斜边两端 → 内直角 */
+
 private fun foldPath(): Path = Path().apply {
     moveTo(PAGE_R - PAGE_FOLD, PAGE_T)
     lineTo(PAGE_R - PAGE_FOLD, PAGE_T + PAGE_FOLD)
@@ -1074,7 +1002,7 @@ private fun foldPath(): Path = Path().apply {
     close()
 }
 
-/** 内容区里的圆角块 (归一化坐标) */
+
 private fun DrawScope.cbRect(u0: Float, v0: Float, u1: Float, v1: Float, r: Float, color: Color) {
     drawRoundRect(
         color = color,
@@ -1084,13 +1012,11 @@ private fun DrawScope.cbRect(u0: Float, v0: Float, u1: Float, v1: Float, r: Floa
     )
 }
 
-// ===== 文件夹 =====
 
-/** 真文件夹: 后板(含页签) + 前板(受光渐变) + 前板上沿高光 */
+
 private fun DrawScope.drawFolderIcon(tint: Color) {
     val back = tintShade(tint, 0.72f)
 
-    // 落地影: 同一轮廓下移, 两档偏移代替模糊
     translate(top = 1.0f) {
         drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
         drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
@@ -1099,11 +1025,9 @@ private fun DrawScope.drawFolderIcon(tint: Color) {
         drawRoundRect(Color.Black.copy(alpha = 0.05f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
     }
 
-    // 后板 + 页签
     drawRoundRect(back, Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
     drawRoundRect(back, Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
 
-    // 前板 (受光渐变) + 上沿高光
     drawRoundRect(
         brush = Brush.verticalGradient(
             0f to tintShade(tint, 1.18f), 1f to tint, startY = 16.6f, endY = 39f,
@@ -1113,9 +1037,8 @@ private fun DrawScope.drawFolderIcon(tint: Color) {
     drawRoundRect(Color.White.copy(alpha = 0.34f), Offset(7.4f, 17.7f), Size(31.2f, 1.5f), CornerRadius(0.75f, 0.75f))
 }
 
-// ===== 纸页 =====
 
-/** 纸页: 落地影 → 纸身 → 彩色页头 → 折角 → 内容 → 发丝边 */
+
 private fun DrawScope.drawPageIcon(kind: FileKind) {
     val tint = kind.tint
     val page = pagePath()
@@ -1130,7 +1053,6 @@ private fun DrawScope.drawPageIcon(kind: FileKind) {
         ),
     )
 
-    // 页头裁在纸形内 (右上折角处不会溢出) + 页头下沿一道极淡分界
     clipPath(page) {
         drawRect(
             brush = Brush.verticalGradient(
@@ -1143,7 +1065,6 @@ private fun DrawScope.drawPageIcon(kind: FileKind) {
         drawRect(Color.Black.copy(alpha = 0.10f), Offset(0f, PAGE_HEAD - 0.35f), Size(46f, 0.7f))
     }
 
-    // 折角比页头更浅 → 看得出纸被翻折, 而不是被切掉
     drawPath(foldPath(), tintShade(tint, 1.35f))
 
     drawKindContent(kind)
@@ -1151,7 +1072,7 @@ private fun DrawScope.drawPageIcon(kind: FileKind) {
     drawPath(page, Color.Black.copy(alpha = 0.13f), style = Stroke(width = 0.7f))
 }
 
-/** 内容缩影分发 (归一化坐标里画) */
+
 private fun DrawScope.drawKindContent(kind: FileKind) {
     val tint = kind.tint
     when (kind) {
@@ -1169,18 +1090,18 @@ private fun DrawScope.drawKindContent(kind: FileKind) {
         FileKind.EXEC -> drawExecContent(tint)
         FileKind.APK -> drawApkContent(tint)
         FileKind.UNKNOWN -> drawUnknownContent(tint)
-        FileKind.FOLDER -> Unit   // 走 drawFolderIcon, 不会到这里
+        FileKind.FOLDER -> Unit
     }
 }
 
-/** 文本: 四条长短不一的文字条 */
+
 private fun DrawScope.drawTextLines(tint: Color) {
     listOf(0.10f to 0.96f, 0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.58f).forEach { (v, u1) ->
         cbRect(0.04f, v, u1, v + 0.075f, 0.7f, tint)
     }
 }
 
-/** 文档: 一条标题 + 三行正文 */
+
 private fun DrawScope.drawDocContent(tint: Color) {
     cbRect(0.04f, 0.02f, 0.62f, 0.17f, 1.4f, tint)
     listOf(0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.62f).forEach { (v, u1) ->
@@ -1188,7 +1109,7 @@ private fun DrawScope.drawDocContent(tint: Color) {
     }
 }
 
-/** PDF: 页中之页 (内页恒为纸白 + 发丝边, 任何配色下都不糊) */
+
 private fun DrawScope.drawPdfContent(tint: Color) {
     val l = bx(0.06f)
     val t = by(0.02f)
@@ -1219,7 +1140,7 @@ private fun DrawScope.drawPdfContent(tint: Color) {
     listOf(0.46f, 0.68f).forEach { v -> cbRect(0.14f, v, 0.70f, v + 0.085f, 0.8f, tint) }
 }
 
-/** 表格: 表头填色 + 网格 + 一个高亮单元格 */
+
 private fun DrawScope.drawSheetContent(tint: Color) {
     val l = bx(0f)
     val t = by(0f)
@@ -1238,7 +1159,7 @@ private fun DrawScope.drawSheetContent(tint: Color) {
     drawRoundRect(tint, Offset(l, t), Size(w, h), CornerRadius(1.8f, 1.8f), style = Stroke(width = 1f))
 }
 
-/** 幻灯片: 16:9 画框 + 标题条 + 两条正文块 + 页脚 */
+
 private fun DrawScope.drawSlideContent(tint: Color) {
     val l = bx(0.02f)
     val t = by(0.16f)
@@ -1251,7 +1172,7 @@ private fun DrawScope.drawSlideContent(tint: Color) {
     cbRect(0.30f, 0.90f, 0.70f, 0.975f, 0.7f, tint.copy(alpha = 0.7f))
 }
 
-/** 图片: 一张真照片 (天空 + 太阳 + 两层山), 自带固有色 */
+
 private fun DrawScope.drawImageContent() {
     val l = bx(0f)
     val t = by(0f)
@@ -1289,7 +1210,7 @@ private fun DrawScope.drawImageContent() {
     )
 }
 
-/** 视频: 黑画框 + 播放三角 */
+
 private fun DrawScope.drawVideoContent() {
     val l = bx(0f)
     val t = by(0.06f)
@@ -1309,7 +1230,7 @@ private fun DrawScope.drawVideoContent() {
     )
 }
 
-/** 音频: 六根波形条 */
+
 private fun DrawScope.drawAudioContent(tint: Color) {
     listOf(0.30f, 0.62f, 0.92f, 0.50f, 0.22f, 0.70f).forEachIndexed { i, barH ->
         val u = 0.03f + i * 0.163f
@@ -1317,7 +1238,7 @@ private fun DrawScope.drawAudioContent(tint: Color) {
     }
 }
 
-/** 代码: 深色代码窗 + 彩色语法行, 自带固有色 */
+
 private fun DrawScope.drawCodeContent() {
     val l = bx(0f)
     val t = by(0f)
@@ -1345,7 +1266,7 @@ private fun DrawScope.drawCodeContent() {
     )
 }
 
-/** 压缩包: 淡彩底板 + 类型色拉链 + 拉环 */
+
 private fun DrawScope.drawArchiveContent(tint: Color) {
     val panel = tintShade(tint, 1.62f)
     cbRect(0f, 0f, 1f, 1f, 2f, panel)
@@ -1361,7 +1282,7 @@ private fun DrawScope.drawArchiveContent(tint: Color) {
     )
 }
 
-/** 光盘: 淡彩底板 + 同心圆盘 */
+
 private fun DrawScope.drawDiskContent(tint: Color) {
     cbRect(0f, 0f, 1f, 1f, 2f, tintShade(tint, 1.62f))
     val center = Offset(bx(0.5f), by(0.5f))
@@ -1371,7 +1292,7 @@ private fun DrawScope.drawDiskContent(tint: Color) {
     drawCircle(tint, radius = bw(0.11f), center = center)
 }
 
-/** 可执行: 淡色终端窗 + 提示符 + 光标条 */
+
 private fun DrawScope.drawExecContent(tint: Color) {
     cbRect(0f, 0.04f, 1f, 0.96f, 2f, tint.copy(alpha = 0.14f))
     drawPath(
@@ -1386,7 +1307,7 @@ private fun DrawScope.drawExecContent(tint: Color) {
     cbRect(0.40f, 0.68f, 0.84f, 0.78f, 0.95f, tint)
 }
 
-/** 安装包: 淡彩底板 + 安卓机器人头 */
+
 private fun DrawScope.drawApkContent(tint: Color) {
     val panel = tintShade(tint, 1.62f)
     cbRect(0f, 0f, 1f, 1f, 2f, panel)
@@ -1394,10 +1315,8 @@ private fun DrawScope.drawApkContent(tint: Color) {
     val t = by(0.30f)
     val w = bw(0.80f)
     val h = bh(0.72f)
-    // 触角
     drawLine(tint, Offset(l + w * 0.20f, t - h * 0.60f), Offset(l + w * 0.32f, t - h * 0.04f), 1.4f, StrokeCap.Round)
     drawLine(tint, Offset(l + w * 0.80f, t - h * 0.60f), Offset(l + w * 0.68f, t - h * 0.04f), 1.4f, StrokeCap.Round)
-    // 半圆头
     drawArc(
         color = tint,
         startAngle = 180f,
@@ -1406,12 +1325,11 @@ private fun DrawScope.drawApkContent(tint: Color) {
         topLeft = Offset(l, t),
         size = Size(w, h * 2f),
     )
-    // 眼
     drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.30f, t + h * 0.44f))
     drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.70f, t + h * 0.44f))
 }
 
-/** 未知类型: 两条短文字条 */
+
 private fun DrawScope.drawUnknownContent(tint: Color) {
     cbRect(0.04f, 0.30f, 0.70f, 0.375f, 0.7f, tint)
     cbRect(0.04f, 0.62f, 0.46f, 0.695f, 0.7f, tint)

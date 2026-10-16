@@ -1,11 +1,9 @@
 package com.datbox.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -18,7 +16,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -30,14 +27,7 @@ import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.viewmodel.ProfileViewModel
 
-/**
- * "我的"页面
- *
- * 入口:
- * - 用户管理 (ManagementScreen)
- * - 关于 (AboutScreen)
- * - 退出登录
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
@@ -49,13 +39,11 @@ fun ProfileScreen(
     var showManagement by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
 
-    // 子页面: 管理
     if (showManagement) {
         ManagementScreen(onBack = { showManagement = false })
         return
     }
 
-    // 子页面: 关于
     if (showAbout) {
         AboutScreen(onBack = { showAbout = false })
         return
@@ -69,10 +57,9 @@ fun ProfileScreen(
     GlassDecorBackground {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 96.dp), // bottom: dock 悬浮区留白
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            // 顶部栏
             item {
                 Row(
                     modifier = Modifier
@@ -93,7 +80,6 @@ fun ProfileScreen(
                 }
             }
 
-            // 用户信息 (无卡片容器: 白底上裸排, 头像 + 账号/角色)
             item {
                 Row(
                     modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp, bottom = 12.dp),
@@ -130,7 +116,6 @@ fun ProfileScreen(
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
-                            // role: 0=普通用户 1=游客 2=管理员 (OpenList internal/model/user.go)
                             when (user?.role) {
                                 2 -> "管理员"
                                 1 -> "游客"
@@ -144,7 +129,6 @@ fun ProfileScreen(
                 }
             }
 
-            // 菜单项
             items(menuItems.size) { index ->
                 val item = menuItems[index]
                 LiquidGlassRow(
@@ -171,7 +155,6 @@ fun ProfileScreen(
                 )
             }
 
-            // 退出登录
             item {
                 Spacer(Modifier.height(4.dp))
                 LiquidGlassRow(

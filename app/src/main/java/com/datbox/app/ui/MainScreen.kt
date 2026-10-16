@@ -9,7 +9,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.rememberGraphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.unit.IntSize
@@ -21,14 +20,7 @@ import com.datbox.app.ui.screen.FileBrowserScreen
 import com.datbox.app.ui.screen.FilePreviewScreen
 import com.datbox.app.ui.screen.ProfileScreen
 
-/**
- * 主页面壳 — 底部 Dock + 文件预览全屏模式
- *
- * 底部 Dock (iOS 27 悬浮胶囊):
- * - 宽度贴合内容、水平居中的玻璃胶囊, 内含 [首页 / 我的] + 搜索
- * - 玻璃无自身颜色, 选中态是中性"液态镜片"补间动画
- * 顶部的搜索已移除, 搜索入口统一到底部 Dock。
- */
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -37,11 +29,9 @@ fun MainScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var previewPath by remember { mutableStateOf<String?>(null) }
     var previewName by remember { mutableStateOf("") }
-    // 点 dock 首页 = 回根目录: 每次点击 +1, FileBrowserScreen 收到即 load("/")
     var homeReset by remember { mutableIntStateOf(0) }
     var searchActive by remember { mutableStateOf(false) }
 
-    // ── 文件预览全屏模式: 隐藏底部栏 ──
     if (previewPath != null) {
         BackHandler(enabled = true) { previewPath = null }
         FilePreviewScreen(
@@ -52,7 +42,6 @@ fun MainScreen(
         return
     }
 
-    // ── 系统返回键: 非首页 Tab → 回到首页 ──
     BackHandler(enabled = selectedTab != 0) {
         selectedTab = 0
     }
@@ -68,9 +57,6 @@ fun MainScreen(
                 .padding(padding)
                 .fillMaxSize(),
         ) {
-            // 玻璃取景层: 只录制给 Dock 折射采样用; 主内容直接绘制 (drawContent) —
-            // 主画面不经过任何 effect, shader/管线异常只可能影响 dock 药丸区, 拖不垮整屏;
-            // 内容从 dock 玻璃下方滚过, shader 才有真实画面可折射 (对齐 FlClash backdrop 机制)
             val glassLayer = rememberGraphicsLayer()
             var backdropOrigin by remember { mutableStateOf(Offset.Zero) }
             Box(
@@ -105,14 +91,11 @@ fun MainScreen(
                     )
                 }
             }
-            // Dock 悬浮于内容之上 (不再由 Scaffold 预留空间)
             LiquidGlassBottomBar(
                 tabs = tabs,
                 selectedIndex = selectedTab,
                 onSelected = { tab ->
-                    // 切 tab 一律退出搜索态: 搜索只挂在首页, 否则点「首页」停在搜索页不动
                     if (searchActive) searchActive = false
-                    // 点首页 (无论在哪个 tab) 一律回根目录: 已在首页子目录时即为"回到顶部"
                     if (tab == 0) homeReset++
                     selectedTab = tab
                 },

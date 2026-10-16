@@ -65,7 +65,6 @@ class MountSerializationTest {
         assertEquals(5, out.field("order")!!.jsonPrimitive.int)
         assertEquals(30, out.field("cache_expiration")!!.jsonPrimitive.int)
         assertEquals("主目录", out.field("remark")!!.jsonPrimitive.content)
-        // 驱动配置: 编辑一次就丢的话挂载直接废掉 —— 最关键的断言
         assertEquals(
             """{"root_folder_path":"/data/files","thumbnail":false}""",
             out.field("addition")!!.jsonPrimitive.content
@@ -95,7 +94,6 @@ class MountSerializationTest {
         assertNotNull(out.field("remark"))
     }
 
-    /** 服务端未来新增字段不能导致解析崩溃(编辑挂载入口) */
     @Test
     fun `unknown response fields are ignored on decode`() {
         val mount = OpenListJson.decodeFromString<Mount>(

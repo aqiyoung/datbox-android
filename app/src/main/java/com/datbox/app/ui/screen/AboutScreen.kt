@@ -69,16 +69,13 @@ fun AboutScreen(onBack: () -> Unit) {
     val autoCheck by updateManager.autoCheckEnabled.collectAsState(initial = true)
 
     GlassDecorBackground {
-        // 不套自己的 Scaffold: 外层 MainScreen 已给足状态栏 inset,
-        // 再吃一遍会让返回行离状态栏空出双倍距离
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp),
-            contentPadding = PaddingValues(bottom = 96.dp), // bottom: dock 悬浮区留白
+            contentPadding = PaddingValues(bottom = 96.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-                // 顶部返回 + 标题（内联，避免透明 TopAppBar 预留空白）
                 item {
                     Row(
                         modifier = Modifier
@@ -98,7 +95,6 @@ fun AboutScreen(onBack: () -> Unit) {
                     }
                 }
 
-                // 紧凑品牌区（不套大卡）
                 item {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Image(
@@ -134,7 +130,6 @@ fun AboutScreen(onBack: () -> Unit) {
 
                 item { Spacer(Modifier.height(20.dp)) }
 
-                // 主操作行
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         ActionCard(
@@ -178,7 +173,6 @@ fun AboutScreen(onBack: () -> Unit) {
 
                 item { Spacer(Modifier.height(12.dp)) }
 
-                // 设置卡
                 item {
                     LiquidGlassSurface(
                         modifier = Modifier.fillMaxWidth(),
@@ -204,7 +198,6 @@ fun AboutScreen(onBack: () -> Unit) {
 
                 item { Spacer(Modifier.height(12.dp)) }
 
-                // 开源信息卡
                 item {
                     LiquidGlassSurface(
                         modifier = Modifier.fillMaxWidth(),
@@ -302,7 +295,6 @@ private fun UpdateFoundDialog(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // 图标 + 标题 (居中式弹窗头)
                 Box(
                     modifier = Modifier.size(48.dp).clip(CircleShape).background(BrandGreen.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center,
@@ -326,7 +318,6 @@ private fun UpdateFoundDialog(
 
                 Spacer(Modifier.height(20.dp))
 
-                // 左右版本对比卡
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     VersionCompareCard(
                         modifier = Modifier.weight(1f),
@@ -342,7 +333,6 @@ private fun UpdateFoundDialog(
                     )
                 }
 
-                // 关键更新警示
                 if (result.isCritical) {
                     Spacer(Modifier.height(16.dp))
                     Surface(shape = RoundedCornerShape(12.dp), color = ErrorRedSoft.copy(alpha = 0.1f)) {
@@ -362,7 +352,6 @@ private fun UpdateFoundDialog(
                     }
                 }
 
-                // 更新说明
                 result.releaseNotes?.let { notes ->
                     val body = notes.lines().drop(1).joinToString("\n").trim()
                     if (body.isNotEmpty()) {
@@ -373,7 +362,6 @@ private fun UpdateFoundDialog(
                             text = if (body.length > 400) body.take(400) + "…" else body,
                             fontSize = 13.sp,
                             color = Color(0xFF4A4A4A),
-                            // 超长更新说明在弹窗内滚动, 不把弹窗撑出屏幕
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 200.dp)
@@ -384,7 +372,6 @@ private fun UpdateFoundDialog(
 
                 Spacer(Modifier.height(20.dp))
 
-                // 按钮
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!result.isCritical) {
                         OutlinedButton(

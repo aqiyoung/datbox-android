@@ -8,7 +8,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.datbox.app.R
 
-// iOS 26 风格字体 - 使用 MiSans 作为 SF Pro 的替代
 private val misans_regular = Font(R.font.misans_regular, FontWeight.Normal)
 private val misans_medium = Font(R.font.misans_medium, FontWeight.Medium)
 private val misans_semibold = Font(R.font.misans_semibold, FontWeight.SemiBold)
@@ -21,18 +20,11 @@ val MiSansFamily = FontFamily(
     misans_bold,
 )
 
-// iOS 26 风格排版
-// - 大标题: 34sp, Semibold, 间距 -0.5
-// - 标题: 22sp, Semibold
-// - 正文: 17sp, Normal
-// - 说明: 13sp, Normal
 val OpenListTypography = Typography(
-    // 大标题 (Navigation Title Large)
     displayLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
         fontSize = 34.sp, lineHeight = 41.sp, letterSpacing = (-0.5).sp
     ),
-    // 标题 (Navigation Title)
     headlineLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp, lineHeight = 34.sp, letterSpacing = (-0.3).sp
@@ -41,7 +33,6 @@ val OpenListTypography = Typography(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.2).sp
     ),
-    // 卡片标题
     titleLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.SemiBold,
         fontSize = 18.sp, lineHeight = 24.sp, letterSpacing = 0.sp
@@ -50,7 +41,6 @@ val OpenListTypography = Typography(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Medium,
         fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = 0.sp
     ),
-    // 正文
     bodyLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Normal,
         fontSize = 17.sp, lineHeight = 24.sp, letterSpacing = 0.sp
@@ -63,7 +53,6 @@ val OpenListTypography = Typography(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Normal,
         fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.sp
     ),
-    // 标签
     labelLarge = TextStyle(
         fontFamily = MiSansFamily, fontWeight = FontWeight.Medium,
         fontSize = 13.sp, lineHeight = 18.sp, letterSpacing = 0.sp

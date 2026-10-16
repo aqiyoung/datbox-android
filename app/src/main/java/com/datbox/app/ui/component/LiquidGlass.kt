@@ -25,17 +25,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -78,7 +73,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxScope
-import com.datbox.app.ui.theme.BorderLight
 import com.datbox.app.ui.theme.GlassBorder
 import com.datbox.app.ui.theme.MiSansFamily
 import com.datbox.app.ui.theme.NearBlack
@@ -87,33 +81,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
-// ===== 底部导航 Tab 定义 =====
-/**
- * 底部导航 Tab
- * 放在组件库中, MainScreen 和 LiquidGlassBottomBar 共用
- */
+
 data class BottomTab(
     val label: String,
     val icon: ImageVector,
 )
 
-// ===== iOS 26/27 风格液态玻璃组件库 =====
 
-/**
- * 玻璃卡
- *
- * 视觉要素 (自下而上, v4 液态玻璃):
- * 1. 半透玻璃体 (中性微灰渐变, 比纯白页面略暗 → 读得出"一片玻璃")
- * 2. 白纱 veil 磨砂浓度 + 顶部柔光带 (环境光渐隐)
- * 3. 光学层: 边缘透镜环带 + 角向 rim (左上亮/右下暗) + 镜面高光
- * 4. 0.5dp 单层发丝边 (定义边)
- * 5. 内容区 (清晰)
- *
- * 特征:
- * - 大圆角 24dp
- * - 玻璃无自身色彩, 色相一律中性; 颜色只来自内容
- * - 边界靠发丝边 + 光学层 + 柔和投影定义, 不靠色块
- */
+
 @Composable
 fun LiquidGlassCard(
     modifier: Modifier = Modifier,
@@ -127,13 +102,7 @@ fun LiquidGlassCard(
     }
 }
 
-/**
- * 玻璃行 (列表 item)
- *
- * iOS 27 特征:
- * - 圆角 16dp
- * - 中性玻璃, 不引入颜色
- */
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun LiquidGlassRow(
@@ -212,7 +181,6 @@ fun LiquidGlassBottomBar(
     backdropOrigin: Offset = Offset.Zero,
     modifier: Modifier = Modifier,
 ) {
-    // 滑镜运动学: 位置弹簧(带回弹) + 点按抬升(充气) + 加速液体形变, 逐帧驱动
     val scope = rememberCoroutineScope()
     val motion = remember { LensMotion(scope, selectedIndex) }
     val lensTarget = selectedIndex
@@ -221,19 +189,14 @@ fun LiquidGlassBottomBar(
     val mLift = motion.lift
     val mSquash = motion.squash
 
-    // iOS 式排布: 步距按条目数均分; 首帧用静态条宽公式, 随后以实测条宽为准 —
-    // 保证任何屏宽/约束行为下滑镜与条目严格对齐 (此前静态假设 274 曾致错位)
     val count = tabs.size
     val barW = DOCK_ITEM_MAX * count + DOCK_BAR_PADDING * 4
     val density = LocalDensity.current
     var pitch by remember { mutableFloatStateOf((barW - DOCK_ITEM_INSET * 2) / count) }
     val lensW = (pitch + DOCK_BAR_PADDING * 2) * (1f + mSquash)
     val lensX = DOCK_ITEM_INSET + (mPos + 0.5f) * pitch - lensW / 2f
-    val lensClear = 1f - 0.5f * mLift // 抬升时镜片转清 (FlClash: 升起后是清玻璃)
+    val lensClear = 1f - 0.5f * mLift
 
-    // backdrop 折射管线 (见 [LiquidGlassBackdrop]): 取景层 + AGSL 光学 shader。
-    // 仅 API 33+ (AGSL); 以下回落 v3 平玻璃 (不挂 effect, shader 亦不参与)。
-    // 全部构造加兜底: shader 编译/挂载失败 → 管线关闭 → 平玻璃, 绝不拖垮启动。
     var pillPos by remember { mutableStateOf(Offset.Zero) }
     val glassShader = remember {
         if (Build.VERSION.SDK_INT >= 33) {
@@ -249,8 +212,6 @@ fun LiquidGlassBottomBar(
             null
         }
     }
-    // effect 挂在取景层上 (renderEffect 是 GraphicsLayer 属性): 只有 Dock 的裁剪绘制
-    // 经过 shader; 主内容层不挂 effect, 异常影响面收敛在 dock 药丸区内。
     SideEffect {
         if (backdrop != null && backdropEffect != null && backdrop.renderEffect !== backdropEffect) {
             runCatching { backdrop.renderEffect = backdropEffect }
@@ -260,36 +221,25 @@ fun LiquidGlassBottomBar(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            // 不再加 navigationBarsPadding: Scaffold content padding 已含导航栏 inset,
-            // Dock 改为悬浮在 content Box 内, 再加会双重内边距把胶囊顶高
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                // 条宽 = 屏宽占比 (55%), 比例而非固定 dp → 各尺寸屏观感一致。
-                // 勿改回 fillMaxWidth().widthIn(max): fillMaxWidth 会把约束固定为整屏宽,
-                // widthIn 的 max 限制随之失效 — 药丸条会一直是全屏宽。
-                // 外层 Box 不加横向 padding, 故此处的 fillMaxWidth(fraction) 以整屏宽为基。
                 .fillMaxWidth(DOCK_WIDTH_FRACTION),
             horizontalArrangement = Arrangement.Center,
         ) {
-            // 单层玻璃药丸: 条体与滑镜光斑同处一层轮廓内 → 视觉上只有一枚胶囊
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(DOCK_BAR_HEIGHT.dp)
                     .onSizeChanged { size ->
-                        // 实测条宽 → 步距, 与条目行同一坐标系
                         val w = with(density) { size.width.toDp().value }
                         val p = (w - DOCK_ITEM_INSET * 2) / count
                         if (abs(p - pitch) > 0.01f) pitch = p
                     }
                     .onGloballyPositioned { coords -> pillPos = coords.positionInRoot() }
-                    // backdrop 层: 把录制的页面内容折射后画在药丸形内 (先于材质层, 垫底)
                     .drawBehind {
-                        // 读取滑镜几何 → 写 shader uniforms (每次重绘刷新;
-                        // 即便内容未变, 滑镜动画也通过本绘制触发药丸区重绘)
                         val layer = backdrop ?: return@drawBehind
                         if (backdropEffect == null) return@drawBehind
                         val texW = layer.size.width.toFloat()
@@ -310,9 +260,6 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uRadius", size.height / 2f)
                             setFloatUniform("uBevel", with(density) { 20.dp.toPx() })
                             setFloatUniform("uRefraction", with(density) { 60.dp.toPx() })
-                            // 光学参数取自 FlClash 实测预设 (LiquidGlassStyle.pill / .lens):
-                            // 条体 pill = blur 0 + haze 0.72@15.6dp (毛玻璃感来自 haze) + 饱和度 2.1 + contrast 0.4;
-                            // 滑镜 lens = bevel 5.5dp / refraction 4.3dp / endShade 0.045。
                             setFloatUniform("uBlur", 0f)
                             setFloatUniform("uHaze", 0.72f)
                             setFloatUniform("uHazeBlur", with(density) { 15.6.dp.toPx() })
@@ -327,7 +274,6 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uLensW", with(density) { lensW.dp.toPx() })
                             setFloatUniform("uLensBevel", with(density) { 5.5.dp.toPx() })
                             setFloatUniform("uLensDepth", with(density) { 4.3.dp.toPx() })
-                            // #F4F4F4 @0.32 平涂染色 (straight alpha, 淡染更透)
                             setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.32f)
                         }
                         clipPath(pillPath) {
@@ -340,15 +286,12 @@ fun LiquidGlassBottomBar(
                         }
                     },
             ) {
-                // 1) 条体: backdrop 折射开启时体色交给 shader 内的平涂染色,
-                //    这里只留顶部柔光/发丝边/投影; 降级设备回落 v4 光学层 (见 optical)
                 FrostedGlass(
                     shape = RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp),
                     veilAlpha = 0f,
-                    // shader 折射已自带 rim 与边缘光, 光学层只在降级路径 (API < 33) 补上
                     optical = backdropEffect == null,
                     tintGradient = if (backdropEffect != null) {
                         Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -361,16 +304,12 @@ fun LiquidGlassBottomBar(
                         )
                     },
                 ) {}
-                // 2) 液态滑镜: 全高横向渐变光斑 — 边缘渐隐、无自身轮廓, 与药丸同高同裁剪,
-                //    不再是嵌套的第二枚胶囊; 抬升时经 lensClear 转清
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(DOCK_BAR_HEIGHT.dp)
                         .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
                 ) {
-                    // 选中胶囊 (透明提亮式): 白色半透染色, 边缘渐隐, 抬升转清 —
-                    // 在浅玻璃条体上"提亮"选中格, 无彩色, iOS 式安静指示
                     Box(
                         Modifier
                             .align(Alignment.TopStart)
@@ -405,7 +344,6 @@ fun LiquidGlassBottomBar(
                             )
                     )
                 }
-                // 3) 条目: 均分步距, 图标 + 文字
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -430,9 +368,7 @@ fun LiquidGlassBottomBar(
     }
 }
 
-/**
- * Dock 条目 — 图标 + 文字 (FlClash/iOS 式), 选中时整体转主色 (240ms 补间)。
- */
+
 @Composable
 private fun DockTabItem(
     icon: ImageVector,
@@ -471,55 +407,41 @@ private fun DockTabItem(
     }
 }
 
-// ===== Dock 排布 (参数对齐 FlClash dev 的 NavigationDock) =====
 
-/** 条宽占屏宽比例 (用户指定 60%): 比例而非固定 dp, 各尺寸屏观感一致 */
+
 private const val DOCK_WIDTH_FRACTION = 0.60f
 
-/** 首帧步距估算用的条目宽度 (实际条宽以屏宽占比为准, 随后以 onSizeChanged 实测校正) */
+
 private const val DOCK_ITEM_MAX = 80f
 
-/** 条内边距: 滑镜静止时悬出条目每侧 4 */
+
 private const val DOCK_BAR_PADDING = 4f
 
-/** 条目行内边距 = 外 4 + 内 4 (FlClash 双层内缩) → 端点镜片与药丸边缘留 4 */
+
 private const val DOCK_ITEM_INSET = 8f
 
 private const val DOCK_BAR_HEIGHT = 62f
 
-// ===== 液态滑镜运动学 (移植) =====
 
-/**
- * 滑镜运动学 — 移植自 BitChord (github.com/kushagrasinghx/BitChord) 的 GlassPillMotion,
- * 其物理源自 liquid_glass_easy 的 LiquidGlassLensMotion (MIT, Copyright (c) 2025 Ahmed Gamil)。
- *
- * 三路弹簧/模型:
- * - travel: 位置弹簧 (欠阻尼 → 落位回弹)
- * - lift: 点按即"抬起"镜片 (弹簧过冲再回落), 旅程中保持, 行进 92% 后释放 → 落地放气
- * - squash: 对位置二次差分 → 出发拉伸 / 刹车压扁的液体形变, 宽 ×(1+d) 高 ×(1-d)
- *
- * 相对 BitChord 的简化: 不支持拖拽 (Tab 只点按); 无背景折射 (需 vendored backdrop 库, 另立工作项)。
- *
- * @param initialIndex 初始选中 Tab (位置以 tab 步长为单位, 0 = 第一个)
- */
+
 @Stable
 internal class LensMotion(
     private val scope: CoroutineScope,
     initialIndex: Int,
 ) {
-    /** 镜片位置, 以 tab 步长为单位 (0 = 第一个) */
+
     var position by mutableFloatStateOf(initialIndex.toFloat())
         private set
 
-    /** 抬升度 0..1 (欠阻尼弹簧, 会过冲) */
+
     var lift by mutableFloatStateOf(0f)
         private set
 
-    /** 加速形变: 宽 ×(1+squash), 高 ×(1-squash); 出发为正 (拉伸), 刹车为负 (压扁) */
+
     var squash by mutableFloatStateOf(0f)
         private set
 
-    /** 当前选中 Tab */
+
     var index: Int = initialIndex
         private set
 
@@ -535,7 +457,7 @@ internal class LensMotion(
     private var running = false
     private val squashModel = PillSquashModel()
 
-    /** 选中了新 Tab: 抬起镜片并弹簧滑行过去。重选当前 Tab 是 no-op。 */
+
     fun animateTo(next: Int) {
         if (next == index) return
         index = next
@@ -564,9 +486,8 @@ internal class LensMotion(
         }
     }
 
-    /** 一帧的全部。全部沉降后返回 false 结束循环。 */
+
     private fun tick(dt: Double, now: Double): Boolean {
-        // 1) 位置弹簧
         var travelSettled = true
         if (travelPos != travelTarget) {
             val r = springStep(travelPos, travelVel, travelTarget, dt, TRAVEL_STIFFNESS, TRAVEL_DAMPING)
@@ -579,7 +500,6 @@ internal class LensMotion(
             }
         }
 
-        // 2) 抬升: 旅程保持, 行进 >=92% 落地释放 → 弹簧回落时先瘪后涨
         if (travelSettled || travelProgress() >= HANDOVER_START) lifted = false
         val liftTarget = if (lifted) 1.0 else 0.0
         springStep(liftPos, liftVel, liftTarget, dt, LIFT_STIFFNESS, LIFT_DAMPING).let {
@@ -592,17 +512,15 @@ internal class LensMotion(
         }
         val liftSettled = liftPos == 0.0
 
-        // 3) 液体形变: 采样本帧位置, 二次差分平滑
         squash = squashModel.track(travelPos, now, dt).toFloat()
 
-        // 发布
         position = travelPos.toFloat()
         lift = liftPos.toFloat()
 
         return !(travelSettled && liftSettled)
     }
 
-    /** 本次行程的完成度 0..1 */
+
     private fun travelProgress(): Double {
         val span = travelTarget - travelFrom
         if (span == 0.0) return 1.0
@@ -612,13 +530,13 @@ internal class LensMotion(
     companion object {
         const val TRAVEL_STIFFNESS = 280.0
 
-        /** FlClash travel (400ms, 回弹 0.15 ≈ ζ0.52) — 比临界阻尼更活, 落位带回弹 */
+
         const val TRAVEL_DAMPING = 17.4
         const val LIFT_STIFFNESS = 250.0
         const val LIFT_DAMPING = 19.0
         const val HANDOVER_START = 0.92
 
-        /** 半隐式欧拉弹簧积分, 240Hz 子步 (帧间隔大时切细步保稳定) */
+
         fun springStep(
             x: Double,
             vel: Double,
@@ -642,11 +560,7 @@ internal class LensMotion(
     }
 }
 
-/**
- * 位置的二次差分 → 加速形变。窗口内平均加速度 × 灵敏度, 限幅后按响应时间趋近。
- * 出发时位置加速 → 形变为正 (宽拉伸/高压扁); 刹车时为负 (宽压扁/高拉伸)。
- * 常量同 BitChord/liquid_glass_easy。
- */
+
 private class PillSquashModel {
     private val history = ArrayList<Pair<Double, Double>>()
     private var tracking = false
@@ -698,23 +612,7 @@ private class PillSquashModel {
     }
 }
 
-/**
- * 真·液态玻璃填充层 (所有玻璃件共用: 卡片 / 行 / 底部栏 / FAB / 按钮 / 顶栏)
- *
- * v4 液态玻璃 (iOS 26/27 Liquid Glass):
- * 页面背景是纯白, 所以"白纱 / 白色受光带 / 白色 rim / 镜面高光"在纯白上全部不可见 ——
- * 这正是 v3 看起来像"白方片"的根因: 玻璃与该页面的明度差是零, 只剩发丝边和投影在分层。
- * v4 因此让玻璃体真正"有体", 并把光学行为补回来:
- * 1. 半透玻璃体 (中性微灰渐变 #FCFCFD → #E9E9EE): 玻璃比页面略暗, 才读得出"一片玻璃"
- * 2. 白纱 veil: 磨砂浓度, 由调用方控制
- * 3. 顶部柔光带 (一条极淡的环境光渐隐, 非穹顶)
- * 4. 光学层 [GlassOptics]: 边缘透镜环带 + 角向 rim + 镜面高光
- * 5. 单层发丝边界 (GlassBorder): 纯白背景上唯一可见的边界定义
- * 6. 外部柔投影 (FlClash dockShadows 配方: 浅而散, 只画在形状之外)
- *
- * [veilAlpha] 越大越实、越遮背后的内容。
- * 不画彩色光斑 —— 颜色只能来自内容本身。
- */
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FrostedGlass(
@@ -740,7 +638,6 @@ private fun FrostedGlass(
 
     Box(
         modifier = modifier
-            // iOS 26 交互反馈: 按下的玻璃轻微内收, 松手弹回 (液态玻璃的"受力"感)
             .then(
                 if (isClickable) {
                     Modifier.graphicsLayer {
@@ -754,7 +651,6 @@ private fun FrostedGlass(
             )
             .then(
                 if (withShadow) {
-                    // FlClash dockShadows 配方: 浅而散的浮影 (只在形状外, 不制造厚度感)
                     Modifier.shadow(
                         elevation = 12.dp,
                         shape = shape,
@@ -779,11 +675,8 @@ private fun FrostedGlass(
                 }
             )
     ) {
-        // 1) 半透玻璃体: 中性微灰渐变 — 明度略低于纯白页面, 玻璃才"有体"
         Box(Modifier.matchParentSize().background(tintGradient))
-        // 2) 磨砂白纱: 整体浓度 (调用方控制)
         Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
-        // 3) 顶部柔光带: 极淡的环境光渐隐 (玻璃受光, 非穹顶聚光)
         Box(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
@@ -794,45 +687,25 @@ private fun FrostedGlass(
                 )
             )
         )
-        // 4) 光学层: 边缘透镜环带 + 角向 rim + 镜面高光
-        //    (Dock 走 shader 折射时传 optical = false, 避免与 shader 的 rim 叠加)
         if (optical) GlassOptics(shape)
-        // 5) 按下提亮: 玻璃受光变亮, 不改变内容对比
         if (isClickable && pressProgress > 0f) {
             Box(
                 Modifier.matchParentSize()
                     .background(Color.White.copy(alpha = 0.09f * pressProgress))
             )
         }
-        // 6) 内容 (图标 / 文字 / 分段)
         content()
-        // 7) 发丝定义边: 纯白背景上唯一可见的边界定义 (GlassBorder)
         Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
     }
 }
 
-/**
- * 液态玻璃光学层 (iOS 26/27 Liquid Glass 里"玻璃感"的真正来源)。
- *
- * 之前的降级材质是"磨砂白方片": 均匀白边 + 上亮下暗的平渐变 — 平得没有光学行为,
- * 所以看起来像纸而不像玻璃。这里补回三件事:
- *
- * 1. **边缘透镜环带** — 沿边 3 圈同心内缩的角向渐变细环。玻璃在边缘变厚, 光被聚到
- *    边上再向内散开。内圈半径 = 外圈半径 - 内缩 (同心圆角), 保证圆角处环带等宽,
- *    这是靠 [CornerSize.toPx] 现算半径做到的, 不能直接用 padding + border。
- * 2. **角向 rim** — 光从左上来: 上缘最亮 (峰值落在 0.62 ≈ 左上), 下缘带一点暗边。
- *    改为角向 (sweep) 渐变后才有方向性, 不再是"上白下灰"。
- * 3. **镜面高光** — 左上 → 右下的斜向柔光洗过, "湿"的观感。
- *
- * 环带全部画在形状内 6.2dp 以内, 内容区不受影响。
- */
+
 @Composable
 private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
     Box(
         Modifier.matchParentSize().drawWithCache {
             val outerRadius = shape.topStart.toPx(size, this)
             val sweepCenter = Offset(size.width / 2f, size.height / 2f)
-            // 角向坐标: 0.0=右, 0.25=下, 0.5=左, 0.75=上
             fun rimBrush(light: Float, dark: Float) = Brush.sweepGradient(
                 colorStops = arrayOf(
                     0.00f to Color.White.copy(alpha = 0.30f * light),
@@ -844,7 +717,6 @@ private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
                 ),
                 center = sweepCenter,
             )
-            // (内缩 px, 环宽 px, 亮度, 暗边强度) — 由外向内递减, 构成透镜的衰减尾
             val rings = listOf(
                 Ring(0.7.dp.toPx(), 1.2.dp.toPx(), 0.36f, 1.00f),
                 Ring(2.4.dp.toPx(), 3.6.dp.toPx(), 0.16f, 0.35f),
@@ -868,7 +740,6 @@ private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
             }
         }
     )
-    // 镜面高光: 左上 → 右下的斜向柔光 (默认 start/end 即贴合绘制边界对角线)
     Box(
         Modifier.matchParentSize().background(
             Brush.linearGradient(
@@ -882,17 +753,10 @@ private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
     )
 }
 
-/** 一圈边缘环带的几何与强度 */
+
 private data class Ring(val inset: Float, val width: Float, val light: Float, val dark: Float)
 
-/**
- * 玻璃主操作按钮
- *
- * iOS 27 特征:
- * - 圆角 16dp
- * - 高度 48dp
- * - 中性磨砂白 (无色彩)
- */
+
 @Composable
 fun LiquidGlassPrimaryButton(
     text: String,
@@ -928,12 +792,7 @@ fun LiquidGlassPrimaryButton(
     }
 }
 
-/**
- * 玻璃 Surface（替代 M3 中性白 Surface 卡）
- *
- * 与 LiquidGlassCard 同源：白玻璃背景 + 顶部高光 + 0.5dp 玻璃边框。
- * 支持 onClick（可点击卡片），内容由调用方自行 padding。
- */
+
 @Composable
 fun LiquidGlassSurface(
     modifier: Modifier = Modifier,
@@ -951,11 +810,7 @@ fun LiquidGlassSurface(
     }
 }
 
-/**
- * 玻璃 AlertDialog（替代裸 M3 AlertDialog）
- *
- * 容器改为半透明白玻璃（0.92 alpha），其余参数与 M3 AlertDialog 对齐。
- */
+
 @Composable
 fun LiquidGlassAlertDialog(
     onDismissRequest: () -> Unit,
@@ -980,14 +835,7 @@ fun LiquidGlassAlertDialog(
     )
 }
 
-/**
- * 玻璃页面背景 — 纯色, 不加任何颜色
- *
- * iOS 27: 页面背景保持纯白, 玻璃件靠发丝边/投影/磨砂浓度区分层次;
- * 渐变、彩色光斑一律不画 (颜色只应来自内容本身)。
- *
- * 用法: 作为页面最外层容器，内容叠在其上。
- */
+
 @Composable
 fun GlassDecorBackground(
     modifier: Modifier = Modifier,

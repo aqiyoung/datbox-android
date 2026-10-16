@@ -11,7 +11,6 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-// iOS 26 风格配色
 private val LightColors = lightColorScheme(
     primary = NearBlack,
     onPrimary = WarmIvory,
@@ -28,7 +27,6 @@ private val LightColors = lightColorScheme(
     outlineVariant = BorderWarm,
 )
 
-// iOS 26 深色风格
 private val DarkColors = darkColorScheme(
     primary = WarmIvory,
     onPrimary = NearBlack,
