@@ -66,6 +66,7 @@ import com.datbox.app.ui.component.LiquidGlassPrimaryButton
 import com.datbox.app.ui.component.LiquidGlassRow
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.ui.component.GlassDecorBackground
+import com.datbox.app.util.AppConfig
 import com.datbox.app.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -510,7 +511,7 @@ private fun FileBrowserTopBar(
     onSortSelected: (SortMode) -> Unit = {},
 ) {
     var sortMenuExpanded by remember { mutableStateOf(false) }
-    // 根目录不挂标题 (左上角留给搜索/排序/上传图标); 子目录显示当前目录名
+    // 根目录: 左上角显示品牌 logo + 名称; 子目录显示当前目录名
     val title = if (path == "/") "" else path.substringAfterLast('/')
     Row(
         modifier = Modifier
@@ -526,12 +527,13 @@ private fun FileBrowserTopBar(
             ) {
                 Image(
                     painter = painterResource(R.drawable.datbox_logo),
-                    contentDescription = "Datbox",
+                    // 紧邻的品牌文字已表达名称, 图片设为装饰, 避免 TalkBack 连读两次
+                    contentDescription = null,
                     modifier = Modifier.size(30.dp),
                 )
                 Spacer(Modifier.width(9.dp))
                 Text(
-                    text = "Datbox",
+                    text = AppConfig.BRAND,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color(0xFF141413),
@@ -914,7 +916,7 @@ private fun humanSize(b: Long): String = when {
 }
 
 /**
- * 文件类型图标 (iOS Files 风): 统一「文档页 / 文件夹」底形 + 类型符号,
+ * 文件类型图标 (iOS App 图标风): 统一「正方形圆角块」底 + 类型符号,
  * 配色收敛到 iOS 系统系柔和色调; 类型细分靠符号而不是短码文字。
  */
 private enum class FileKind(val bg: Color, val fg: Color) {
@@ -1019,7 +1021,7 @@ private fun DrawScope.drawFolderGlyph(fg: Color) {
     drawRoundRect(fg, Offset(13f, 20.5f), Size(20f, 13f), CornerRadius(3.5f, 3.5f))
 }
 
-/** 类型符号: 画在页身中央 (x 15~31, y 19~32) */
+/** 类型符号: 按设计坐标 (x 15~31, y 19~32) 绘制, 由调用方平移到方块中央 */
 private fun DrawScope.drawKindGlyph(kind: FileKind, bg: Color, fg: Color) {
     val sw = 1.8f
     val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)

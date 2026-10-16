@@ -18,7 +18,6 @@ import com.datbox.app.BuildConfig
 object AppConfig {
 
     const val BRAND = "Datbox"
-    const val BRAND_EN = "Datbox"
     const val BRAND_SUBTITLE = "Datbox · 云盘聚合"
     // 老板 6/14 拍: 在 About 页面标注 "基于官方 OpenList 开发" + 给上游仓库加链接
     const val UPSTREAM_NAME = "OpenList"

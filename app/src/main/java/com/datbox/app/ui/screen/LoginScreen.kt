@@ -34,6 +34,7 @@ import com.datbox.app.BuildConfig
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.api.TokenStore
 import com.datbox.app.ui.component.LiquidGlassSurface
+import com.datbox.app.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -171,7 +172,7 @@ fun LoginScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(R.drawable.datbox_logo),
-                        contentDescription = "Datbox",
+                        contentDescription = AppConfig.BRAND,
                         modifier = Modifier.size(52.dp)
                     )
                 }
@@ -320,7 +321,7 @@ fun LoginScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "v${BuildConfig.VERSION_NAME} · Datbox",
+                "v${BuildConfig.VERSION_NAME} · ${AppConfig.BRAND}",
                 fontSize = 12.sp,
                 color = Color(0xFFCCCCCC)
             )

@@ -1,9 +1,6 @@
 <resources>
     <string name="app_name">Datbox</string>
-    <string name="app_name_en">Datbox</string>
-    <string name="app_subtitle">Datbox · 云盘聚合</string>
     <string name="app_version_format">v%1$s (build %2$d)</string>
     <string name="changelog_url">https://fn.threel.site/api/openlist-android/changelog.json</string>
     <string name="update_check_url">https://fn.threel.site/api/openlist-android/latest.json</string>
-    <string name="about_brand_line">「Datbox」出品 · 聚合你的所有云盘</string>
 </resources>

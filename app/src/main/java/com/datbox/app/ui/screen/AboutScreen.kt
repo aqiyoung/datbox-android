@@ -104,7 +104,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         )
                         Spacer(Modifier.height(10.dp))
                         Text(
-                            text = AppConfig.BRAND_EN,
+                            text = AppConfig.BRAND,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF2A2925),
