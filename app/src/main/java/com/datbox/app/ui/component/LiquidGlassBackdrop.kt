@@ -26,9 +26,9 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
  * 1. 圆角矩形 SDF → 内缩距离 inset + 外法线 normal
  * 2. bevel 折射: rise = 1-inset/bevel, depth 沿法线偏移采样点 (边缘挤压/放大)
  * 3. 滑镜 raised-lens 折射: 仅上下缘、向两端渐收 (lens mode)
- * 4. Vogel 盘 13 tap 磨砂模糊
+ * 4. 双级毛玻璃: 主模糊 uBlur + 远模糊 uHazeBlur, 按 uHaze 混合 (FlClash pill: blur 0 + haze 0.72)
  * 5. 色散: R/B 通道沿弯曲方向错开采样
- * 6. 平涂染色 → 顶/底 rim 高光 → iOS 暗边线
+ * 6. 饱和度 → 滑镜端部变暗 → 内容自适应增厚 → 平涂染色 → 顶/底 rim 高光 → iOS 暗边线
  *
  * 降级: 仅 API 33+ (AGSL); 以下回落 v3 平玻璃 (不挂 effect)。
  */
@@ -40,7 +40,8 @@ internal object LiquidGlassBackdrop {
      * - uTexSize: 纹理尺寸 (px)
      * - uOrigin: 药丸左上角在纹理内的位置 (px)
      * - uPill: 药丸尺寸 (px, <=0 表示未初始化 → 全透传)
-     * - uRadius/uBevel/uRefraction/uBlur/uRim/uDispersion/uLine: 光学参数 (px / 无量纲)
+     * - uRadius/uBevel/uRefraction/uBlur/uHaze/uHazeBlur/uRim/uDispersion/uLine: 光学参数 (px / 无量纲)
+     * - uSaturation/uContrast/uEndShade/uEndShadeReach: 观感 (饱和度 / 内容自适应增厚 / 滑镜端部变暗)
      * - uLensX/uLensW/uLensBevel/uLensDepth: 滑镜几何 (uLensX<0 时关闭)
      * - uTint: 平涂染色 (straight alpha)
      */
@@ -53,9 +54,15 @@ internal object LiquidGlassBackdrop {
         uniform float uBevel;
         uniform float uRefraction;
         uniform float uBlur;
+        uniform float uHaze;
+        uniform float uHazeBlur;
         uniform float uRim;
         uniform float uDispersion;
+        uniform float uSaturation;
+        uniform float uContrast;
         uniform float uLine;
+        uniform float uEndShade;
+        uniform float uEndShadeReach;
         uniform float uLensX;
         uniform float uLensW;
         uniform float uLensBevel;
@@ -75,6 +82,37 @@ internal object LiquidGlassBackdrop {
                 n = float2(0.0, 1.0);
             }
             return n * float2(p.x < 0.0 ? -1.0 : 1.0, p.y < 0.0 ? -1.0 : 1.0);
+        }
+
+        // texture 像素坐标取色 (夹到像素中心, 避免采到纹理外)
+        float4 texel(float2 pixel) {
+            return sample(uTexture, clamp(pixel, float2(0.5), uTexSize - 0.5) / uTexSize);
+        }
+
+        // Vogel 盘 (黄金角) 13 tap 磨砂; radius<=0 退化为单点采样 (dock 条体 uBlur = 0)
+        float4 frost(float2 pixel, float radius) {
+            float4 sum = texel(pixel);
+            if (radius <= 0.0) {
+                return sum;
+            }
+            float total = 1.0;
+            for (int i = 1; i < 13; i++) {
+                float ang = float(i) * 2.3999632;
+                float rad = sqrt((float(i) + 0.5) / 13.0) * radius;
+                sum += texel(pixel + float2(cos(ang), sin(ang)) * rad);
+                total += 1.0;
+            }
+            return sum / total;
+        }
+
+        // 双级毛玻璃: 主模糊 uBlur + 远模糊 uHazeBlur, 按 uHaze 混合。
+        // FlClash 的 dock 条体是 blur 0 + haze 0.72@15.6dp —— 毛玻璃感来自 haze 而非主模糊。
+        float4 glassAt(float2 pixel) {
+            float4 sharp = frost(pixel, uBlur);
+            if (uHaze <= 0.0) {
+                return sharp;
+            }
+            return mix(sharp, frost(pixel, uHazeBlur), uHaze);
         }
 
         half4 main(float2 coord) {
@@ -103,48 +141,62 @@ internal object LiquidGlassBackdrop {
             float depth = min(uRefraction, minor) * (1.0 - sqrt(max(1.0 - rise * rise, 0.0)));
             float2 shift = -normal * depth;
 
-            // 滑镜 raised lens: 仅上下缘折射 (|n.y| 门控), 向两端按 (1-across^2) 渐收
+            // 滑镜 raised lens: 仅上下缘折射 (|n.y| 门控), 向两端按 (1-across^2) 渐收。
+            // 几何在分支外声明, 供下方 endShade 使用 (需要滑镜自身的 inset / normal)。
+            float2 lensNormal = float2(0.0);
+            float lensInset = 0.0;
             if (uLensX >= 0.0) {
                 float2 lp = float2(local.x - uLensX - uLensW * 0.5, p.y);
                 float2 lHalf = float2(uLensW * 0.5, halfSize.y);
                 float lr = min(lHalf.x, lHalf.y);
                 float2 lq = abs(lp) - lHalf + float2(lr);
                 float ld = length(max(lq, float2(0.0))) + min(max(lq.x, lq.y), 0.0) - lr;
-                float lInset = max(-ld, 0.0);
-                float2 lNormal = pillNormal(lp, lHalf, lr);
+                lensInset = max(-ld, 0.0);
+                lensNormal = pillNormal(lp, lHalf, lr);
                 float lBevel = max(min(uLensBevel, min(lHalf.x, lHalf.y) * 0.5), 0.5);
-                float lRise = 1.0 - clamp(lInset / lBevel, 0.0, 1.0);
+                float lRise = 1.0 - clamp(lensInset / lBevel, 0.0, 1.0);
                 float lDepth = min(uLensDepth, lBevel * lRise / sqrt(max(1.0 - lRise * lRise, 0.0001)));
                 float across = lp.x / max(lHalf.x, 0.0001);
-                shift += lNormal * lDepth * smoothstep(0.85, 1.0, abs(lNormal.y))
+                shift += lensNormal * lDepth * smoothstep(0.85, 1.0, abs(lensNormal.y))
                     * (1.0 - across * across);
             }
 
-            // 磨砂: Vogel 盘 (黄金角) 均匀采样, 半径 uBlur px
-            float2 base = clamp((coord + shift) / uTexSize, float2(0.0), float2(1.0));
-            float4 sum = sample(uTexture, base);
-            float total = 1.0;
-            for (int i = 1; i < 13; i++) {
-                float ang = float(i) * 2.3999632;
-                float rad = sqrt((float(i) + 0.5) / 13.0) * uBlur;
-                float2 off = float2(cos(ang), sin(ang)) * rad / uTexSize;
-                sum += sample(uTexture, clamp(base + off, float2(0.0), float2(1.0)));
-                total += 1.0;
-            }
-            float4 bent = sum / total;
-
-            // 色散: R/B 通道沿弯曲方向错开
+            // 磨砂 + 色散: 三次采样都走 glassAt, 保证 R/B 错开的那两次与主采样处于同一毛玻璃层级
+            float2 tex = coord + shift;
+            float4 bent = glassAt(tex);
             float2 disp = shift * uDispersion;
-            float4 rTap = sample(uTexture, clamp((coord + shift - disp) / uTexSize, float2(0.0), float2(1.0)));
-            float4 bTap = sample(uTexture, clamp((coord + shift + disp) / uTexSize, float2(0.0), float2(1.0)));
+            float4 rTap = glassAt(tex - disp);
+            float4 bTap = glassAt(tex + disp);
 
             float alpha = max(bent.a, 0.0001);
             float3 color = bent.rgb / alpha;
             color.r = rTap.r / max(rTap.a, 0.0001);
             color.b = bTap.b / max(bTap.a, 0.0001);
 
+            float3 kLuma = float3(0.2126, 0.7152, 0.0722);
+
+            // 饱和度 (FlClash LiquidGlassStyle.pill: 2.1): 纯白底上恒等, 内容从玻璃下经过时才显色
+            color = mix(float3(dot(color, kLuma)), color, uSaturation);
+
+            // 滑镜端部变暗 (FlClash LiquidGlassStyle.lens.endShade 0.045, 衰减 3dp)
+            if (uLensX >= 0.0 && uEndShade > 0.0) {
+                color *= 1.0 - uEndShade * abs(lensNormal.x)
+                    * exp(-lensInset / max(uEndShadeReach, 0.0001));
+            }
+
+            // 内容自适应增厚 (FlClash contrast 0.4): 采药丸内 5 点估背后平均亮度, 与染色亮度
+            // 冲突时增厚染色, 让玻璃在深浅内容上都保住可读性。注: 纯白底上 tint 亮度 0.957 与
+            // 底色 1.0 只差 0.04 < 阈值 0.3 → clash 恒为 0, 本项只在深色内容/图片从玻璃下经过时触发。
+            float4 behind = texel(uOrigin + uPill * float2(0.5, 0.5))
+                + texel(uOrigin + uPill * float2(0.2, 0.3))
+                + texel(uOrigin + uPill * float2(0.8, 0.3))
+                + texel(uOrigin + uPill * float2(0.2, 0.7))
+                + texel(uOrigin + uPill * float2(0.8, 0.7));
+            float behindLuma = dot(behind.rgb / max(behind.a, 0.0001), kLuma);
+            float clash = clamp((sign(uContrast) * (dot(uTint.rgb, kLuma) - behindLuma) - 0.3) / 0.5, 0.0, 1.0);
+
             // 平涂染色 (内容在玻璃下可见, 染色只是压一层中性色)
-            float cover = uTint.a;
+            float cover = uTint.a + (1.0 - uTint.a) * clash * abs(uContrast);
             float3 glass = color * (1.0 - cover) + uTint.rgb * cover;
 
             // rim 高光 (iOS Liquid Glass): 上下缘主光带 + 全周细 rim, 均在边线内侧 —
