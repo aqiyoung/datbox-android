@@ -38,13 +38,17 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.IconCutout
+import com.datbox.app.ui.theme.IconInk
+import com.datbox.app.ui.theme.IconTileBorder
+import com.datbox.app.ui.theme.IconTileBottom
+import com.datbox.app.ui.theme.IconTileTop
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.theme.TextStrong
@@ -923,33 +927,30 @@ private fun humanSize(b: Long): String = when {
 }
 
 /**
- * 文件类型图标 (iOS App 图标风): 统一「正方形圆角块」底 + 类型符号,
- * 配色收敛到 iOS 系统系柔和色调; 类型细分靠符号而不是短码文字。
+ * 文件类型图标: 统一「暖灰玻璃方块 + 灰墨符号」底, 类型只靠符号形状区分 (零彩色)。
  */
-private enum class FileKind(val bg: Color, val fg: Color) {
-    FOLDER(Color(0xFFE8F2FF), Color(0xFF007AFF)),
-    DOC(Color(0xFFE8EFFC), Color(0xFF2563EB)),
-    TEXT(Color(0xFFF1F0EC), Color(0xFF6B7280)),
-    IMAGE(Color(0xFFFDE8ED), Color(0xFFE5484D)),
-    VIDEO(Color(0xFFE5EBFB), Color(0xFF4C6EF5)),
-    AUDIO(Color(0xFFFDF1DE), Color(0xFFC2751A)),
-    ARCHIVE(Color(0xFFFBEBDA), Color(0xFFA05517)),
-    CODE(Color(0xFFEDE9FB), Color(0xFF7C5CD6)),
-    SHEET(Color(0xFFE2F5E9), Color(0xFF1F9D55)),
-    SLIDE(Color(0xFFFCEBDA), Color(0xFFD97706)),
-    PDF(Color(0xFFFDE7E4), Color(0xFFDC2626)),
-    APK(Color(0xFFE1F7E9), Color(0xFF16A34A)),
-    DISK(Color(0xFFE3E9FB), Color(0xFF3B5BDB)),
-    EXEC(Color(0xFFE9EFF5), Color(0xFF334155)),
-    UNKNOWN(Color(0xFFF0EDE5), Color(0xFF57544C)),
+private enum class FileKind {
+    FOLDER,
+    DOC,
+    TEXT,
+    IMAGE,
+    VIDEO,
+    AUDIO,
+    ARCHIVE,
+    CODE,
+    SHEET,
+    SLIDE,
+    PDF,
+    APK,
+    DISK,
+    EXEC,
+    UNKNOWN,
 }
 
-private data class FileStyle(val bg: Color, val fg: Color, val kind: FileKind)
+private data class FileStyle(val kind: FileKind)
 
-private fun fileStyleFor(name: String, isDir: Boolean): FileStyle {
-    val kind = fileKindFor(name, isDir)
-    return FileStyle(kind.bg, kind.fg, kind)
-}
+private fun fileStyleFor(name: String, isDir: Boolean): FileStyle =
+    FileStyle(fileKindFor(name, isDir))
 
 private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     if (isDir) return FileKind.FOLDER
@@ -986,7 +987,7 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     }
 }
 
-/** 渲染文件类型图标: 统一「圆角方块 + 柔光投影」底 (iOS App 图标语言) + 类型符号 */
+/** 渲染文件类型图标: 统一「暖灰玻璃方块」底 + 灰墨符号 */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
@@ -996,187 +997,161 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
         scale(unit, pivot = Offset.Zero) {
             // 归一化后再整体放大 1.3, 让方块填满图标区
             scale(1.3f, pivot = Offset(23f, 23f)) {
-                drawTile(style)
+                drawTile()
                 // 类型符号: 按旧「文档页」坐标设计 (光学中心偏下 ~2.5), 上移归中后再略放大
                 scale(1.25f, pivot = Offset(23f, 23f)) {
-                    translate(top = -2.5f) {
-                        if (style.kind == FileKind.FOLDER) {
-                            drawFolderGlyph(Color.White)
-                        } else {
-                            drawKindGlyph(style.kind, style.bg, style.fg)
-                        }
-                    }
+                    translate(top = -2.5f) { drawKindGlyph(style.kind) }
                 }
             }
         }
     }
 }
 
-// 方块几何 (46 设计单位坐标系): 32×32、圆角 9 (≈28%, iOS squircle 观感)
+// 方块几何 (46 设计单位坐标系): 32×32、圆角 9
 private const val TILE_L = 7f
 private const val TILE_T = 7f
 private const val TILE_S = 32f
 private const val TILE_R = 9f
 
 /**
- * 方块底: 落地投影 → 渐变面 → 顶部玻光 → 发丝边, 渐变色均由 FileKind 调色板派生。
- * - 文件夹: 用 fg 拉出饱和蓝渐变, 当「主角色块」(符号取白)
- * - 其它: 白 → 类型淡色 的柔光渐变; 白止于 30% 处, 符号区落回纯 type.bg
- *   (这样 ARCHIVE 齿口 / APK 眼睛等「镂空」色才能与底精确对上, 不会出现脏块)
+ * 方块底: 落地投影 → 暖灰玻璃渐变 → 发丝边。所有类型共用同一块底,
+ * 类型信息全部由符号形状承载 (零彩色)。
  */
-private fun DrawScope.drawTile(style: FileStyle) {
+private fun DrawScope.drawTile() {
     val tl = Offset(TILE_L, TILE_T)
     val sz = Size(TILE_S, TILE_S)
     val cr = CornerRadius(TILE_R, TILE_R)
-    val folder = style.kind == FileKind.FOLDER
 
-    // 1) 落地投影: 两层低透明度下移色块 (免 renderEffect 的柔和投影)
-    drawRoundRect(Color.Black.copy(alpha = 0.09f), tl + Offset(0f, 1.2f), sz, cr)
-    drawRoundRect(Color.Black.copy(alpha = 0.05f), tl + Offset(0f, 0.5f), sz, cr)
-
-    // 2) 渐变面 (上亮下深 → 光源来自上方)
+    drawRoundRect(Color.Black.copy(alpha = 0.07f), tl + Offset(0f, 1.2f), sz, cr)
     drawRoundRect(
-        brush = if (folder) {
-            Brush.verticalGradient(
-                0f to lerp(style.fg, Color.White, 0.32f),
-                0.38f to style.fg,
-                1f to lerp(style.fg, Color.Black, 0.14f),
-                startY = TILE_T, endY = TILE_T + TILE_S,
-            )
-        } else {
-            Brush.verticalGradient(
-                0f to Color.White, 0.30f to style.bg, 1f to style.bg,
-                startY = TILE_T, endY = TILE_T + TILE_S,
-            )
-        },
+        brush = Brush.verticalGradient(
+            0f to IconTileTop, 1f to IconTileBottom,
+            startY = TILE_T, endY = TILE_T + TILE_S,
+        ),
         topLeft = tl, size = sz, cornerRadius = cr,
     )
-
-    // 3) 顶部玻光高光 (饱和底才需要, 白底自带)
-    if (folder) {
-        drawLine(
-            color = Color.White.copy(alpha = 0.55f),
-            start = Offset(TILE_L + TILE_R * 0.7f, TILE_T + 1.3f),
-            end = Offset(TILE_L + TILE_S - TILE_R * 0.7f, TILE_T + 1.3f),
-            strokeWidth = 1.1f,
-            cap = StrokeCap.Round,
-        )
-    }
-
-    // 4) 发丝边: 饱和底用更深的同色系收边, 浅底用类型色极低透明
-    drawRoundRect(
-        color = if (folder) lerp(style.fg, Color.Black, 0.28f) else style.fg.copy(alpha = 0.12f),
-        topLeft = tl, size = sz, cornerRadius = cr,
-        style = Stroke(width = 1f),
-    )
-}
-
-/** 文件夹符号 (画在方块中央): 背板略透 + 前板实色, 形成 iOS 文件夹的前后层次 */
-private fun DrawScope.drawFolderGlyph(fg: Color) {
-    drawRoundRect(fg.copy(alpha = 0.80f), Offset(13f, 17f), Size(12.5f, 6.5f), CornerRadius(2f, 2f))
-    drawRoundRect(fg, Offset(13f, 20f), Size(20f, 13.5f), CornerRadius(3.5f, 3.5f))
+    drawRoundRect(IconTileBorder, tl, sz, cr, style = Stroke(width = 1f))
 }
 
 /** 类型符号: 按设计坐标 (x 15~31, y 19~32) 绘制, 由调用方平移到方块中央 */
-private fun DrawScope.drawKindGlyph(kind: FileKind, bg: Color, fg: Color) {
+private fun DrawScope.drawKindGlyph(kind: FileKind) {
+    val ink = IconInk
     val sw = 1.8f
     val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
     when (kind) {
+        FileKind.FOLDER -> {
+            // 背板略透 + 前板实色, 形成文件夹的前后层次
+            drawRoundRect(ink.copy(alpha = 0.82f), Offset(14.5f, 18.5f), Size(11f, 6f), CornerRadius(2f, 2f))
+            drawRoundRect(ink, Offset(14.5f, 21.5f), Size(17f, 11f), CornerRadius(3f, 3f))
+        }
         FileKind.IMAGE -> {
-            drawCircle(fg, radius = 1.7f, center = Offset(19.5f, 21.5f))
+            drawCircle(ink, radius = 1.7f, center = Offset(19f, 22f))
             drawPath(
                 Path().apply {
-                    moveTo(15.5f, 31.5f); lineTo(20.5f, 25.5f); lineTo(23.5f, 28.5f)
-                    lineTo(26.5f, 25f); lineTo(30.5f, 31.5f)
+                    moveTo(16f, 31f); lineTo(20.5f, 25.5f); lineTo(23.3f, 28.3f)
+                    lineTo(26f, 25.3f); lineTo(30f, 31f); close()
                 },
-                fg, style = stroke,
+                ink,
             )
         }
-        FileKind.VIDEO -> drawPath(
-            Path().apply {
-                moveTo(18.5f, 20.5f); lineTo(29.5f, 25.5f); lineTo(18.5f, 30.5f); close()
-            },
-            fg,
-        )
+        FileKind.VIDEO -> {
+            drawRoundRect(
+                ink, Offset(16f, 20f), Size(15f, 11.5f), CornerRadius(2.2f, 2.2f),
+                style = Stroke(width = 1.6f),
+            )
+            drawPath(
+                Path().apply {
+                    moveTo(21.2f, 23.4f); lineTo(26.4f, 25.8f); lineTo(21.2f, 28.2f); close()
+                },
+                ink,
+            )
+        }
         FileKind.AUDIO -> {
-            drawCircle(fg, radius = 2.3f, center = Offset(18.8f, 29f))
-            drawLine(fg, Offset(21f, 29f), Offset(21f, 20.5f), sw, StrokeCap.Round)
+            drawCircle(ink, radius = 2.3f, center = Offset(18.8f, 29f))
+            drawLine(ink, Offset(21f, 29f), Offset(21f, 20.5f), sw, StrokeCap.Round)
             drawPath(
                 Path().apply {
                     moveTo(21f, 20.5f); lineTo(26.5f, 22f); lineTo(26.5f, 25f); lineTo(21f, 23.5f); close()
                 },
-                fg,
+                ink,
             )
         }
         FileKind.ARCHIVE -> {
-            drawRoundRect(fg, Offset(21.6f, 19f), Size(3.2f, 13f), CornerRadius(1.2f, 1.2f))
+            drawRoundRect(ink, Offset(21.6f, 19f), Size(3.2f, 13f), CornerRadius(1.2f, 1.2f))
             listOf(21.3f, 24.3f, 27.3f).forEach { y ->
-                drawRoundRect(bg, Offset(21.6f, y), Size(3.2f, 1.2f), CornerRadius(0.6f, 0.6f))
+                drawRoundRect(IconCutout, Offset(21.6f, y), Size(3.2f, 1.2f), CornerRadius(0.6f, 0.6f))
             }
         }
         FileKind.CODE -> {
             drawPath(
                 Path().apply { moveTo(19.5f, 20.5f); lineTo(16f, 25.5f); lineTo(19.5f, 30.5f) },
-                fg, style = stroke,
+                ink, style = stroke,
             )
             drawPath(
                 Path().apply { moveTo(26.5f, 20.5f); lineTo(30f, 25.5f); lineTo(26.5f, 30.5f) },
-                fg, style = stroke,
+                ink, style = stroke,
             )
-            drawLine(fg, Offset(24.4f, 19.5f), Offset(22.6f, 31.5f), sw, StrokeCap.Round)
+            drawLine(ink, Offset(24.4f, 19.5f), Offset(22.6f, 31.5f), sw, StrokeCap.Round)
         }
         FileKind.SHEET -> {
             drawRoundRect(
-                fg, Offset(15.5f, 20f), Size(15f, 12f), CornerRadius(2f, 2f),
-                style = Stroke(width = 1.5f),
+                ink, Offset(16f, 20f), Size(15f, 12f), CornerRadius(2f, 2f),
+                style = Stroke(width = 1.6f),
             )
-            drawLine(fg, Offset(15.5f, 26f), Offset(30.5f, 26f), 1.5f)
-            drawLine(fg, Offset(23f, 20f), Offset(23f, 32f), 1.5f)
+            // 表头填色, 一眼区别于 DOC 的三条线
+            drawRoundRect(ink, Offset(16.8f, 20.8f), Size(13.4f, 3.2f), CornerRadius(1f, 1f))
+            drawLine(ink, Offset(16f, 26.8f), Offset(31f, 26.8f), 1.4f)
+            drawLine(ink, Offset(23.5f, 20f), Offset(23.5f, 32f), 1.4f)
         }
         FileKind.SLIDE -> {
-            drawRoundRect(fg, Offset(15.5f, 26f), Size(3.4f, 6f), CornerRadius(1f, 1f))
-            drawRoundRect(fg, Offset(21f, 20.5f), Size(3.4f, 11.5f), CornerRadius(1f, 1f))
-            drawRoundRect(fg, Offset(26.5f, 23.5f), Size(3.4f, 8.5f), CornerRadius(1f, 1f))
+            drawRoundRect(ink, Offset(15.5f, 26f), Size(3.4f, 6f), CornerRadius(1f, 1f))
+            drawRoundRect(ink, Offset(21f, 20.5f), Size(3.4f, 11.5f), CornerRadius(1f, 1f))
+            drawRoundRect(ink, Offset(26.5f, 23.5f), Size(3.4f, 8.5f), CornerRadius(1f, 1f))
         }
         FileKind.PDF -> {
-            drawLine(fg, Offset(16.5f, 22.5f), Offset(29.5f, 22.5f), 2.2f, StrokeCap.Round)
-            drawLine(fg, Offset(16.5f, 27f), Offset(24.5f, 27f), 2.2f, StrokeCap.Round)
+            drawRoundRect(
+                ink, Offset(16f, 20f), Size(15f, 12f), CornerRadius(2.2f, 2.2f),
+                style = Stroke(width = 1.6f),
+            )
+            // 顶部色带 = 封面/标题条
+            drawRoundRect(ink, Offset(17f, 21f), Size(13f, 4f), CornerRadius(1.2f, 1.2f))
+            drawLine(ink, Offset(19f, 28.4f), Offset(28f, 28.4f), 1.6f, StrokeCap.Round)
         }
         FileKind.DOC -> {
-            drawLine(fg, Offset(16.5f, 22f), Offset(29.5f, 22f), sw, StrokeCap.Round)
-            drawLine(fg, Offset(16.5f, 26f), Offset(29.5f, 26f), sw, StrokeCap.Round)
-            drawLine(fg, Offset(16.5f, 30f), Offset(24f, 30f), sw, StrokeCap.Round)
+            drawLine(ink, Offset(16.5f, 22f), Offset(29.5f, 22f), sw, StrokeCap.Round)
+            drawLine(ink, Offset(16.5f, 26f), Offset(29.5f, 26f), sw, StrokeCap.Round)
+            drawLine(ink, Offset(16.5f, 30f), Offset(24f, 30f), sw, StrokeCap.Round)
         }
         FileKind.TEXT -> {
-            drawLine(fg, Offset(17f, 23.5f), Offset(29f, 23.5f), 1.7f, StrokeCap.Round)
-            drawLine(fg, Offset(17f, 28.5f), Offset(25f, 28.5f), 1.7f, StrokeCap.Round)
+            drawLine(ink, Offset(17f, 23.5f), Offset(29f, 23.5f), 1.7f, StrokeCap.Round)
+            drawLine(ink, Offset(17f, 28.5f), Offset(25f, 28.5f), 1.7f, StrokeCap.Round)
         }
         FileKind.DISK -> {
-            drawCircle(fg, radius = 5.7f, center = Offset(23f, 25.5f), style = Stroke(width = 2.4f))
-            drawCircle(fg, radius = 1.8f, center = Offset(23f, 25.5f))
+            drawCircle(ink, radius = 5.7f, center = Offset(23f, 25.5f), style = Stroke(width = 2.4f))
+            drawCircle(ink, radius = 1.8f, center = Offset(23f, 25.5f))
         }
         FileKind.EXEC -> {
             drawPath(
                 Path().apply { moveTo(17.5f, 20.5f); lineTo(21.5f, 25f); lineTo(17.5f, 29.5f) },
-                fg, style = stroke,
+                ink, style = stroke,
             )
-            drawLine(fg, Offset(23.5f, 29.5f), Offset(28.5f, 29.5f), sw, StrokeCap.Round)
+            drawLine(ink, Offset(23.5f, 29.5f), Offset(28.5f, 29.5f), sw, StrokeCap.Round)
         }
         FileKind.APK -> {
             // 安卓机器人: 半圆头 + 触角 + 眼
             drawArc(
-                color = fg, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+                color = ink, startAngle = 180f, sweepAngle = 180f, useCenter = true,
                 topLeft = Offset(18f, 20.5f), size = Size(10f, 10f),
             )
-            drawLine(fg, Offset(19.5f, 19.5f), Offset(21f, 21.5f), 1.4f, StrokeCap.Round)
-            drawLine(fg, Offset(26.5f, 19.5f), Offset(25f, 21.5f), 1.4f, StrokeCap.Round)
-            drawCircle(bg, radius = 1f, center = Offset(20.7f, 24.5f))
-            drawCircle(bg, radius = 1f, center = Offset(25.3f, 24.5f))
+            drawLine(ink, Offset(19.5f, 19.5f), Offset(21f, 21.5f), 1.4f, StrokeCap.Round)
+            drawLine(ink, Offset(26.5f, 19.5f), Offset(25f, 21.5f), 1.4f, StrokeCap.Round)
+            drawCircle(IconCutout, radius = 1f, center = Offset(20.7f, 24.5f))
+            drawCircle(IconCutout, radius = 1f, center = Offset(25.3f, 24.5f))
         }
-        // 兜底文本 / 理论上的文件夹分支: 两条文档线
-        FileKind.UNKNOWN, FileKind.FOLDER -> {
-            drawLine(fg, Offset(16.5f, 23f), Offset(29.5f, 23f), 1.7f, StrokeCap.Round)
-            drawLine(fg, Offset(16.5f, 28f), Offset(24f, 28f), 1.7f, StrokeCap.Round)
+        // 兜底: 两条文档线
+        FileKind.UNKNOWN -> {
+            drawLine(ink, Offset(16.5f, 23f), Offset(29.5f, 23f), 1.7f, StrokeCap.Round)
+            drawLine(ink, Offset(16.5f, 28f), Offset(24f, 28f), 1.7f, StrokeCap.Round)
         }
     }
 }
