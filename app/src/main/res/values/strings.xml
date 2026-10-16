@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">数匣</string>
+    <string name="app_name">DATBOX</string>
     <string name="app_name_en">DATBOX</string>
-    <string name="app_subtitle">数匣 · 云盘聚合</string>
+    <string name="app_subtitle">DATBOX · 云盘聚合</string>
     <string name="app_version_format">v%1$s (build %2$d)</string>
     <string name="changelog_url">https://<your-server>/api/openlist-android/changelog.json</string>
     <string name="update_check_url">https://<your-server>/api/openlist-android/latest.json</string>
-    <string name="about_brand_line">「数匣」出品 · 聚合你的所有云盘</string>
+    <string name="about_brand_line">「DATBOX」出品 · 聚合你的所有云盘</string>
 </resources>

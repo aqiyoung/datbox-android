@@ -171,7 +171,7 @@ fun LoginScreen(
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Image(
                         painter = painterResource(R.drawable.datbox_logo),
-                        contentDescription = "数匣 DATBOX",
+                        contentDescription = "DATBOX",
                         modifier = Modifier.size(52.dp)
                     )
                 }

@@ -605,7 +605,7 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
             CardItem {
                 Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color(0xFF2A2925))
                 Spacer(Modifier.height(8.dp))
-                Text("数匣 v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
+                Text("DATBOX v${BuildConfig.VERSION_NAME}", color = Color(0xFF888888))
                 Text("基于官方 OpenList 开发", color = Color(0xFF888888))
             }
         }

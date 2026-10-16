@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  数匣 DATBOX 品牌 logo (About 页): 圆角渐变底 + 白匣图形
+  DATBOX 品牌 logo (About 页): 圆角渐变底 + 白匣图形
   与 launcher 图标同一造型, 独立画布 (96) 适配小尺寸展示。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"

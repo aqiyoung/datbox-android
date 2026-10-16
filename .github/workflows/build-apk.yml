@@ -68,7 +68,7 @@ jobs:
 
           if [ "$IS_STABLE" = "true" ]; then
             echo "tag=v$SEMVER" >> $GITHUB_OUTPUT
-            echo "name=数匣 v$SEMVER" >> $GITHUB_OUTPUT
+            echo "name=DATBOX v$SEMVER" >> $GITHUB_OUTPUT
             echo "prerelease=false" >> $GITHUB_OUTPUT
           else
             # Beta: 查找同版本已有的 beta tag, 自动递增 (Synapse 套路)
@@ -80,7 +80,7 @@ jobs:
               BETA_NUM=$((BETA_NUM + 1))
             fi
             echo "tag=v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
-            echo "name=数匣 v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
+            echo "name=DATBOX v${SEMVER}-beta.${BETA_NUM}" >> $GITHUB_OUTPUT
             echo "prerelease=true" >> $GITHUB_OUTPUT
           fi
 
@@ -165,7 +165,7 @@ jobs:
           DL="${PROXY}https://github.com/aqiyoung/datbox-android/releases/download/${TAG}/datbox-${TAG}.apk"
           LOG_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/logs"
           {
-            echo "📦 数匣 $TAG 构建成功"
+            echo "📦 DATBOX $TAG 构建成功"
             echo ""
             echo "APK 下载：${DL}"
             echo ""
