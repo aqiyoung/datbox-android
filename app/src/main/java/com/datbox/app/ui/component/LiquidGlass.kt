@@ -310,15 +310,23 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uRadius", size.height / 2f)
                             setFloatUniform("uBevel", with(density) { 20.dp.toPx() })
                             setFloatUniform("uRefraction", with(density) { 60.dp.toPx() })
-                            // iOS Liquid Glass 取向: 霜轻 (内容清晰可读) / 染色淡 (更透)
-                            setFloatUniform("uBlur", with(density) { 2.dp.toPx() })
+                            // 光学参数取自 FlClash 实测预设 (LiquidGlassStyle.pill / .lens):
+                            // 条体 pill = blur 0 + haze 0.72@15.6dp (毛玻璃感来自 haze) + 饱和度 2.1 + contrast 0.4;
+                            // 滑镜 lens = bevel 5.5dp / refraction 4.3dp / endShade 0.045。
+                            setFloatUniform("uBlur", 0f)
+                            setFloatUniform("uHaze", 0.72f)
+                            setFloatUniform("uHazeBlur", with(density) { 15.6.dp.toPx() })
                             setFloatUniform("uRim", 0.85f)
                             setFloatUniform("uDispersion", 0.12f)
+                            setFloatUniform("uSaturation", 2.1f)
+                            setFloatUniform("uContrast", 0.4f)
                             setFloatUniform("uLine", with(density) { 0.67.dp.toPx() })
+                            setFloatUniform("uEndShade", 0.045f)
+                            setFloatUniform("uEndShadeReach", with(density) { 3.dp.toPx() })
                             setFloatUniform("uLensX", with(density) { lensX.dp.toPx() })
                             setFloatUniform("uLensW", with(density) { lensW.dp.toPx() })
-                            setFloatUniform("uLensBevel", with(density) { 11.2.dp.toPx() })
-                            setFloatUniform("uLensDepth", with(density) { 30.dp.toPx() })
+                            setFloatUniform("uLensBevel", with(density) { 5.5.dp.toPx() })
+                            setFloatUniform("uLensDepth", with(density) { 4.3.dp.toPx() })
                             // #F4F4F4 @0.32 平涂染色 (straight alpha, 淡染更透)
                             setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.32f)
                         }
