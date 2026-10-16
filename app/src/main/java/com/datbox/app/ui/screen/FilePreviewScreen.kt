@@ -36,16 +36,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.File
 import java.util.concurrent.TimeUnit
 
-/**
- * 文件预览页面
- * - 图片: 缩放预览 (pinch-to-zoom)
- * - PDF: 文本提取预览
- * - 音视频: 系统播放器打开
- * - 文本: 直接显示内容
- */
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface TokenStoreEntryPoint {
@@ -79,19 +71,16 @@ fun FilePreviewScreen(
     )
     val isPdf = ext == "pdf"
 
-    // 预览状态
     var previewUrl by remember { mutableStateOf<String?>(null) }
     var textContent by remember { mutableStateOf<String?>(null) }
     var textLoading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    // entryPoint 仅取引用；token / serverUrl 的同步读挪到 LaunchedEffect 内，避免主线程 runBlocking
     val tokenStore = remember {
         EntryPointAccessors.fromApplication(context, TokenStoreEntryPoint::class.java).tokenStore()
     }
 
-    // 获取预览 URL / 文本内容（/d 路由只认 sign 不认 Authorization，必须先 fs/get 拿 sign）
     LaunchedEffect(remotePath) {
         val serverUrl = withContext(Dispatchers.IO) { tokenStore.serverUrlSync().trimEnd('/') }
         val authToken = withContext(Dispatchers.IO) { tokenStore.tokenSync() }
@@ -101,7 +90,6 @@ fun FilePreviewScreen(
         }
         if (isText) {
             textLoading = true
-            // 先拿 sign，再用 /d?sign= 拉文本（Authorization 在 /d 路由无效 → 401）
             val signedUrl = buildPreviewUrl(serverUrl, remotePath, authToken)
             textContent = if (signedUrl != null) downloadTextContent(signedUrl) else null
             textLoading = false
@@ -122,7 +110,6 @@ fun FilePreviewScreen(
             else -> UnsupportedPreview(fileName)
         }
 
-        // 顶部栏
         TopAppBar(
             title = {
                 Text(
@@ -142,7 +129,6 @@ fun FilePreviewScreen(
             )
         )
 
-        // 错误提示
         error?.let {
             Snackbar(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
@@ -152,12 +138,10 @@ fun FilePreviewScreen(
     }
 }
 
-/** 构建预览 URL: 走 /api/fs/get 拿 sign → /d/<path>?sign=hmac */
 private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authToken: String): String? {
     return withContext(Dispatchers.IO) {
         try {
             val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).build()
-            // 1. 拿 sign
             val requestBody = FsGetRequest(remotePath).toJsonRequestBody()
             val getRequest = Request.Builder()
                 .url("$serverUrl/api/fs/get")
@@ -177,7 +161,6 @@ private suspend fun buildPreviewUrl(serverUrl: String, remotePath: String, authT
     }
 }
 
-/** 下载文本文件内容（url 已带 sign，无需 Authorization） */
 private suspend fun downloadTextContent(url: String): String? {
     return withContext(Dispatchers.IO) {
         try {
@@ -185,7 +168,7 @@ private suspend fun downloadTextContent(url: String): String? {
             val req = Request.Builder().url(url).get().build()
             client.newCall(req).execute().use { resp ->
                 if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code}")
-                resp.body?.string()?.take(100_000) ?: ""  // 限制 100KB
+                resp.body?.string()?.take(100_000) ?: ""
             }
         } catch (e: Exception) {
             null
@@ -193,7 +176,6 @@ private suspend fun downloadTextContent(url: String): String? {
     }
 }
 
-// ===== 图片预览 =====
 
 @Composable
 private fun ZoomableImage(url: String) {
@@ -220,7 +202,6 @@ private fun ZoomableImage(url: String) {
     )
 }
 
-// ===== 视频预览 =====
 
 @Composable
 private fun VideoPreview(url: String?, fileName: String) {
@@ -253,7 +234,6 @@ private fun VideoPreview(url: String?, fileName: String) {
     }
 }
 
-// ===== 音频预览 =====
 
 @Composable
 private fun AudioPreview(url: String?, fileName: String) {
@@ -286,7 +266,6 @@ private fun AudioPreview(url: String?, fileName: String) {
     }
 }
 
-// ===== PDF 预览 =====
 
 @Composable
 private fun PdfPreview(url: String?) {
@@ -317,7 +296,6 @@ private fun PdfPreview(url: String?) {
     }
 }
 
-// ===== 文本预览 =====
 
 @Composable
 private fun TextPreview(content: String?, loading: Boolean) {
@@ -353,7 +331,6 @@ private fun TextPreview(content: String?, loading: Boolean) {
     }
 }
 
-// ===== 不支持预览 =====
 
 @Composable
 private fun UnsupportedPreview(fileName: String) {

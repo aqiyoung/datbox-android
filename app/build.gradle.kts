@@ -1,4 +1,3 @@
-// app/build.gradle.kts
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -10,7 +9,6 @@ plugins {
 android {
     signingConfigs {
         create("release") {
-            // 读 ~/.openclaw/.env (简单 grep KEY=VALUE)
             val envFile = File(System.getProperty("user.home"), ".openclaw/.env")
             fun envGet(key: String, default: String): String {
                 System.getenv(key)?.let { return it }
@@ -24,7 +22,6 @@ android {
                 }
                 return default
             }
-            // Synapse 风格 Secret 名: KEYSTORE_BASE64 / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD
             val keystorePath = envGet("KEYSTORE_FILE", "openlist-release.jks")
             val keystorePass = envGet("KEYSTORE_PASSWORD", "threelist_2026")
             val keyAlias = envGet("KEY_ALIAS", "openlist")
@@ -40,18 +37,14 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        // Synapse 套路: 单一 applicationId, 不加 .beta / .debug suffix
-        // 老板手机只装一个包, 后续版本能覆盖装
         applicationId = "com.datbox.app"
-        minSdk = 26  // Android 8.0
+        minSdk = 26
         targetSdk = 34
-        versionCode = 10027
-        versionName = "1.0.27"
+        versionCode = 10028
+        versionName = "1.0.28"
     }
 
     buildTypes {
-        // Synapse 套路: 只 build release, 不跑 debug
-        // 老板手机用正式 release 包, 调试用 .apk sideload
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -68,12 +61,10 @@ android {
 }
 
 dependencies {
-    // Core
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
     implementation("androidx.activity:activity-compose:1.9.0")
 
-    // Compose + Material 3
     implementation(platform("androidx.compose:compose-bom:2025.01.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -81,18 +72,14 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.2.0")
     implementation("androidx.compose.material:material-icons-extended")
 
-    // 液态玻璃：RenderEffect（API 31+）做毛玻璃
     implementation("androidx.compose.ui:ui")
 
-    // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // Hilt DI
     implementation("com.google.dagger:hilt-android:2.51.1")
     ksp("com.google.dagger:hilt-compiler:2.51.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
-    // Retrofit + OkHttp + kotlinx.serialization
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-scalars:2.11.0")
     implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
@@ -101,15 +88,11 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // WebView
     implementation("androidx.webkit:webkit:1.10.0")
 
-    // Unit test (纯 JVM): JSON 契约回归测试, 无 Android 依赖
     testImplementation("junit:junit:4.13.2")
 }

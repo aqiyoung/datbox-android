@@ -14,15 +14,6 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-/**
- * 启动后弹窗检查更新（Activity 启动后 0.5s 调用，避免挡住启动）。
- *
- * 对齐统一引擎纪律：
- * - 受"启动时自动检查"开关约束（设置可关）；手动检查（About 页）始终执行。
- * - checkForUpdate() 返回 null = 网络不可达 → 不弹窗（不谎报"已是最新"）。
- * - 仅在 hasUpdate 时弹窗；isCritical 时不可取消（强制更新）。
- * - 跳转发布页走 engine.openRelease（GitHub App 优先）。
- */
 object AppUpdateLauncher {
 
     fun maybeShow(context: Context, lifecycleOwner: LifecycleOwner) {
@@ -53,7 +44,6 @@ object AppUpdateLauncher {
             append("当前: ${manager.currentVersionName}\n")
             append("最新: ${result.latestVersion}\n")
             result.releaseNotes?.let { notes ->
-                // 跳过首行 P0 / critical 标记，展示其余更新内容。
                 val body = notes.lines().drop(1).joinToString("\n").trim()
                 if (body.isNotEmpty()) {
                     append("\n更新内容:\n")

@@ -3,16 +3,12 @@ package com.datbox.app.data.api
 import com.datbox.app.data.model.ManagementResponse
 import com.datbox.app.data.model.Mount
 import com.datbox.app.data.model.Option
-import com.datbox.app.data.model.Overview
 import com.datbox.app.data.model.Share
 import com.datbox.app.data.model.User
 import com.datbox.app.data.model.UserInfo
 import retrofit2.http.Body
-import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Path
 import retrofit2.http.Query
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -83,11 +79,9 @@ data class OptionUpdateRequest(
 @Serializable
 data class FsMkdirRequest(val path: String)
 
-/** fs/rename: 同目录改名 (RenameReq{path=完整路径, name=新名}) */
 @Serializable
 data class FsRenameRequest(val path: String, val name: String)
 
-/** fs/move: 批量移动 (MoveCopyReq{src_dir, dst_dir, names}) */
 @Serializable
 data class FsMoveRequest(
     @SerialName("src_dir") val srcDir: String,
@@ -95,7 +89,6 @@ data class FsMoveRequest(
     val names: List<String>,
 )
 
-/** fs/remove: (RemoveReq{dir, names}) */
 @Serializable
 data class FsRemoveRequest(val dir: String, val names: List<String>)
 
@@ -121,19 +114,10 @@ data class ObjResponse<T>(
     val data: T? = null
 )
 
-@Serializable
-data class OverviewResponse(
-    val code: Int = 0,
-    val message: String = "",
-    val data: Overview? = null
-)
-
 interface ManagementApi {
-    // ===== 当前用户 (Auth) =====
     @GET("api/me")
     suspend fun currentUser(): ObjResponse<UserInfo>
 
-    // ===== 用户管理 (Admin) =====
     @GET("api/admin/user/list")
     suspend fun userList(): IdListResponse<User>
 
@@ -146,7 +130,6 @@ interface ManagementApi {
     @POST("api/admin/user/delete")
     suspend fun userDelete(@Query("id") id: Int): ManagementResponse
 
-    // ===== 挂载管理 (Admin) =====
     @GET("api/admin/storage/list")
     suspend fun mountList(): IdListResponse<Mount>
 
@@ -165,7 +148,6 @@ interface ManagementApi {
     @POST("api/admin/storage/disable")
     suspend fun mountDisable(@Query("id") id: Int): ManagementResponse
 
-    // ===== 分享管理 (Admin) =====
     @POST("api/admin/share/list")
     suspend fun shareList(@Body req: PageReq = PageReq()): IdListResponse<Share>
 
@@ -175,7 +157,6 @@ interface ManagementApi {
     @POST("api/admin/share/delete")
     suspend fun shareDelete(@Query("id") id: String): ManagementResponse
 
-    // ===== 系统设置 (Admin) =====
     @GET("api/admin/setting/list")
     suspend fun optionList(): IdListResponse<Option>
 

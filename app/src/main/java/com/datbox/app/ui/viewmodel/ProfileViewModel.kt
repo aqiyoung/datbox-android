@@ -16,7 +16,6 @@ class ProfileViewModel @Inject constructor(
 ) : ViewModel() {
     private val _user = MutableStateFlow<UserInfo?>(null)
 
-    /** 当前登录用户 (/api/me); null = 加载中或加载失败 (UI 显示占位) */
     val user: StateFlow<UserInfo?> = _user
 
     init {

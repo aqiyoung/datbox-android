@@ -18,10 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -125,7 +123,6 @@ fun LoginScreen(
             .background(Color.White)
     ) {
 
-        // ===== 服务器设置入口（右上角齿轮） =====
         LiquidGlassSurface(
             onClick = { onServerSettings() },
             shape = CircleShape,
@@ -145,7 +142,6 @@ fun LoginScreen(
             }
         }
 
-        // ===== 主内容 =====
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -154,7 +150,6 @@ fun LoginScreen(
                 .padding(top = 100.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Logo 卡片
             LiquidGlassSurface(
                 shape = RoundedCornerShape(18.dp),
                 modifier = Modifier.size(72.dp),
@@ -187,7 +182,6 @@ fun LoginScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // ===== 登录卡片 =====
             LiquidGlassSurface(
                 shape = RoundedCornerShape(20.dp),
                 modifier = Modifier.fillMaxWidth(),
@@ -205,7 +199,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(20.dp))
 
-                    // 用户名
                     OutlinedTextField(
                         value = state.username,
                         onValueChange = vm::onUsername,
@@ -225,7 +218,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // 密码
                     OutlinedTextField(
                         value = state.password,
                         onValueChange = vm::onPassword,
@@ -256,7 +248,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // 记住我（可点击切换）
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -279,7 +270,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(12.dp))
 
-                    // 登录按钮（渐变绿）
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()

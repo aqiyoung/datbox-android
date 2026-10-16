@@ -9,13 +9,6 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-/**
- * 「记住我」密码的本地加密（Android Keystore，AES-256/GCM，密钥由系统保管、不可导出）。
- *
- * 背景: 密码之前明文写进 DataStore(openlist_prefs / last_password)，Root / 备份导出 / 取证都能直接读。
- * 现在落盘格式为 `enc:<base64(iv)>:<base64(密文)>`；读取时解密。
- * 旧版明文(无 `enc:` 前缀)一律返回 null —— 调用方读到空串，下次保存后被密文覆盖，实现平滑升级。
- */
 internal object CredentialCipher {
 
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
@@ -24,7 +17,6 @@ internal object CredentialCipher {
     private const val PREFIX = "enc:"
     private const val GCM_TAG_BITS = 128
 
-    /** 加密；失败(设备无 Keystore 等)返回 null，调用方据此不落盘 —— 绝不退回明文。 */
     fun encrypt(plain: String): String? = runCatching {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, obtainKey())
@@ -36,7 +28,6 @@ internal object CredentialCipher {
         "$PREFIX$iv:$ciphertext"
     }.getOrNull()
 
-    /** 解密；非 `enc:` 格式(旧版明文/空)与解密失败(换设备/密钥失效)都返回 null。 */
     fun decrypt(payload: String): String? = runCatching {
         if (!payload.startsWith(PREFIX)) return@runCatching null
         val body = payload.removePrefix(PREFIX)

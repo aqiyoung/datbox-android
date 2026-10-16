@@ -8,45 +8,22 @@ import android.net.Uri
 import android.widget.Toast
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okhttp3.Headers.Companion.toHeaders
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import java.util.concurrent.TimeUnit
 
-/**
- * 统一更新检查引擎（Kotlin 版）—— 对齐 sanyelive / FeiNiuMusic / synapse 共用的
- * app_update_core.dart 行为。
- *
- * 解决的真实问题（与其一一对应）：
- *  1) 国内 / 移动宽带直连 api.github.com 被墙 → 代理链 [gh-llkk.cc → gh-proxy.com → 直连]
- *     逐层尝试，任一层 403 / 超时 / 拿到 HTML 都静默跳下一层，不会因代理抽风整体失败。
- *  2) 只比 tag_name vs PackageInfo.versionName，不依赖 APK 文件名格式。
- *  3) 所有数据源都不可达时 check() 返回 null，调用方必须如实报"检查失败"——不谎报"已是最新"。
- *  4) 跳转发布页：GitHub App（com.github.android）→ 系统浏览器 → 复制链接。
- *  5) release 正文首非空行含 **P0** / **critical** → isCritical，UI 走强制更新。
- *
- * 本仓无 meta 分支，useMetaFallback 默认 false（避免白白多一次超时）。
- */
 
-/** HTTP 取数适配器的响应：状态码 + 原始 body。解析交给引擎。 */
 data class UpdateHttpResponse(val statusCode: Int, val body: String)
 
-/** HTTP 取数适配器。网络异常直接 throw，引擎会捕获并继续尝试下一条路径。 */
 typealias UpdateFetch = suspend (url: String, headers: Map<String, String>) -> UpdateHttpResponse
 
 data class UpdateConfig(
     val owner: String,
     val repo: String,
-    // 代理前缀链：gh-llkk.cc（老板实测可用）优先，gh-proxy.com（统一引擎默认）兜底，空串=直连。
     val proxyPrefixes: List<String> = listOf("https://gh.llkk.cc/", "https://gh-proxy.com/", ""),
     val useMetaFallback: Boolean = false,
     val metaBranch: String = "meta",
 )
 
-/** openRelease 的结果，供调用方决定是否提示"已复制链接"。 */
 enum class OpenReleaseResult { OPENED_APP, OPENED_BROWSER, COPIED }
 
-/** 检查结果。 */
 data class GitHubUpdateResult(
     val tagName: String,
     val latestVersion: String,
@@ -63,7 +40,6 @@ data class GitHubUpdateResult(
 
 private val GITHUB_JSON = Json { ignoreUnknownKeys = true }
 
-/** GitHub Release JSON（只取我们需要的字段）。 */
 @Serializable
 private data class GhRelease(
     val tag_name: String = "",
@@ -82,7 +58,6 @@ private data class GhAsset(
 class GitHubUpdateEngine(private val config: UpdateConfig) {
 
     private val apiHeaders = mapOf(
-        // 缺 User-Agent 时 GitHub API 直接 403。
         "User-Agent" to "openlist-android",
         "Accept" to "application/vnd.github+json",
     )
@@ -92,10 +67,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
     val releaseTagUrl: String
         get() = "https://github.com/${config.owner}/${config.repo}/releases/tag"
 
-    /**
-     * 检查更新。返回 null = 所有数据源都失败（调用方应提示"网络不可达"，不要误报"已是最新"）。
-     * [channel] 暂只用 'stable'（本仓单一发布渠道，latest release 即正式版）。
-     */
     suspend fun check(
         fetch: UpdateFetch,
         currentVersion: String,
@@ -104,7 +75,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
         val failures = mutableListOf<String>()
         val base = apiLatestUrl
 
-        // ── 1) GitHub API：代理链（gh-llkk.cc 优先，直连兜底）──
         for (prefix in config.proxyPrefixes) {
             val url = if (prefix.isEmpty()) base else "$prefix$base"
             try {
@@ -125,7 +95,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
             }
         }
 
-        // ── 2) jsDelivr meta 兜底（本仓无 meta 分支，默认关闭）──
         if (config.useMetaFallback) {
             val metaUrl =
                 "https://cdn.jsdelivr.net/gh/${config.owner}/${config.repo}@${config.metaBranch}/version.json"
@@ -134,7 +103,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
                 try {
                     val resp = fetch(url, apiHeaders)
                     if (resp.statusCode != 200) continue
-                    // meta 分支未实现，简单跳过解析。
                     failures.add("meta $url → 未启用")
                 } catch (e: Exception) {
                     failures.add("meta $url → ${e.message}")
@@ -149,7 +117,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
     private fun toResult(release: GhRelease, currentVersion: String): GitHubUpdateResult {
         val tagName = release.tag_name.trim()
         val newer = compareVersions(tagName, currentVersion) > 0
-        // 在 /d 路由里挑 arm64-v8a 优先的 apk（仅作展示 / 诊断，主流程走发布页）。
         var apkName: String? = null
         var apkUrl: String? = null
         for (a in release.assets) {
@@ -174,10 +141,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
         )
     }
 
-    /**
-     * 跳转发布页：GitHub App 优先 → 系统浏览器 → 复制链接。
-     * 返回结果供调用方决定是否提示"已复制"。
-     */
     fun openRelease(context: Context, releaseUrl: String): OpenReleaseResult {
         val uri = Uri.parse(releaseUrl)
         val githubPkg = "com.github.android"
@@ -196,7 +159,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
                 )
                 return OpenReleaseResult.OPENED_APP
             } catch (_: Exception) {
-                // 未安装 / 拉不起，继续回退浏览器
             }
         }
         try {
@@ -205,7 +167,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
             )
             return OpenReleaseResult.OPENED_BROWSER
         } catch (_: Exception) {
-            // 没有任何 App 能处理 https，复制到剪贴板
         }
         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         cm?.setPrimaryClip(android.content.ClipData.newPlainText("GitHub Release", releaseUrl))
@@ -213,14 +174,7 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
         return OpenReleaseResult.COPIED
     }
 
-    // ────────────────────────────────────────────────────────────
-    // 纯函数（版本比较 / 解析）—— 与统一引擎语义一致
-    // ────────────────────────────────────────────────────────────
 
-    /**
-     * 版本比较。>0 = a 比 b 新, 0 = 相同, <0 = a 更旧。
-     * 规则：去前导 v/V；剩余 '+'/'-' 视为分隔符截断；按 '.' 切数字段逐位比。
-     */
     fun compareVersions(a: String, b: String): Int {
         fun release(v: String): List<Int> {
             var s = normalizeVersion(v)
@@ -240,7 +194,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
         return 0
     }
 
-    /** release 正文首非空行含 "**P0**" / "**critical**"（大小写不敏感）→ 重要更新。 */
     fun isCritical(body: String): Boolean {
         val firstLine = body.split('\n').map { it.trim() }
             .firstOrNull { it.isNotEmpty() } ?: ""
@@ -255,7 +208,6 @@ class GitHubUpdateEngine(private val config: UpdateConfig) {
 
     private fun stripV(tag: String): String = normalizeVersion(tag)
 
-    /** 从 tag（如 "v0.3.12.184"）取末段数字作为 versionCode；仅供展示 / 诊断。 */
     private fun versionCodeFromTag(tag: String): Int {
         val segs = normalizeVersion(tag).split('.')
         for (i in segs.lastIndex downTo 0) {

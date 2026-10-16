@@ -35,7 +35,6 @@ class ManagementViewModel @Inject constructor(
     private val _state = MutableStateFlow(ManagementState())
     val state = _state.asStateFlow()
 
-    /** 当前服务器地址（设置页展示用, 替代硬编码） */
     private val _serverUrl = MutableStateFlow(TokenStore.DEFAULT_SERVER)
     val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
 
@@ -47,7 +46,6 @@ class ManagementViewModel @Inject constructor(
     fun loadAll() {
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            // 四个独立请求并发拉取，缩短管理页首屏等待（原来是串行）
             val usersDef = async { repo.userList().getOrNull() }
             val mountsDef = async { repo.mountList().getOrNull() }
             val sharesDef = async { repo.shareList().getOrNull() }
@@ -74,7 +72,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 用户管理 =====
     fun createUser(username: String, password: String, role: Int = 0, permission: Int = 0, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.userCreate(username, password, role, permission)
@@ -100,7 +97,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 挂载管理 =====
     fun createMount(driver: String = "Local", mountPath: String, order: Int = 0, remark: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.mountCreate(driver, mountPath, order, remark)
@@ -109,7 +105,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    /** 编辑挂载: 以原 Mount 为底 copy 出要改的字段。driver 服务端禁止变更, 恒回传原值 */
     fun updateMount(
         mount: Mount,
         driver: String = mount.driver,
@@ -135,7 +130,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 分享管理 =====
     fun createShare(files: List<String>, expires: String = "", password: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.shareCreate(files, expires, password)
@@ -152,7 +146,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 文件操作 =====
     fun mkdir(path: String, name: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.mkdir(path, name)
@@ -185,7 +178,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 系统设置 =====
     fun saveOption(key: String, value: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.optionSave(key, value)
@@ -202,7 +194,6 @@ class ManagementViewModel @Inject constructor(
         }
     }
 
-    // ===== 挂载启用/禁用 =====
     fun enableMount(id: Int, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             repo.mountEnable(id)

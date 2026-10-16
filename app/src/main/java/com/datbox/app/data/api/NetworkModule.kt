@@ -40,16 +40,8 @@ val OpenListJson: Json = Json {
 inline fun <reified T> T.toJsonRequestBody(): RequestBody =
     OpenListJson.encodeToString(this).toRequestBody("application/json; charset=utf-8".toMediaType())
 
-/** Retrofit 占位主机：真正的服务器地址在 [DynamicServerInterceptor] 里按 DataStore 动态替换。 */
 private const val PLACEHOLDER_HOST = "dynamic.openlist.local"
 
-/**
- * 把 Retrofit 发出的（占位主机）请求改写成当前配置的服务器地址。
- *
- * 仅改写主机为 [PLACEHOLDER_HOST] 的请求；仓库内 download / upload / 测试连接 等
- * 使用独立 OkHttp 客户端直连真实地址，不经过本拦截器，因此互不干扰。
- * 这样在「服务器设置」里切换地址后无需重启 App 即可生效。
- */
 private class DynamicServerInterceptor(
     private val tokenStore: TokenStore,
 ) : Interceptor {
@@ -88,7 +80,6 @@ object NetworkModule {
         .addInterceptor(DynamicServerInterceptor(tokenStore))
         .addInterceptor(authInterceptor)
         .addInterceptor(HttpLoggingInterceptor().apply {
-            // 仅 debug 包打印网络日志，release 包关掉避免泄露请求 URL/头
             level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC else HttpLoggingInterceptor.Level.NONE
         })
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -101,8 +92,6 @@ object NetworkModule {
         client: OkHttpClient,
         json: Json,
     ): Retrofit {
-        // baseUrl 用占位主机；真正的服务器地址由 DynamicServerInterceptor 在每次请求时
-        // 按 TokenStore 中当前保存的 server_url 动态改写，因此切换服务器无需重启 App。
         return Retrofit.Builder()
             .baseUrl("https://$PLACEHOLDER_HOST/")
             .client(client)

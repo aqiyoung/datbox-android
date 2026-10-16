@@ -44,9 +44,7 @@ class RootViewModel @Inject constructor(
         TelemetryLog.i("NavGraph", "OpenListNavGraph init, isLoggedIn check...")
         viewModelScope.launch {
             val serverUrl = tokenStore.serverUrl.first()
-            // 服务器地址是用户隐私，TelemetryLog 会 POST 到远端 → 只走本地 logcat
             Log.i("NavGraph", "saved serverUrl=$serverUrl")
-            // tokenSync 冷启动未命中内存缓存时会 runBlocking 读 DataStore, 不能在主线程
             val isLogin = withContext(Dispatchers.IO) { repo.isLoggedIn() }
             TelemetryLog.i("NavGraph", "isLoggedIn=$isLogin")
             _loggedIn.value = isLogin
@@ -74,8 +72,6 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
         }
     } else if (loggedIn == true) {
-        // 每个 NavHost 各自持有 NavController: 之前登录/登出两个 NavHost 共用同一个
-        // controller, 切换登录态时 setGraph 会带着旧 backstack(如 server_settings) 残留
         val nav = rememberNavController()
         NavHost(nav, startDestination = "main") {
             composable("main") {
@@ -94,7 +90,6 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
             }
         }
     } else {
-        // 登录态分支: 独立 NavController (登录/服务器设置两级), 不与主图共用
         val loginNav = rememberNavController()
         NavHost(loginNav, startDestination = "login") {
             composable("login") {

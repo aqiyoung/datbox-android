@@ -1,10 +1,8 @@
 package com.datbox.app.data.api
 
 import android.content.Context
-import com.datbox.app.data.model.ManagementResponse
 import com.datbox.app.data.model.Mount
 import com.datbox.app.data.model.Option
-import com.datbox.app.data.model.Overview
 import com.datbox.app.data.model.Share
 import com.datbox.app.data.model.User
 import com.datbox.app.data.model.UserInfo
@@ -37,14 +35,12 @@ class ManagementRepository @Inject constructor(
         call()
     }
 
-    // ===== 当前用户 =====
     suspend fun currentUser(): Result<UserInfo> = safeApiCall {
         val resp = api.currentUser()
         if (resp.code != 200 || resp.data == null) error(resp.message)
         resp.data
     }
 
-    // ===== 用户管理 =====
     suspend fun userList(): Result<List<User>> = safeApiCall {
         val resp = api.userList()
         if (resp.code != 200) error(resp.message)
@@ -80,7 +76,6 @@ class ManagementRepository @Inject constructor(
         if (resp.code != 200) error(resp.message)
     }
 
-    // ===== 挂载管理 =====
     suspend fun mountList(): Result<List<Mount>> = safeApiCall {
         val resp = api.mountList()
         if (resp.code != 200) error(resp.message)
@@ -114,7 +109,6 @@ class ManagementRepository @Inject constructor(
         if (resp.code != 200) error(resp.message)
     }
 
-    // ===== 分享管理 =====
     suspend fun shareList(): Result<List<Share>> = safeApiCall {
         val resp = api.shareList()
         if (resp.code != 200) error(resp.message)
@@ -132,7 +126,6 @@ class ManagementRepository @Inject constructor(
         if (resp.code != 200) error(resp.message)
     }
 
-    // ===== 系统设置 =====
     suspend fun optionList(): Result<List<Option>> = safeApiCall {
         val resp = api.optionList()
         if (resp.code != 200) error(resp.message)
@@ -149,7 +142,6 @@ class ManagementRepository @Inject constructor(
         if (resp.code != 200) error(resp.message)
     }
 
-    // ===== 文件操作 (OkHttp 直发) =====
     private suspend fun fsPost(path: String, body: String): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val mediaType = "application/json; charset=utf-8".toMediaType()
