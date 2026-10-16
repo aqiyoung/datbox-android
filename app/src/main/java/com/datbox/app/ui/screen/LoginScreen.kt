@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -58,7 +59,6 @@ data class LoginUiState(
     val success: Boolean = false,
     val passwordVisible: Boolean = false,
     val rememberMe: Boolean = true,
-    val serverUrl: String = "https://fn.threel.site",
 )
 
 @HiltViewModel
@@ -75,12 +75,6 @@ class LoginViewModel @Inject constructor(
             val password = tokenStore.lastPassword.first()
             if (username.isNotEmpty()) {
                 _state.value = _state.value.copy(username = username, password = password)
-            }
-            // 实时跟随 DataStore 里的服务器地址：从「服务器设置」页返回后自动刷新显示
-            launch {
-                tokenStore.serverUrl.collect { saved ->
-                    _state.value = _state.value.copy(serverUrl = saved)
-                }
             }
         }
     }
@@ -131,36 +125,24 @@ fun LoginScreen(
             .background(Color.White)
     ) {
 
-        // ===== 服务器按钮（右上角） =====
-        Column(
+        // ===== 服务器设置入口（右上角齿轮） =====
+        LiquidGlassSurface(
+            onClick = { onServerSettings() },
+            shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(10f)
-                .padding(top = 44.dp, end = 20.dp),
-            horizontalAlignment = Alignment.End
+                .padding(top = 44.dp, end = 20.dp)
+                .size(40.dp),
         ) {
-            LiquidGlassSurface(
-                onClick = { onServerSettings() },
-                shape = RoundedCornerShape(30.dp),
-                modifier = Modifier,
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(Icons.Filled.Storage, contentDescription = null, tint = TextBody, modifier = Modifier.size(16.dp))
-                    Text("服务器", fontSize = 13.sp, color = TextBody)
-                    Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = TextBody, modifier = Modifier.size(16.dp))
-                }
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Icon(
+                    Icons.Filled.Settings,
+                    contentDescription = "服务器设置",
+                    tint = TextBody,
+                    modifier = Modifier.size(20.dp),
+                )
             }
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = state.serverUrl.removePrefix("https://").removePrefix("http://").trimEnd('/'),
-                fontSize = 11.sp,
-                color = Color(0xFF999999),
-                maxLines = 1
-            )
         }
 
         // ===== 主内容 =====
