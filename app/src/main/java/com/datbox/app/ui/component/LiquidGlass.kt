@@ -443,7 +443,7 @@ private fun DockTabItem(
             icon,
             contentDescription = label,
             tint = tint,
-            modifier = Modifier.size(24.dp),
+            modifier = Modifier.size(30.dp),
         )
         Spacer(Modifier.height(2.dp))
         Text(
