@@ -1,5 +1,5 @@
-# DATBOX Android Client
-DATBOX — 原生 Android 客户端，连接 OpenList / Alist 后端（v4.2.2）。
+# Datbox Android Client
+Datbox — 原生 Android 客户端，连接 OpenList / Alist 后端（v4.2.2）。
 
 ## 技术栈
 - **语言**：Kotlin
