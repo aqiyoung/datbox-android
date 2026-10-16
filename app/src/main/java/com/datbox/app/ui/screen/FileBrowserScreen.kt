@@ -31,6 +31,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -40,14 +42,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
-import com.datbox.app.ui.theme.IconCutout
-import com.datbox.app.ui.theme.IconTileBorder
-import com.datbox.app.ui.theme.IconTileBottom
-import com.datbox.app.ui.theme.IconTileTop
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.theme.TextStrong
@@ -926,8 +925,21 @@ private fun humanSize(b: Long): String = when {
 }
 
 /**
- * 文件类型图标: 白玻璃方片底 + 类型色符号。颜色只由符号承载, 形状负责区分具体类型。
- * 取色对齐 iOS 系统色系, 并刻意避开重复色相 (文件/文档/视频/表格/安装包各占一色)。
+ * 文件类型图标: 真物范式 —— 文件夹画成真文件夹, 文件画成真纸页(带折角)。
+ *
+ * 之所以改: 上一版是「白玻璃方片 + 一个抽象几何符号」, 一个空白方块上飘一个符号,
+ * 无论怎么调符号都不会有真实感。这一版画的是物体本身 ——
+ * 纸页有折角、有页头、有内容缩影, 文件夹有前后板与受光。
+ *
+ * 15 类分三种内容画法:
+ *   - 条线类 (DOC/TEXT/PDF/UNKNOWN): 文字条 / 页中之页
+ *   - 实物类 (IMAGE/VIDEO/AUDIO/CODE/SHEET/SLIDE): 直接画出那个东西
+ *     (照片带天空+山+太阳, 视频是黑框+播放, 音频是波形, 代码是彩色代码窗, 表格是网格, 幻灯片是 16:9)
+ *   - 带底板类 (ARCHIVE/DISK/EXEC/APK): 淡彩底板 + 类型色部件 (保证任何配色下都有明度差)
+ *
+ * 配色 (白纸 + 彩色页头):
+ *   页身 = 纸白渐变; 顶部 1/3 = 类型色页头; 折角 = 更浅的同类色; 内容 = 类型色。
+ *   既有色彩身份 (扫列表看页头色), 又保住纸张真实度 (页身是纸不是色块)。
  */
 private enum class FileKind(val tint: Color) {
     FOLDER(Color(0xFF007AFF)),
@@ -987,7 +999,7 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     }
 }
 
-/** 渲染文件类型图标: 白玻璃方片底 + 类型色符号 */
+/** 渲染文件类型图标: 真文件夹 / 真纸页 */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Canvas(modifier.size(46.dp)) {
@@ -995,164 +1007,412 @@ private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
         // 必须按画布实际像素宽归一化, 否则高密度屏上图形只占画布的 ~1/density → 显得极小, 描边细到看不见.
         val unit = size.width / 46f
         scale(unit, pivot = Offset.Zero) {
-            // 归一化后再整体放大 1.3, 让方块填满图标区
-            scale(1.3f, pivot = Offset(23f, 23f)) {
-                drawTile()
-                // 类型符号: 按旧「文档页」坐标设计 (光学中心偏下 ~2.5), 上移归中后再略放大
-                scale(1.25f, pivot = Offset(23f, 23f)) {
-                    translate(top = -2.5f) { drawKindGlyph(style.kind) }
-                }
+            // 纸页只占 46 空间的 27×36, 略放大让图标区更满 (纸页中心 y 与画布中心重合, 放大是对称的)
+            scale(1.08f, pivot = Offset(23f, 23f)) {
+                if (style.kind == FileKind.FOLDER) drawFolderIcon(style.kind.tint)
+                else drawPageIcon(style.kind)
             }
         }
     }
 }
 
-// 方块几何 (46 设计单位坐标系): 32×32、圆角 9
-private const val TILE_L = 7f
-private const val TILE_T = 7f
-private const val TILE_S = 32f
-private const val TILE_R = 9f
+// ===== 几何 (46 设计空间) =====
 
-/**
- * 方片底: 落地投影 → 白玻璃渐变 → 发丝边。所有类型共用同一块底,
- * 颜色全部交给符号, 底保持中性 → 列表安静但每个类型仍有色彩身份。
- */
-private fun DrawScope.drawTile() {
-    val tl = Offset(TILE_L, TILE_T)
-    val sz = Size(TILE_S, TILE_S)
-    val cr = CornerRadius(TILE_R, TILE_R)
+// 纸页: x 9.5~36.5 (宽 27), y 5~41 (高 36), 圆角 3.2, 右上折角 8.5
+private const val PAGE_L = 9.5f
+private const val PAGE_T = 5f
+private const val PAGE_R = 36.5f
+private const val PAGE_B = 41f
+private const val PAGE_CORNER = 3.2f
+private const val PAGE_FOLD = 8.5f
+private const val PAGE_HEAD = 16.4f          // 彩色页头下沿
 
-    drawRoundRect(Color.Black.copy(alpha = 0.07f), tl + Offset(0f, 1.2f), sz, cr)
+// 内容区: 用归一化 0..1 描述, 再由下面四个函数换算到设计单位
+private const val CB_X = 13f
+private const val CB_Y = 18f
+private const val CB_W = 20f
+private const val CB_H = 19f
+
+private fun bx(u: Float) = CB_X + u * CB_W
+private fun by(v: Float) = CB_Y + v * CB_H
+private fun bw(u: Float) = u * CB_W
+private fun bh(v: Float) = v * CB_H
+
+/** 同类色加深 (factor < 1) 或向白提亮 (factor > 1) */
+private fun tintShade(c: Color, factor: Float): Color =
+    if (factor <= 1f) {
+        Color(c.red * factor, c.green * factor, c.blue * factor, c.alpha)
+    } else {
+        val t = factor - 1f
+        Color(
+            c.red + (1f - c.red) * t,
+            c.green + (1f - c.green) * t,
+            c.blue + (1f - c.blue) * t,
+            c.alpha,
+        )
+    }
+
+/** 纸页轮廓: 右上角被折掉的圆角矩形 */
+private fun pagePath(): Path = Path().apply {
+    moveTo(PAGE_L + PAGE_CORNER, PAGE_T)
+    lineTo(PAGE_R - PAGE_FOLD, PAGE_T)
+    lineTo(PAGE_R, PAGE_T + PAGE_FOLD)
+    lineTo(PAGE_R, PAGE_B - PAGE_CORNER)
+    arcTo(Rect(PAGE_R - PAGE_CORNER * 2, PAGE_B - PAGE_CORNER * 2, PAGE_R, PAGE_B), 0f, 90f, false)
+    lineTo(PAGE_L + PAGE_CORNER, PAGE_B)
+    arcTo(Rect(PAGE_L, PAGE_B - PAGE_CORNER * 2, PAGE_L + PAGE_CORNER * 2, PAGE_B), 90f, 90f, false)
+    lineTo(PAGE_L, PAGE_T + PAGE_CORNER)
+    arcTo(Rect(PAGE_L, PAGE_T, PAGE_L + PAGE_CORNER * 2, PAGE_T + PAGE_CORNER * 2), 180f, 90f, false)
+    close()
+}
+
+/** 折角翻折面: 斜边两端 → 内直角 */
+private fun foldPath(): Path = Path().apply {
+    moveTo(PAGE_R - PAGE_FOLD, PAGE_T)
+    lineTo(PAGE_R - PAGE_FOLD, PAGE_T + PAGE_FOLD)
+    lineTo(PAGE_R, PAGE_T + PAGE_FOLD)
+    close()
+}
+
+/** 内容区里的圆角块 (归一化坐标) */
+private fun DrawScope.cbRect(u0: Float, v0: Float, u1: Float, v1: Float, r: Float, color: Color) {
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(bx(u0), by(v0)),
+        size = Size(bw(u1 - u0), bh(v1 - v0)),
+        cornerRadius = CornerRadius(r, r),
+    )
+}
+
+// ===== 文件夹 =====
+
+/** 真文件夹: 后板(含页签) + 前板(受光渐变) + 前板上沿高光 */
+private fun DrawScope.drawFolderIcon(tint: Color) {
+    val back = tintShade(tint, 0.72f)
+
+    // 落地影: 同一轮廓下移, 两档偏移代替模糊
+    translate(top = 1.0f) {
+        drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
+        drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
+    }
+    translate(top = 2.0f) {
+        drawRoundRect(Color.Black.copy(alpha = 0.05f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
+    }
+
+    // 后板 + 页签
+    drawRoundRect(back, Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
+    drawRoundRect(back, Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
+
+    // 前板 (受光渐变) + 上沿高光
     drawRoundRect(
         brush = Brush.verticalGradient(
-            0f to IconTileTop, 1f to IconTileBottom,
-            startY = TILE_T, endY = TILE_T + TILE_S,
+            0f to tintShade(tint, 1.18f), 1f to tint, startY = 16.6f, endY = 39f,
         ),
-        topLeft = tl, size = sz, cornerRadius = cr,
+        topLeft = Offset(6f, 16.6f), size = Size(34f, 22.4f), cornerRadius = CornerRadius(3.6f, 3.6f),
     )
-    drawRoundRect(IconTileBorder, tl, sz, cr, style = Stroke(width = 1f))
+    drawRoundRect(Color.White.copy(alpha = 0.34f), Offset(7.4f, 17.7f), Size(31.2f, 1.5f), CornerRadius(0.75f, 0.75f))
 }
 
-/** 类型符号: 按设计坐标 (x 15~31, y 19~32) 绘制, 由调用方平移到方块中央 */
-private fun DrawScope.drawKindGlyph(kind: FileKind) {
-    val ink = kind.tint
-    val sw = 1.8f
-    val stroke = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
-    when (kind) {
-        FileKind.FOLDER -> {
-            // 背板略透 + 前板实色, 形成文件夹的前后层次
-            drawRoundRect(ink.copy(alpha = 0.82f), Offset(14.5f, 18.5f), Size(11f, 6f), CornerRadius(2f, 2f))
-            drawRoundRect(ink, Offset(14.5f, 21.5f), Size(17f, 11f), CornerRadius(3f, 3f))
-        }
-        FileKind.IMAGE -> {
-            drawCircle(ink, radius = 1.7f, center = Offset(19f, 22f))
-            drawPath(
-                Path().apply {
-                    moveTo(16f, 31f); lineTo(20.5f, 25.5f); lineTo(23.3f, 28.3f)
-                    lineTo(26f, 25.3f); lineTo(30f, 31f); close()
-                },
-                ink,
-            )
-        }
-        FileKind.VIDEO -> {
-            drawRoundRect(
-                ink, Offset(16f, 20f), Size(15f, 11.5f), CornerRadius(2.2f, 2.2f),
-                style = Stroke(width = 1.6f),
-            )
-            drawPath(
-                Path().apply {
-                    moveTo(21.2f, 23.4f); lineTo(26.4f, 25.8f); lineTo(21.2f, 28.2f); close()
-                },
-                ink,
-            )
-        }
-        FileKind.AUDIO -> {
-            drawCircle(ink, radius = 2.3f, center = Offset(18.8f, 29f))
-            drawLine(ink, Offset(21f, 29f), Offset(21f, 20.5f), sw, StrokeCap.Round)
-            drawPath(
-                Path().apply {
-                    moveTo(21f, 20.5f); lineTo(26.5f, 22f); lineTo(26.5f, 25f); lineTo(21f, 23.5f); close()
-                },
-                ink,
-            )
-        }
-        FileKind.ARCHIVE -> {
-            drawRoundRect(ink, Offset(21.6f, 19f), Size(3.2f, 13f), CornerRadius(1.2f, 1.2f))
-            listOf(21.3f, 24.3f, 27.3f).forEach { y ->
-                drawRoundRect(IconCutout, Offset(21.6f, y), Size(3.2f, 1.2f), CornerRadius(0.6f, 0.6f))
-            }
-        }
-        FileKind.CODE -> {
-            drawPath(
-                Path().apply { moveTo(19.5f, 20.5f); lineTo(16f, 25.5f); lineTo(19.5f, 30.5f) },
-                ink, style = stroke,
-            )
-            drawPath(
-                Path().apply { moveTo(26.5f, 20.5f); lineTo(30f, 25.5f); lineTo(26.5f, 30.5f) },
-                ink, style = stroke,
-            )
-            drawLine(ink, Offset(24.4f, 19.5f), Offset(22.6f, 31.5f), sw, StrokeCap.Round)
-        }
-        FileKind.SHEET -> {
-            drawRoundRect(
-                ink, Offset(16f, 20f), Size(15f, 12f), CornerRadius(2f, 2f),
-                style = Stroke(width = 1.6f),
-            )
-            // 表头填色, 一眼区别于 DOC 的三条线
-            drawRoundRect(ink, Offset(16.8f, 20.8f), Size(13.4f, 3.2f), CornerRadius(1f, 1f))
-            drawLine(ink, Offset(16f, 26.8f), Offset(31f, 26.8f), 1.4f)
-            drawLine(ink, Offset(23.5f, 20f), Offset(23.5f, 32f), 1.4f)
-        }
-        FileKind.SLIDE -> {
-            drawRoundRect(ink, Offset(15.5f, 26f), Size(3.4f, 6f), CornerRadius(1f, 1f))
-            drawRoundRect(ink, Offset(21f, 20.5f), Size(3.4f, 11.5f), CornerRadius(1f, 1f))
-            drawRoundRect(ink, Offset(26.5f, 23.5f), Size(3.4f, 8.5f), CornerRadius(1f, 1f))
-        }
-        FileKind.PDF -> {
-            drawRoundRect(
-                ink, Offset(16f, 20f), Size(15f, 12f), CornerRadius(2.2f, 2.2f),
-                style = Stroke(width = 1.6f),
-            )
-            // 顶部色带 = 封面/标题条
-            drawRoundRect(ink, Offset(17f, 21f), Size(13f, 4f), CornerRadius(1.2f, 1.2f))
-            drawLine(ink, Offset(19f, 28.4f), Offset(28f, 28.4f), 1.6f, StrokeCap.Round)
-        }
-        FileKind.DOC -> {
-            // 实心文本条 (细描边在小尺寸下显廉价)
-            drawRoundRect(ink, Offset(16.5f, 21f), Size(13f, 1.9f), CornerRadius(0.95f, 0.95f))
-            drawRoundRect(ink, Offset(16.5f, 25f), Size(13f, 1.9f), CornerRadius(0.95f, 0.95f))
-            drawRoundRect(ink, Offset(16.5f, 29f), Size(7.5f, 1.9f), CornerRadius(0.95f, 0.95f))
-        }
-        FileKind.TEXT -> {
-            drawRoundRect(ink, Offset(17f, 22.6f), Size(12f, 1.9f), CornerRadius(0.95f, 0.95f))
-            drawRoundRect(ink, Offset(17f, 27.6f), Size(8f, 1.9f), CornerRadius(0.95f, 0.95f))
-        }
-        FileKind.DISK -> {
-            drawCircle(ink, radius = 5.7f, center = Offset(23f, 25.5f), style = Stroke(width = 2.4f))
-            drawCircle(ink, radius = 1.8f, center = Offset(23f, 25.5f))
-        }
-        FileKind.EXEC -> {
-            drawPath(
-                Path().apply { moveTo(17.5f, 20.5f); lineTo(21.5f, 25f); lineTo(17.5f, 29.5f) },
-                ink, style = stroke,
-            )
-            drawLine(ink, Offset(23.5f, 29.5f), Offset(28.5f, 29.5f), sw, StrokeCap.Round)
-        }
-        FileKind.APK -> {
-            // 安卓机器人: 半圆头 + 触角 + 眼
-            drawArc(
-                color = ink, startAngle = 180f, sweepAngle = 180f, useCenter = true,
-                topLeft = Offset(18f, 20.5f), size = Size(10f, 10f),
-            )
-            drawLine(ink, Offset(19.5f, 19.5f), Offset(21f, 21.5f), 1.4f, StrokeCap.Round)
-            drawLine(ink, Offset(26.5f, 19.5f), Offset(25f, 21.5f), 1.4f, StrokeCap.Round)
-            drawCircle(IconCutout, radius = 1f, center = Offset(20.7f, 24.5f))
-            drawCircle(IconCutout, radius = 1f, center = Offset(25.3f, 24.5f))
-        }
-        // 兜底: 两条文档条
-        FileKind.UNKNOWN -> {
-            drawRoundRect(ink, Offset(17f, 22.6f), Size(11f, 1.9f), CornerRadius(0.95f, 0.95f))
-            drawRoundRect(ink, Offset(17f, 27.6f), Size(7.5f, 1.9f), CornerRadius(0.95f, 0.95f))
-        }
+// ===== 纸页 =====
+
+/** 纸页: 落地影 → 纸身 → 彩色页头 → 折角 → 内容 → 发丝边 */
+private fun DrawScope.drawPageIcon(kind: FileKind) {
+    val tint = kind.tint
+    val page = pagePath()
+
+    translate(top = 1.1f) { drawPath(page, Color.Black.copy(alpha = 0.06f)) }
+    translate(top = 2.1f) { drawPath(page, Color.Black.copy(alpha = 0.05f)) }
+
+    drawPath(
+        page,
+        brush = Brush.verticalGradient(
+            0f to Color(0xFFFEFEFF), 1f to Color(0xFFF4F4F8), startY = PAGE_T, endY = PAGE_B,
+        ),
+    )
+
+    // 页头裁在纸形内 (右上折角处不会溢出) + 页头下沿一道极淡分界
+    clipPath(page) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                0f to tintShade(tint, 1.14f), 1f to tintShade(tint, 0.94f),
+                startY = PAGE_T, endY = PAGE_HEAD,
+            ),
+            topLeft = Offset(0f, PAGE_T),
+            size = Size(46f, PAGE_HEAD - PAGE_T),
+        )
+        drawRect(Color.Black.copy(alpha = 0.10f), Offset(0f, PAGE_HEAD - 0.35f), Size(46f, 0.7f))
     }
+
+    // 折角比页头更浅 → 看得出纸被翻折, 而不是被切掉
+    drawPath(foldPath(), tintShade(tint, 1.35f))
+
+    drawKindContent(kind)
+
+    drawPath(page, Color.Black.copy(alpha = 0.13f), style = Stroke(width = 0.7f))
+}
+
+/** 内容缩影分发 (归一化坐标里画) */
+private fun DrawScope.drawKindContent(kind: FileKind) {
+    val tint = kind.tint
+    when (kind) {
+        FileKind.DOC -> drawDocContent(tint)
+        FileKind.TEXT -> drawTextLines(tint)
+        FileKind.PDF -> drawPdfContent(tint)
+        FileKind.SHEET -> drawSheetContent(tint)
+        FileKind.SLIDE -> drawSlideContent(tint)
+        FileKind.IMAGE -> drawImageContent()
+        FileKind.VIDEO -> drawVideoContent()
+        FileKind.AUDIO -> drawAudioContent(tint)
+        FileKind.CODE -> drawCodeContent()
+        FileKind.ARCHIVE -> drawArchiveContent(tint)
+        FileKind.DISK -> drawDiskContent(tint)
+        FileKind.EXEC -> drawExecContent(tint)
+        FileKind.APK -> drawApkContent(tint)
+        FileKind.UNKNOWN -> drawUnknownContent(tint)
+        FileKind.FOLDER -> Unit   // 走 drawFolderIcon, 不会到这里
+    }
+}
+
+/** 文本: 四条长短不一的文字条 */
+private fun DrawScope.drawTextLines(tint: Color) {
+    listOf(0.10f to 0.96f, 0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.58f).forEach { (v, u1) ->
+        cbRect(0.04f, v, u1, v + 0.075f, 0.7f, tint)
+    }
+}
+
+/** 文档: 一条标题 + 三行正文 */
+private fun DrawScope.drawDocContent(tint: Color) {
+    cbRect(0.04f, 0.02f, 0.62f, 0.17f, 1.4f, tint)
+    listOf(0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.62f).forEach { (v, u1) ->
+        cbRect(0.04f, v, u1, v + 0.075f, 0.7f, tint)
+    }
+}
+
+/** PDF: 页中之页 (内页恒为纸白 + 发丝边, 任何配色下都不糊) */
+private fun DrawScope.drawPdfContent(tint: Color) {
+    val l = bx(0.06f)
+    val t = by(0.02f)
+    val w = bw(0.88f)
+    val h = bh(0.96f)
+    val r = 2.2f
+    val f = w * 0.30f
+    val inner = Path().apply {
+        moveTo(l + r, t)
+        lineTo(l + w - f, t)
+        lineTo(l + w, t + f)
+        lineTo(l + w, t + h - r)
+        arcTo(Rect(l + w - r * 2, t + h - r * 2, l + w, t + h), 0f, 90f, false)
+        lineTo(l + r, t + h)
+        arcTo(Rect(l, t + h - r * 2, l + r * 2, t + h), 90f, 90f, false)
+        lineTo(l, t + r)
+        arcTo(Rect(l, t, l + r * 2, t + r * 2), 180f, 90f, false)
+        close()
+    }
+    drawPath(inner, Color.White)
+    drawPath(
+        Path().apply {
+            moveTo(l + w - f, t); lineTo(l + w - f, t + f); lineTo(l + w, t + f); close()
+        },
+        tint.copy(alpha = 0.85f),
+    )
+    drawPath(inner, Color.Black.copy(alpha = 0.16f), style = Stroke(width = 0.7f))
+    listOf(0.46f, 0.68f).forEach { v -> cbRect(0.14f, v, 0.70f, v + 0.085f, 0.8f, tint) }
+}
+
+/** 表格: 表头填色 + 网格 + 一个高亮单元格 */
+private fun DrawScope.drawSheetContent(tint: Color) {
+    val l = bx(0f)
+    val t = by(0f)
+    val w = bw(1f)
+    val h = bh(1f)
+    cbRect(0f, 0f, 1f, 0.24f, 1.8f, tint)
+    for (i in 1..2) {
+        val x = l + w * i / 3f
+        drawLine(tint.copy(alpha = 0.75f), Offset(x, t + h * 0.24f), Offset(x, t + h), 0.8f)
+    }
+    for (i in 1..2) {
+        val y = t + h * (0.24f + 0.76f * i / 3f)
+        drawLine(tint.copy(alpha = 0.75f), Offset(l, y), Offset(l + w, y), 0.8f)
+    }
+    cbRect(1f / 3f, 0.24f + 0.76f / 3f, 2f / 3f, 0.24f + 0.76f * 2f / 3f, 0.6f, tint)
+    drawRoundRect(tint, Offset(l, t), Size(w, h), CornerRadius(1.8f, 1.8f), style = Stroke(width = 1f))
+}
+
+/** 幻灯片: 16:9 画框 + 标题条 + 两条正文块 + 页脚 */
+private fun DrawScope.drawSlideContent(tint: Color) {
+    val l = bx(0.02f)
+    val t = by(0.16f)
+    val w = bw(0.96f)
+    val h = bh(0.68f)
+    drawRoundRect(tint, Offset(l, t), Size(w, h), CornerRadius(1.6f, 1.6f), style = Stroke(width = 1f))
+    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.14f), Size(w * 0.40f, h * 0.16f), CornerRadius(h * 0.08f, h * 0.08f))
+    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.48f), Size(w * 0.84f, h * 0.13f), CornerRadius(h * 0.065f, h * 0.065f))
+    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.72f), Size(w * 0.58f, h * 0.13f), CornerRadius(h * 0.065f, h * 0.065f))
+    cbRect(0.30f, 0.90f, 0.70f, 0.975f, 0.7f, tint.copy(alpha = 0.7f))
+}
+
+/** 图片: 一张真照片 (天空 + 太阳 + 两层山), 自带固有色 */
+private fun DrawScope.drawImageContent() {
+    val l = bx(0f)
+    val t = by(0f)
+    val w = bw(1f)
+    val h = bh(1f)
+    val clip = Path().apply { addRoundRect(RoundRect(Rect(l, t, l + w, t + h), CornerRadius(2f, 2f))) }
+    clipPath(clip) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                0f to Color(0xFF9BD9FF), 1f to Color(0xFFE8F6FF), startY = t, endY = t + h,
+            ),
+            topLeft = Offset(l, t), size = Size(w, h),
+        )
+        drawCircle(Color(0xFFFFF6C9), radius = w * 0.13f, center = Offset(l + w * 0.74f, t + h * 0.26f))
+        drawCircle(
+            Color(0xFFFFD84D), radius = w * 0.13f, center = Offset(l + w * 0.74f, t + h * 0.26f),
+            style = Stroke(width = 0.6f),
+        )
+        drawPath(
+            Path().apply {
+                moveTo(l, t + h); lineTo(l + w * 0.30f, t + h * 0.44f); lineTo(l + w * 0.60f, t + h); close()
+            },
+            Color(0xFF4E9F63),
+        )
+        drawPath(
+            Path().apply {
+                moveTo(l + w * 0.44f, t + h); lineTo(l + w * 0.76f, t + h * 0.56f); lineTo(l + w, t + h); close()
+            },
+            Color(0xFF3B8350),
+        )
+    }
+    drawRoundRect(
+        Color.Black.copy(alpha = 0.10f), Offset(l, t), Size(w, h), CornerRadius(2f, 2f),
+        style = Stroke(width = 0.7f),
+    )
+}
+
+/** 视频: 黑画框 + 播放三角 */
+private fun DrawScope.drawVideoContent() {
+    val l = bx(0f)
+    val t = by(0.06f)
+    val w = bw(1f)
+    val h = bh(0.88f)
+    drawRoundRect(Color(0xFF1C1C1E), Offset(l, t), Size(w, h), CornerRadius(2.2f, 2.2f))
+    val cx = l + w / 2f
+    val cy = t + h / 2f
+    drawPath(
+        Path().apply {
+            moveTo(cx - w * 0.10f, cy - h * 0.20f)
+            lineTo(cx + w * 0.17f, cy)
+            lineTo(cx - w * 0.10f, cy + h * 0.20f)
+            close()
+        },
+        Color.White,
+    )
+}
+
+/** 音频: 六根波形条 */
+private fun DrawScope.drawAudioContent(tint: Color) {
+    listOf(0.30f, 0.62f, 0.92f, 0.50f, 0.22f, 0.70f).forEachIndexed { i, barH ->
+        val u = 0.03f + i * 0.163f
+        cbRect(u, 0.5f - barH / 2f, u + 0.085f, 0.5f + barH / 2f, 0.84f, tint)
+    }
+}
+
+/** 代码: 深色代码窗 + 彩色语法行, 自带固有色 */
+private fun DrawScope.drawCodeContent() {
+    val l = bx(0f)
+    val t = by(0f)
+    val w = bw(1f)
+    val h = bh(1f)
+    drawRoundRect(Color(0xFF26262B), Offset(l, t), Size(w, h), CornerRadius(2.2f, 2.2f))
+    listOf(
+        Color(0xFF7CE38B) to 0.52f,
+        Color(0xFF82AAFF) to 0.74f,
+        Color(0xFFFFB86C) to 0.40f,
+        Color(0xFF7CE38B) to 0.60f,
+    ).forEachIndexed { i, (lineColor, u1) ->
+        drawRoundRect(
+            lineColor,
+            Offset(l + w * 0.12f, t + h * (0.13f + i * 0.21f)),
+            Size(w * (u1 - 0.12f), h * 0.085f),
+            CornerRadius(h * 0.042f, h * 0.042f),
+        )
+    }
+    drawRoundRect(
+        Color(0xFF5A5A63),
+        Offset(l + w * 0.05f, t + h * 0.13f),
+        Size(w * 0.035f, h * 0.085f),
+        CornerRadius(h * 0.042f, h * 0.042f),
+    )
+}
+
+/** 压缩包: 淡彩底板 + 类型色拉链 + 拉环 */
+private fun DrawScope.drawArchiveContent(tint: Color) {
+    val panel = tintShade(tint, 1.62f)
+    cbRect(0f, 0f, 1f, 1f, 2f, panel)
+    cbRect(0.40f, 0f, 0.60f, 1f, 0f, tint)
+    for (i in 0 until 5) {
+        cbRect(0.40f, 0.06f + i * 0.20f, 0.60f, 0.15f + i * 0.20f, 0.85f, panel)
+    }
+    drawCircle(
+        color = tint,
+        radius = bw(0.075f),
+        center = Offset(bx(0.5f), by(0.88f)),
+        style = Stroke(width = 0.9f),
+    )
+}
+
+/** 光盘: 淡彩底板 + 同心圆盘 */
+private fun DrawScope.drawDiskContent(tint: Color) {
+    cbRect(0f, 0f, 1f, 1f, 2f, tintShade(tint, 1.62f))
+    val center = Offset(bx(0.5f), by(0.5f))
+    drawCircle(tint.copy(alpha = 0.18f), radius = bw(0.46f), center = center)
+    drawCircle(tint, radius = bw(0.46f), center = center, style = Stroke(width = 1.6f))
+    drawCircle(tint.copy(alpha = 0.70f), radius = bw(0.28f), center = center, style = Stroke(width = 1.0f))
+    drawCircle(tint, radius = bw(0.11f), center = center)
+}
+
+/** 可执行: 淡色终端窗 + 提示符 + 光标条 */
+private fun DrawScope.drawExecContent(tint: Color) {
+    cbRect(0f, 0.04f, 1f, 0.96f, 2f, tint.copy(alpha = 0.14f))
+    drawPath(
+        Path().apply {
+            moveTo(bx(0.14f), by(0.26f))
+            lineTo(bx(0.30f), by(0.50f))
+            lineTo(bx(0.14f), by(0.74f))
+        },
+        tint,
+        style = Stroke(width = 1.7f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+    )
+    cbRect(0.40f, 0.68f, 0.84f, 0.78f, 0.95f, tint)
+}
+
+/** 安装包: 淡彩底板 + 安卓机器人头 */
+private fun DrawScope.drawApkContent(tint: Color) {
+    val panel = tintShade(tint, 1.62f)
+    cbRect(0f, 0f, 1f, 1f, 2f, panel)
+    val l = bx(0.10f)
+    val t = by(0.30f)
+    val w = bw(0.80f)
+    val h = bh(0.72f)
+    // 触角
+    drawLine(tint, Offset(l + w * 0.20f, t - h * 0.60f), Offset(l + w * 0.32f, t - h * 0.04f), 1.4f, StrokeCap.Round)
+    drawLine(tint, Offset(l + w * 0.80f, t - h * 0.60f), Offset(l + w * 0.68f, t - h * 0.04f), 1.4f, StrokeCap.Round)
+    // 半圆头
+    drawArc(
+        color = tint,
+        startAngle = 180f,
+        sweepAngle = 180f,
+        useCenter = true,
+        topLeft = Offset(l, t),
+        size = Size(w, h * 2f),
+    )
+    // 眼
+    drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.30f, t + h * 0.44f))
+    drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.70f, t + h * 0.44f))
+}
+
+/** 未知类型: 两条短文字条 */
+private fun DrawScope.drawUnknownContent(tint: Color) {
+    cbRect(0.04f, 0.30f, 0.70f, 0.375f, 0.7f, tint)
+    cbRect(0.04f, 0.62f, 0.46f, 0.695f, 0.7f, tint)
 }

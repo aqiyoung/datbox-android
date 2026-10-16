@@ -40,9 +40,3 @@ val TextFaint = Color(0xFFAAAAAA)       // 更弱 (图标 / 单位)
 val TextFainter = Color(0xFFBBBBBB)     // 占位符
 val TextGhost = Color(0xFFCCCCCC)       // 极弱 (版本号等)
 // 注: TextMuted / TextFaint / TextFainter / TextGhost 是四个相近灰阶, 值不同故暂各自保留, 后续可合并为两档
-
-// ===== 文件类型图标 (白玻璃方片 + 类型色符号: 颜色只出现在符号上) =====
-val IconTileTop = Color(0xFFFFFFFF)     // 方片玻璃渐变顶
-val IconTileBottom = Color(0xFFF5F3EE)  // 方片玻璃渐变底
-val IconTileBorder = Color(0xFFE8E5DD)  // 方片发丝边
-val IconCutout = Color(0xFFFAF9F6)      // 符号镂空色 (对齐方片中部底色)
