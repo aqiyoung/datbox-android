@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -27,22 +26,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
 import com.datbox.app.ui.theme.NearBlack
@@ -70,6 +55,7 @@ import com.datbox.app.ui.component.LiquidGlassPrimaryButton
 import com.datbox.app.ui.component.LiquidGlassRow
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.ui.component.GlassDecorBackground
+import com.datbox.app.ui.component.LucideFileIcons
 import com.datbox.app.util.AppConfig
 import com.datbox.app.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -882,22 +868,22 @@ private fun humanSize(b: Long): String = when {
 }
 
 
-private enum class FileKind(val tint: Color) {
-    FOLDER(Color(0xFF007AFF)),
-    DOC(Color(0xFF5856D6)),
-    TEXT(Color(0xFF8E8E93)),
-    IMAGE(Color(0xFFFF2D55)),
-    VIDEO(Color(0xFFAF52DE)),
-    AUDIO(Color(0xFFFF9500)),
-    ARCHIVE(Color(0xFFA2845E)),
-    CODE(Color(0xFF32ADE6)),
-    SHEET(Color(0xFF00C7BE)),
-    SLIDE(Color(0xFFFFB800)),
-    PDF(Color(0xFFFF3B30)),
-    APK(Color(0xFF16A34A)),
-    DISK(Color(0xFF64748B)),
-    EXEC(Color(0xFF6B7280)),
-    UNKNOWN(Color(0xFFA8A29E)),
+private enum class FileKind(val tint: Color, val icon: ImageVector) {
+    FOLDER(Color(0xFF007AFF), LucideFileIcons.Folder),
+    DOC(Color(0xFF5856D6), LucideFileIcons.FileType),
+    TEXT(Color(0xFF8E8E93), LucideFileIcons.FileText),
+    IMAGE(Color(0xFFFF2D55), LucideFileIcons.FileImage),
+    VIDEO(Color(0xFFAF52DE), LucideFileIcons.FilePlay),
+    AUDIO(Color(0xFFFF9500), LucideFileIcons.FileMusic),
+    ARCHIVE(Color(0xFFA2845E), LucideFileIcons.FileArchive),
+    CODE(Color(0xFF32ADE6), LucideFileIcons.FileCode),
+    SHEET(Color(0xFF00C7BE), LucideFileIcons.FileSpreadsheet),
+    SLIDE(Color(0xFFFFB800), LucideFileIcons.Presentation),
+    PDF(Color(0xFFFF3B30), LucideFileIcons.FileScan),
+    APK(Color(0xFF16A34A), LucideFileIcons.Package),
+    DISK(Color(0xFF64748B), LucideFileIcons.Disc),
+    EXEC(Color(0xFF6B7280), LucideFileIcons.FileTerminal),
+    UNKNOWN(Color(0xFFA8A29E), LucideFileIcons.File),
 }
 
 private data class FileStyle(val kind: FileKind)
@@ -934,403 +920,18 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
 }
 
 
+/**
+ * 文件类型图标: Lucide 线稿 (见 [LucideFileIcons])。
+ * 外层保持 46dp 占位, 内层 30dp —— 列表行的排版与手绘版一致, 不会被图标宽度带动。
+ */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
-    Canvas(modifier.size(46.dp)) {
-        val unit = size.width / 46f
-        scale(unit, pivot = Offset.Zero) {
-            scale(1.08f, pivot = Offset(23f, 23f)) {
-                if (style.kind == FileKind.FOLDER) drawFolderIcon(style.kind.tint)
-                else drawPageIcon(style.kind)
-            }
-        }
-    }
-}
-
-
-private const val PAGE_L = 9.5f
-private const val PAGE_T = 5f
-private const val PAGE_R = 36.5f
-private const val PAGE_B = 41f
-private const val PAGE_CORNER = 3.2f
-private const val PAGE_FOLD = 8.5f
-private const val PAGE_HEAD = 16.4f
-
-private const val CB_X = 13f
-private const val CB_Y = 18f
-private const val CB_W = 20f
-private const val CB_H = 19f
-
-private fun bx(u: Float) = CB_X + u * CB_W
-private fun by(v: Float) = CB_Y + v * CB_H
-private fun bw(u: Float) = u * CB_W
-private fun bh(v: Float) = v * CB_H
-
-
-private fun tintShade(c: Color, factor: Float): Color =
-    if (factor <= 1f) {
-        Color(c.red * factor, c.green * factor, c.blue * factor, c.alpha)
-    } else {
-        val t = factor - 1f
-        Color(
-            c.red + (1f - c.red) * t,
-            c.green + (1f - c.green) * t,
-            c.blue + (1f - c.blue) * t,
-            c.alpha,
+    Box(modifier.size(46.dp), contentAlignment = Alignment.Center) {
+        Icon(
+            imageVector = style.kind.icon,
+            contentDescription = null,
+            tint = style.kind.tint,
+            modifier = Modifier.size(30.dp),
         )
     }
-
-
-private fun pagePath(): Path = Path().apply {
-    moveTo(PAGE_L + PAGE_CORNER, PAGE_T)
-    lineTo(PAGE_R - PAGE_FOLD, PAGE_T)
-    lineTo(PAGE_R, PAGE_T + PAGE_FOLD)
-    lineTo(PAGE_R, PAGE_B - PAGE_CORNER)
-    arcTo(Rect(PAGE_R - PAGE_CORNER * 2, PAGE_B - PAGE_CORNER * 2, PAGE_R, PAGE_B), 0f, 90f, false)
-    lineTo(PAGE_L + PAGE_CORNER, PAGE_B)
-    arcTo(Rect(PAGE_L, PAGE_B - PAGE_CORNER * 2, PAGE_L + PAGE_CORNER * 2, PAGE_B), 90f, 90f, false)
-    lineTo(PAGE_L, PAGE_T + PAGE_CORNER)
-    arcTo(Rect(PAGE_L, PAGE_T, PAGE_L + PAGE_CORNER * 2, PAGE_T + PAGE_CORNER * 2), 180f, 90f, false)
-    close()
-}
-
-
-private fun foldPath(): Path = Path().apply {
-    moveTo(PAGE_R - PAGE_FOLD, PAGE_T)
-    lineTo(PAGE_R - PAGE_FOLD, PAGE_T + PAGE_FOLD)
-    lineTo(PAGE_R, PAGE_T + PAGE_FOLD)
-    close()
-}
-
-
-private fun DrawScope.cbRect(u0: Float, v0: Float, u1: Float, v1: Float, r: Float, color: Color) {
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(bx(u0), by(v0)),
-        size = Size(bw(u1 - u0), bh(v1 - v0)),
-        cornerRadius = CornerRadius(r, r),
-    )
-}
-
-
-
-private fun DrawScope.drawFolderIcon(tint: Color) {
-    val back = tintShade(tint, 0.72f)
-
-    translate(top = 1.0f) {
-        drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
-        drawRoundRect(Color.Black.copy(alpha = 0.07f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
-    }
-    translate(top = 2.0f) {
-        drawRoundRect(Color.Black.copy(alpha = 0.05f), Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
-    }
-
-    drawRoundRect(back, Offset(6f, 8f), Size(16f, 9f), CornerRadius(2.6f, 2.6f))
-    drawRoundRect(back, Offset(6f, 11f), Size(34f, 26f), CornerRadius(3.6f, 3.6f))
-
-    drawRoundRect(
-        brush = Brush.verticalGradient(
-            0f to tintShade(tint, 1.18f), 1f to tint, startY = 16.6f, endY = 39f,
-        ),
-        topLeft = Offset(6f, 16.6f), size = Size(34f, 22.4f), cornerRadius = CornerRadius(3.6f, 3.6f),
-    )
-    drawRoundRect(Color.White.copy(alpha = 0.34f), Offset(7.4f, 17.7f), Size(31.2f, 1.5f), CornerRadius(0.75f, 0.75f))
-}
-
-
-
-private fun DrawScope.drawPageIcon(kind: FileKind) {
-    val tint = kind.tint
-    val page = pagePath()
-
-    translate(top = 1.1f) { drawPath(page, Color.Black.copy(alpha = 0.06f)) }
-    translate(top = 2.1f) { drawPath(page, Color.Black.copy(alpha = 0.05f)) }
-
-    drawPath(
-        page,
-        brush = Brush.verticalGradient(
-            0f to Color(0xFFFEFEFF), 1f to Color(0xFFF4F4F8), startY = PAGE_T, endY = PAGE_B,
-        ),
-    )
-
-    clipPath(page) {
-        drawRect(
-            brush = Brush.verticalGradient(
-                0f to tintShade(tint, 1.14f), 1f to tintShade(tint, 0.94f),
-                startY = PAGE_T, endY = PAGE_HEAD,
-            ),
-            topLeft = Offset(0f, PAGE_T),
-            size = Size(46f, PAGE_HEAD - PAGE_T),
-        )
-        drawRect(Color.Black.copy(alpha = 0.10f), Offset(0f, PAGE_HEAD - 0.35f), Size(46f, 0.7f))
-    }
-
-    drawPath(foldPath(), tintShade(tint, 1.35f))
-
-    drawKindContent(kind)
-
-    drawPath(page, Color.Black.copy(alpha = 0.13f), style = Stroke(width = 0.7f))
-}
-
-
-private fun DrawScope.drawKindContent(kind: FileKind) {
-    val tint = kind.tint
-    when (kind) {
-        FileKind.DOC -> drawDocContent(tint)
-        FileKind.TEXT -> drawTextLines(tint)
-        FileKind.PDF -> drawPdfContent(tint)
-        FileKind.SHEET -> drawSheetContent(tint)
-        FileKind.SLIDE -> drawSlideContent(tint)
-        FileKind.IMAGE -> drawImageContent()
-        FileKind.VIDEO -> drawVideoContent()
-        FileKind.AUDIO -> drawAudioContent(tint)
-        FileKind.CODE -> drawCodeContent()
-        FileKind.ARCHIVE -> drawArchiveContent(tint)
-        FileKind.DISK -> drawDiskContent(tint)
-        FileKind.EXEC -> drawExecContent(tint)
-        FileKind.APK -> drawApkContent(tint)
-        FileKind.UNKNOWN -> drawUnknownContent(tint)
-        FileKind.FOLDER -> Unit
-    }
-}
-
-
-private fun DrawScope.drawTextLines(tint: Color) {
-    listOf(0.10f to 0.96f, 0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.58f).forEach { (v, u1) ->
-        cbRect(0.04f, v, u1, v + 0.075f, 0.7f, tint)
-    }
-}
-
-
-private fun DrawScope.drawDocContent(tint: Color) {
-    cbRect(0.04f, 0.02f, 0.62f, 0.17f, 1.4f, tint)
-    listOf(0.36f to 0.96f, 0.62f to 0.96f, 0.88f to 0.62f).forEach { (v, u1) ->
-        cbRect(0.04f, v, u1, v + 0.075f, 0.7f, tint)
-    }
-}
-
-
-private fun DrawScope.drawPdfContent(tint: Color) {
-    val l = bx(0.06f)
-    val t = by(0.02f)
-    val w = bw(0.88f)
-    val h = bh(0.96f)
-    val r = 2.2f
-    val f = w * 0.30f
-    val inner = Path().apply {
-        moveTo(l + r, t)
-        lineTo(l + w - f, t)
-        lineTo(l + w, t + f)
-        lineTo(l + w, t + h - r)
-        arcTo(Rect(l + w - r * 2, t + h - r * 2, l + w, t + h), 0f, 90f, false)
-        lineTo(l + r, t + h)
-        arcTo(Rect(l, t + h - r * 2, l + r * 2, t + h), 90f, 90f, false)
-        lineTo(l, t + r)
-        arcTo(Rect(l, t, l + r * 2, t + r * 2), 180f, 90f, false)
-        close()
-    }
-    drawPath(inner, Color.White)
-    drawPath(
-        Path().apply {
-            moveTo(l + w - f, t); lineTo(l + w - f, t + f); lineTo(l + w, t + f); close()
-        },
-        tint.copy(alpha = 0.85f),
-    )
-    drawPath(inner, Color.Black.copy(alpha = 0.16f), style = Stroke(width = 0.7f))
-    listOf(0.46f, 0.68f).forEach { v -> cbRect(0.14f, v, 0.70f, v + 0.085f, 0.8f, tint) }
-}
-
-
-private fun DrawScope.drawSheetContent(tint: Color) {
-    val l = bx(0f)
-    val t = by(0f)
-    val w = bw(1f)
-    val h = bh(1f)
-    cbRect(0f, 0f, 1f, 0.24f, 1.8f, tint)
-    for (i in 1..2) {
-        val x = l + w * i / 3f
-        drawLine(tint.copy(alpha = 0.75f), Offset(x, t + h * 0.24f), Offset(x, t + h), 0.8f)
-    }
-    for (i in 1..2) {
-        val y = t + h * (0.24f + 0.76f * i / 3f)
-        drawLine(tint.copy(alpha = 0.75f), Offset(l, y), Offset(l + w, y), 0.8f)
-    }
-    cbRect(1f / 3f, 0.24f + 0.76f / 3f, 2f / 3f, 0.24f + 0.76f * 2f / 3f, 0.6f, tint)
-    drawRoundRect(tint, Offset(l, t), Size(w, h), CornerRadius(1.8f, 1.8f), style = Stroke(width = 1f))
-}
-
-
-private fun DrawScope.drawSlideContent(tint: Color) {
-    val l = bx(0.02f)
-    val t = by(0.16f)
-    val w = bw(0.96f)
-    val h = bh(0.68f)
-    drawRoundRect(tint, Offset(l, t), Size(w, h), CornerRadius(1.6f, 1.6f), style = Stroke(width = 1f))
-    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.14f), Size(w * 0.40f, h * 0.16f), CornerRadius(h * 0.08f, h * 0.08f))
-    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.48f), Size(w * 0.84f, h * 0.13f), CornerRadius(h * 0.065f, h * 0.065f))
-    drawRoundRect(tint, Offset(l + w * 0.08f, t + h * 0.72f), Size(w * 0.58f, h * 0.13f), CornerRadius(h * 0.065f, h * 0.065f))
-    cbRect(0.30f, 0.90f, 0.70f, 0.975f, 0.7f, tint.copy(alpha = 0.7f))
-}
-
-
-private fun DrawScope.drawImageContent() {
-    val l = bx(0f)
-    val t = by(0f)
-    val w = bw(1f)
-    val h = bh(1f)
-    val clip = Path().apply { addRoundRect(RoundRect(Rect(l, t, l + w, t + h), CornerRadius(2f, 2f))) }
-    clipPath(clip) {
-        drawRect(
-            brush = Brush.verticalGradient(
-                0f to Color(0xFF9BD9FF), 1f to Color(0xFFE8F6FF), startY = t, endY = t + h,
-            ),
-            topLeft = Offset(l, t), size = Size(w, h),
-        )
-        drawCircle(Color(0xFFFFF6C9), radius = w * 0.13f, center = Offset(l + w * 0.74f, t + h * 0.26f))
-        drawCircle(
-            Color(0xFFFFD84D), radius = w * 0.13f, center = Offset(l + w * 0.74f, t + h * 0.26f),
-            style = Stroke(width = 0.6f),
-        )
-        drawPath(
-            Path().apply {
-                moveTo(l, t + h); lineTo(l + w * 0.30f, t + h * 0.44f); lineTo(l + w * 0.60f, t + h); close()
-            },
-            Color(0xFF4E9F63),
-        )
-        drawPath(
-            Path().apply {
-                moveTo(l + w * 0.44f, t + h); lineTo(l + w * 0.76f, t + h * 0.56f); lineTo(l + w, t + h); close()
-            },
-            Color(0xFF3B8350),
-        )
-    }
-    drawRoundRect(
-        Color.Black.copy(alpha = 0.10f), Offset(l, t), Size(w, h), CornerRadius(2f, 2f),
-        style = Stroke(width = 0.7f),
-    )
-}
-
-
-private fun DrawScope.drawVideoContent() {
-    val l = bx(0f)
-    val t = by(0.06f)
-    val w = bw(1f)
-    val h = bh(0.88f)
-    drawRoundRect(Color(0xFF1C1C1E), Offset(l, t), Size(w, h), CornerRadius(2.2f, 2.2f))
-    val cx = l + w / 2f
-    val cy = t + h / 2f
-    drawPath(
-        Path().apply {
-            moveTo(cx - w * 0.10f, cy - h * 0.20f)
-            lineTo(cx + w * 0.17f, cy)
-            lineTo(cx - w * 0.10f, cy + h * 0.20f)
-            close()
-        },
-        Color.White,
-    )
-}
-
-
-private fun DrawScope.drawAudioContent(tint: Color) {
-    listOf(0.30f, 0.62f, 0.92f, 0.50f, 0.22f, 0.70f).forEachIndexed { i, barH ->
-        val u = 0.03f + i * 0.163f
-        cbRect(u, 0.5f - barH / 2f, u + 0.085f, 0.5f + barH / 2f, 0.84f, tint)
-    }
-}
-
-
-private fun DrawScope.drawCodeContent() {
-    val l = bx(0f)
-    val t = by(0f)
-    val w = bw(1f)
-    val h = bh(1f)
-    drawRoundRect(Color(0xFF26262B), Offset(l, t), Size(w, h), CornerRadius(2.2f, 2.2f))
-    listOf(
-        Color(0xFF7CE38B) to 0.52f,
-        Color(0xFF82AAFF) to 0.74f,
-        Color(0xFFFFB86C) to 0.40f,
-        Color(0xFF7CE38B) to 0.60f,
-    ).forEachIndexed { i, (lineColor, u1) ->
-        drawRoundRect(
-            lineColor,
-            Offset(l + w * 0.12f, t + h * (0.13f + i * 0.21f)),
-            Size(w * (u1 - 0.12f), h * 0.085f),
-            CornerRadius(h * 0.042f, h * 0.042f),
-        )
-    }
-    drawRoundRect(
-        Color(0xFF5A5A63),
-        Offset(l + w * 0.05f, t + h * 0.13f),
-        Size(w * 0.035f, h * 0.085f),
-        CornerRadius(h * 0.042f, h * 0.042f),
-    )
-}
-
-
-private fun DrawScope.drawArchiveContent(tint: Color) {
-    val panel = tintShade(tint, 1.62f)
-    cbRect(0f, 0f, 1f, 1f, 2f, panel)
-    cbRect(0.40f, 0f, 0.60f, 1f, 0f, tint)
-    for (i in 0 until 5) {
-        cbRect(0.40f, 0.06f + i * 0.20f, 0.60f, 0.15f + i * 0.20f, 0.85f, panel)
-    }
-    drawCircle(
-        color = tint,
-        radius = bw(0.075f),
-        center = Offset(bx(0.5f), by(0.88f)),
-        style = Stroke(width = 0.9f),
-    )
-}
-
-
-private fun DrawScope.drawDiskContent(tint: Color) {
-    cbRect(0f, 0f, 1f, 1f, 2f, tintShade(tint, 1.62f))
-    val center = Offset(bx(0.5f), by(0.5f))
-    drawCircle(tint.copy(alpha = 0.18f), radius = bw(0.46f), center = center)
-    drawCircle(tint, radius = bw(0.46f), center = center, style = Stroke(width = 1.6f))
-    drawCircle(tint.copy(alpha = 0.70f), radius = bw(0.28f), center = center, style = Stroke(width = 1.0f))
-    drawCircle(tint, radius = bw(0.11f), center = center)
-}
-
-
-private fun DrawScope.drawExecContent(tint: Color) {
-    cbRect(0f, 0.04f, 1f, 0.96f, 2f, tint.copy(alpha = 0.14f))
-    drawPath(
-        Path().apply {
-            moveTo(bx(0.14f), by(0.26f))
-            lineTo(bx(0.30f), by(0.50f))
-            lineTo(bx(0.14f), by(0.74f))
-        },
-        tint,
-        style = Stroke(width = 1.7f, cap = StrokeCap.Round, join = StrokeJoin.Round),
-    )
-    cbRect(0.40f, 0.68f, 0.84f, 0.78f, 0.95f, tint)
-}
-
-
-private fun DrawScope.drawApkContent(tint: Color) {
-    val panel = tintShade(tint, 1.62f)
-    cbRect(0f, 0f, 1f, 1f, 2f, panel)
-    val l = bx(0.10f)
-    val t = by(0.30f)
-    val w = bw(0.80f)
-    val h = bh(0.72f)
-    drawLine(tint, Offset(l + w * 0.20f, t - h * 0.60f), Offset(l + w * 0.32f, t - h * 0.04f), 1.4f, StrokeCap.Round)
-    drawLine(tint, Offset(l + w * 0.80f, t - h * 0.60f), Offset(l + w * 0.68f, t - h * 0.04f), 1.4f, StrokeCap.Round)
-    drawArc(
-        color = tint,
-        startAngle = 180f,
-        sweepAngle = 180f,
-        useCenter = true,
-        topLeft = Offset(l, t),
-        size = Size(w, h * 2f),
-    )
-    drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.30f, t + h * 0.44f))
-    drawCircle(panel, radius = w * 0.085f, center = Offset(l + w * 0.70f, t + h * 0.44f))
-}
-
-
-private fun DrawScope.drawUnknownContent(tint: Color) {
-    cbRect(0.04f, 0.30f, 0.70f, 0.375f, 0.7f, tint)
-    cbRect(0.04f, 0.62f, 0.46f, 0.695f, 0.7f, tint)
 }
