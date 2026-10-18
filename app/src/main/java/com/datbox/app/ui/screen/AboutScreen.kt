@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.datbox.app.R
+import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.update.AppUpdateManager
 import com.datbox.app.data.update.GitHubUpdateResult
 import com.datbox.app.ui.component.GlassDecorBackground
@@ -67,6 +68,20 @@ fun AboutScreen(onBack: () -> Unit) {
             .appUpdateManager()
     }
     val autoCheck by updateManager.autoCheckEnabled.collectAsState(initial = true)
+
+    val openListRepo = remember {
+        EntryPointAccessors.fromApplication(context.applicationContext, OpenListEntryPoint::class.java)
+            .openListRepository()
+    }
+    var openListVersion by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        openListVersion = openListRepo.serverVersion()
+    }
+    // 服务端返回的是 "v4.2.2 (Commit: …) - Frontend: … - Build at: …", 药丸里只留版本号。
+    val openListVersionLabel = openListVersion
+        ?.substringBefore(" (")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
 
     GlassDecorBackground {
         LazyColumn(
@@ -121,6 +136,20 @@ fun AboutScreen(onBack: () -> Unit) {
                                 text = AppConfig.fullVersionString(context),
                                 fontSize = 12.sp,
                                 color = Color(0xFF1A9E80),
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(999.dp),
+                            color = openListVersionLabel?.let { OpenListBlue.copy(alpha = 0.12f) }
+                                ?: Color(0xFF8A8A8A).copy(alpha = 0.12f),
+                        ) {
+                            Text(
+                                text = openListVersionLabel?.let { "OpenList $it" } ?: "OpenList —",
+                                fontSize = 12.sp,
+                                color = openListVersionLabel?.let { OpenListBlue } ?: TextMuted,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             )
@@ -278,6 +307,15 @@ private fun ActionCard(
 interface AppUpdateEntryPoint {
     fun appUpdateManager(): AppUpdateManager
 }
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface OpenListEntryPoint {
+    fun openListRepository(): OpenListRepository
+}
+
+/** OpenList 主色 (官方默认 main_color), 用于关于页的 OpenList 版本药丸。 */
+private val OpenListBlue = Color(0xFF1890FF)
 
 @Composable
 private fun UpdateFoundDialog(

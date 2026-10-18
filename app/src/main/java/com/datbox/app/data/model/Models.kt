@@ -27,6 +27,14 @@ data class UserInfo(
     @SerialName("sso_id") val ssoId: String = ""
 )
 
+/** GET /api/public/settings 的响应。data 是 OpenList 公开设置的键值表, version 即服务端版本。 */
+@Serializable
+data class PublicSettingsResponse(
+    val code: Int = 0,
+    val message: String = "",
+    val data: Map<String, String>? = null,
+)
+
 @Serializable
 data class FsListResponse(
     val code: Int,

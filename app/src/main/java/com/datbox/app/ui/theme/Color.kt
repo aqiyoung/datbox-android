@@ -15,7 +15,6 @@ val BorderWarm = Color(0xFFE8E6DC)
 val BorderLight = Color(0xFFE5E5EA)
 
 val GlassShadow = Color.Black.copy(alpha = 0.08f)
-val GlassBorder = Color.Black.copy(alpha = 0.07f)
 
 val WarmSilver = Color(0xFFB0AEA5)
 

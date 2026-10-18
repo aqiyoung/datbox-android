@@ -73,7 +73,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxScope
-import com.datbox.app.ui.theme.GlassBorder
 import com.datbox.app.ui.theme.MiSansFamily
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
@@ -159,17 +158,19 @@ fun LiquidGlassRow(
 }
 
 /**
- * 液态玻璃底部 Dock — 浮动玻璃药丸条 + 滑镜 (样式对齐 FlClash dev 分支的 NavigationDock)
+ * 液态玻璃底部 Dock — 浮动玻璃药丸条 + 滑镜 (样式与光学对齐 FlClash dev 分支的 NavigationDock)
  *
- * 设计参数参照 aqiyoung/FlClash@dev 的 NavigationDock (GPL-3.0, fork of chen08209/FlClash),
- * 本文件为独立实现, 未移植其代码:
+ * 设计参数与光学公式参照 aqiyoung/FlClash@dev 的 NavigationDock + lib/ui/liquid_glass.dart
+ * (GPL-3.0, fork of chen08209/FlClash), 本文件为独立实现, 未移植其代码:
  * - 一条浮动玻璃药丸条承载全部条目: 图标 + 文字 (10sp w500), 选中条目转主色
  * - 条宽 = 屏宽 × 60%, 屏内居中
  * - 滑镜: 单层化 — 与药丸同高的横向渐变光斑 (无嵌套胶囊轮廓), 宽 = 步距+8, 边缘渐隐
  * - 步距取实测条宽均分 → 任何屏宽下镜片与条目严格对齐
  * - 加速液体形变 (宽度随 squash 收缩), travel 弹簧带回弹
  * backdrop 折射 (API 33+): 内容层经 [LiquidGlassBackdrop] 的 AGSL shader —
- * 边缘 bevel 折射 + 滑镜 raised-lens 折射 + 磨砂 + 色散 + 暗边线;
+ * 药丸口径取自 FlClash 最新预设: pill = 染色 0.478 (无 contrast 增厚) + 磨砂 haze 0.72@15.6dp +
+ * 高光 0.45@1.3dp (三成以加光叠上) + 两侧更暗的暗边线 + 2dp 色散;
+ * 滑镜 = 6dp/7dp bevel 的抬升透镜 + 8.2dp 色散 + 0.7 高光 + 端部变暗。
  * 以下系统或 backdrop 缺省时回落 v3 平玻璃材质。
  */
 @Composable
@@ -254,27 +255,40 @@ fun LiquidGlassBottomBar(
                             )
                         }
                         glassShader?.apply {
+                            val dp = density.density
                             setFloatUniform("uTexSize", texW, texH)
                             setFloatUniform("uOrigin", pillPos.x - backdropOrigin.x, pillPos.y - backdropOrigin.y)
                             setFloatUniform("uPill", size.width, size.height)
                             setFloatUniform("uRadius", size.height / 2f)
-                            setFloatUniform("uBevel", with(density) { 20.dp.toPx() })
-                            setFloatUniform("uRefraction", with(density) { 60.dp.toPx() })
+                            setFloatUniform("uDp", dp)
+                            setFloatUniform("uBevel", 20.dp.value * dp)
+                            setFloatUniform("uRefraction", 60.dp.value * dp)
                             setFloatUniform("uBlur", 0f)
                             setFloatUniform("uHaze", 0.72f)
-                            setFloatUniform("uHazeBlur", with(density) { 15.6.dp.toPx() })
-                            setFloatUniform("uRim", 0.85f)
-                            setFloatUniform("uDispersion", 0.12f)
+                            setFloatUniform("uHazeBlur", 15.6.dp.value * dp)
+                            setFloatUniform("uRimBlur", 0f)
                             setFloatUniform("uSaturation", 2.1f)
-                            setFloatUniform("uContrast", 0.4f)
-                            setFloatUniform("uLine", with(density) { 0.67.dp.toPx() })
+                            setFloatUniform("uBrightness", 1f)
+                            setFloatUniform("uContrast", 0f)
+                            setFloatUniform("uRim", 0.45f)
+                            setFloatUniform("uRimWidth", 1.3.dp.value * dp)
+                            setFloatUniform("uRimTail", 0f)
+                            setFloatUniform("uRimFocus", 0f)
+                            setFloatUniform("uRimAdded", 0.3f)
+                            setFloatUniform("uDispersion", 2.dp.value * dp)
+                            setFloatUniform("uLine", 0.67.dp.value * dp)
+                            setFloatUniform("uLineDark", 0.35f)
+                            setFloatUniform("uLineSide", 0.75f)
                             setFloatUniform("uEndShade", 0.045f)
-                            setFloatUniform("uEndShadeReach", with(density) { 3.dp.toPx() })
-                            setFloatUniform("uLensX", with(density) { lensX.dp.toPx() })
-                            setFloatUniform("uLensW", with(density) { lensW.dp.toPx() })
-                            setFloatUniform("uLensBevel", with(density) { 5.5.dp.toPx() })
-                            setFloatUniform("uLensDepth", with(density) { 4.3.dp.toPx() })
-                            setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.32f)
+                            setFloatUniform("uLensX", lensX * dp)
+                            setFloatUniform("uLensW", lensW * dp)
+                            setFloatUniform("uLensBevel", 7.dp.value * dp)
+                            setFloatUniform("uLensDepth", 6.dp.value * dp)
+                            setFloatUniform("uLensDispersion", 8.2.dp.value * dp)
+                            setFloatUniform("uLensRim", 0.7f)
+                            setFloatUniform("uLensRimWidth", 1.1.dp.value * dp)
+                            setFloatUniform("uLensRimAdded", 0f)
+                            setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.478f)
                         }
                         clipPath(pillPath) {
                             translate(
@@ -695,9 +709,28 @@ private fun FrostedGlass(
             )
         }
         content()
-        Box(Modifier.matchParentSize().border(0.5.dp, GlassBorder, shape))
+        Box(Modifier.matchParentSize().border(width = 0.5.dp, brush = glassHairline, shape = shape))
     }
 }
+
+/**
+ * iOS 27 玻璃的暗边线: 上下缘极淡, 两侧更暗 (FlClash 的 pill/regular 都一样)。
+ * 用 sweepGradient 表达 —— 0°/0.5 是左右两侧, 0.25/0.75 是下/上缘。
+ */
+private val glassHairline: Brush
+    get() = Brush.sweepGradient(
+        colorStops = arrayOf(
+            0.000f to Color.Black.copy(alpha = 0.110f),
+            0.125f to Color.Black.copy(alpha = 0.075f),
+            0.250f to Color.Black.copy(alpha = 0.040f),
+            0.375f to Color.Black.copy(alpha = 0.075f),
+            0.500f to Color.Black.copy(alpha = 0.110f),
+            0.625f to Color.Black.copy(alpha = 0.075f),
+            0.750f to Color.Black.copy(alpha = 0.040f),
+            0.875f to Color.Black.copy(alpha = 0.075f),
+            1.000f to Color.Black.copy(alpha = 0.110f),
+        )
+    )
 
 
 @Composable

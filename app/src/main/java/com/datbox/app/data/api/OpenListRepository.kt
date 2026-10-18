@@ -113,6 +113,11 @@ class OpenListRepository @Inject constructor(
         info
     }
 
+    /** 服务端 OpenList 版本 (形如 "v4.2.2 (Commit: ...) - Frontend: ... - Build at: ..."), 取不到返回 null。 */
+    suspend fun serverVersion(): String? = runCatching {
+        api.publicSettings().data?.get("version")?.trim()?.takeIf { it.isNotEmpty() }
+    }.getOrNull()
+
     suspend fun list(path: String = "/"): Result<List<com.datbox.app.data.model.FsItem>> = runCatching {
         val resp = api.list(FsListRequest(path = path))
         if (resp.code != 200) error("列表失败: ${resp.message}")

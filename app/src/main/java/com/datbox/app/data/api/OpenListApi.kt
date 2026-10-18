@@ -4,6 +4,7 @@ import com.datbox.app.data.model.FsGetResponse
 import com.datbox.app.data.model.FsListResponse
 import com.datbox.app.data.model.FsSearchResponse
 import com.datbox.app.data.model.LoginResponse
+import com.datbox.app.data.model.PublicSettingsResponse
 import com.datbox.app.data.model.UserInfo
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -78,5 +79,9 @@ interface OpenListApi {
 
     @POST("api/fs/get")
     suspend fun get(@Body req: FsListRequest): FsGetResponse
+
+    /** 公开设置 (无需登录), data["version"] 是服务端 OpenList 版本。 */
+    @GET("api/public/settings")
+    suspend fun publicSettings(): PublicSettingsResponse
 
 }
