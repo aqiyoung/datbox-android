@@ -396,6 +396,7 @@ private fun DockTabItem(
         animationSpec = tween(durationMillis = 240),
     ).value
     val tint = lerp(StoneGray, NearBlack, t)
+    // 只有图标, 不显示文字 (label 仍作为无障碍描述)
     Column(
         modifier = modifier.clickable(
             interactionSource = MutableInteractionSource(),
@@ -409,14 +410,6 @@ private fun DockTabItem(
             contentDescription = label,
             tint = tint,
             modifier = Modifier.size(32.dp),
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            label,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.W500,
-            maxLines = 1,
-            color = tint,
         )
     }
 }
