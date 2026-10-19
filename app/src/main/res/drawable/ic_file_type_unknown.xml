@@ -1,11 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- unknown: Material Icon Theme (MIT) - 由 SVG 转 VectorDrawable -->
+<!-- unknown: 自绘图标 (黄色文件夹 + 白描边 + 底部厚度), 见 THIRD_PARTY_NOTICES.md -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="16dp"
-    android:height="16dp"
-    android:viewportWidth="16"
-    android:viewportHeight="16">
-    <path
-        android:fillColor="#90a4ae"
-        android:pathData="m8.668 6h3.6641l-3.6641-3.668v3.668m-4.668-4.668h5.332l4 4v8c0 0.73828-0.59375 1.3359-1.332 1.3359h-8c-0.73828 0-1.332-0.59766-1.332-1.3359v-10.664c0-0.74219 0.59375-1.3359 1.332-1.3359m3.332 1.3359h-3.332v10.664h8v-6h-4.668z" />
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+        <group android:translateY="0.75">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#000000"
+            android:strokeColor="#000000"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillAlpha="0.1"
+            android:strokeAlpha="0.1"
+ />
+        </group>
+        <group android:translateY="1.2">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#6b737b"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        </group>
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#9aa5b1"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        <path
+            android:pathData="M21.4 3.8L25.9 8.3L21.4 8.3Z"
+            android:fillColor="#d8dce1"
+ />
 </vector>

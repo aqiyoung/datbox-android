@@ -1,11 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- video: Material Icon Theme (MIT) - 由 SVG 转 VectorDrawable -->
+<!-- video: 自绘图标 (黄色文件夹 + 白描边 + 底部厚度), 见 THIRD_PARTY_NOTICES.md -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="32dp"
-    android:height="32dp"
+    android:width="24dp"
+    android:height="24dp"
     android:viewportWidth="32"
     android:viewportHeight="32">
-    <path
-        android:fillColor="#ff9800"
-        android:pathData="m24 6l2 6h-4l-2-6h-3l2 6h-4l-2-6h-3l2 6H8L6 6H5a3 3 0 0 0-3 3v14a3 3 0 0 0 3 3h22a3 3 0 0 0 3-3V6Z" />
+        <group android:translateY="0.75">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#000000"
+            android:strokeColor="#000000"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillAlpha="0.1"
+            android:strokeAlpha="0.1"
+ />
+        </group>
+        <group android:translateY="1.2">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#a85a28"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        </group>
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#f0813a"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        <path
+            android:pathData="M21.4 3.8L25.9 8.3L21.4 8.3Z"
+            android:fillColor="#f9cfb4"
+ />
+        <path
+            android:pathData="M12.8 14.6L21.4 19.4L12.8 24.2Z"
+            android:fillColor="#ffffff"
+ />
 </vector>

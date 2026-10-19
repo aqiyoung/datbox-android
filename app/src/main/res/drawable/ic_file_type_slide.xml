@@ -1,11 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- slide: Material Icon Theme (MIT) - 由 SVG 转 VectorDrawable -->
+<!-- slide: 自绘图标 (黄色文件夹 + 白描边 + 底部厚度), 见 THIRD_PARTY_NOTICES.md -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#e64a19"
-        android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM8 11v2h1v6H8v1h4v-1h-1v-2h2a3 3 0 0 0 3-3a3 3 0 0 0-3-3zm5 2a1 1 0 0 1 1 1a1 1 0 0 1-1 1h-2v-2z" />
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+        <group android:translateY="0.75">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#000000"
+            android:strokeColor="#000000"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillAlpha="0.1"
+            android:strokeAlpha="0.1"
+ />
+        </group>
+        <group android:translateY="1.2">
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#9c3c20"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        </group>
+        <path
+            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
+            android:fillColor="#e0562f"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.9"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        <path
+            android:pathData="M21.4 3.8L25.9 8.3L21.4 8.3Z"
+            android:fillColor="#f3beaf"
+ />
+        <path
+            android:pathData="M9.4 13.2L23 13.2L23 20.6L9.4 20.6Z"
+            android:fillColor="#ffffff"
+ />
+        <path
+            android:pathData="M16.2 20.6L16.2 23.4"
+            android:fillColor="#00000000"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.6"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        <path
+            android:pathData="M12.8 24.2L19.6 24.2"
+            android:fillColor="#00000000"
+            android:strokeColor="#ffffff"
+            android:strokeWidth="1.6"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+ />
+        <path
+            android:pathData="M14.4 15.2L19.4 16.9L14.4 18.6Z"
+            android:fillColor="#e0562f"
+ />
 </vector>
