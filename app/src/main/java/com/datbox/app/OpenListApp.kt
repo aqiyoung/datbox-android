@@ -1,12 +1,15 @@
 package com.datbox.app
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
+import coil.decode.SvgDecoder
 import com.datbox.app.util.AppConfig
 import com.datbox.app.util.TelemetryLog
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class OpenListApp : Application() {
+class OpenListApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         TelemetryLog.init(this)
@@ -20,4 +23,11 @@ class OpenListApp : Application() {
             TelemetryLog.e("AppStart", "telemetry init failed", t)
         }
     }
+
+    /** Coil 默认解码器不含 SVG，预览 .svg 会直接失败；这里补上，全局生效。 */
+    override fun newImageLoader(): ImageLoader =
+        ImageLoader.Builder(this)
+            .components { add(SvgDecoder.Factory()) }
+            .crossfade(true)
+            .build()
 }

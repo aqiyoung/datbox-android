@@ -9,6 +9,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Dns
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import java.net.Inet6Address
@@ -137,6 +138,33 @@ class OpenListRepository @Inject constructor(
     }
 
     fun isLoggedIn(): Boolean = tokenStore.tokenSync().isNotEmpty()
+
+    /** 预览/播放用的带签名下载地址。路径按段编码，文件名里的空格、#、% 不会破坏 URL。 */
+    suspend fun previewUrl(remotePath: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val token = tokenStore.tokenSync()
+            val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
+
+            val getReq = Request.Builder()
+                .url("$serverUrl/api/fs/get")
+                .header("Authorization", token)
+                .post(FsGetRequest(remotePath).toJsonRequestBody())
+                .build()
+            val sign = client.newCall(getReq).execute().use { resp ->
+                if (!resp.isSuccessful) error("fs/get HTTP ${resp.code}")
+                val body = resp.body?.string() ?: error("fs/get 响应为空")
+                OpenListJson.decodeFromString<FsGetResponse>(body).data?.sign
+                    ?: error("fs/get 响应里没有 sign 字段")
+            }
+
+            val base = serverUrl.toHttpUrlOrNull() ?: error("服务器地址无效: $serverUrl")
+            val builder = base.newBuilder().addPathSegment("d")
+            remotePath.split('/').forEach { segment ->
+                if (segment.isNotEmpty()) builder.addPathSegment(segment)
+            }
+            builder.addQueryParameter("sign", sign).build().toString()
+        }
+    }
 
     suspend fun download(remotePath: String, fileName: String): Result<File> = withContext(Dispatchers.IO) {
         com.datbox.app.util.TelemetryLog.i("Repo", "download START (IO): ${remotePath.substringAfterLast('/')}")
