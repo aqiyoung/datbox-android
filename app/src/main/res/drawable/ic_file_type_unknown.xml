@@ -13,14 +13,14 @@
                 android:fillAlpha="0.075"
                 android:strokeColor="#000000"
                 android:strokeAlpha="0.075"
-                android:strokeWidth="2.267"
+                android:strokeWidth="3.600"
                 android:strokeLineJoin="round" />
         </group>
         <path
             android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5z"
             android:fillColor="#ffffffff"
             android:strokeColor="#ffffffff"
-            android:strokeWidth="2.267"
+            android:strokeWidth="3.600"
             android:strokeLineJoin="round" />
         <path android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5z">
             <aapt:attr name="android:fillColor">
