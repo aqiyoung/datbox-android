@@ -1,66 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- text: 自绘图标 (黄色文件夹 + 白描边 + 底部厚度), 见 THIRD_PARTY_NOTICES.md -->
+<!-- text: 几何来自 Material Icon Theme (MIT), 叠加白边/渐变/投影, 见 THIRD_PARTY_NOTICES.md -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="32"
-    android:viewportHeight="32">
-        <group android:translateY="0.75">
-        <path
-            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
-            android:fillColor="#000000"
-            android:strokeColor="#000000"
-            android:strokeWidth="1.9"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
-            android:fillAlpha="0.1"
-            android:strokeAlpha="0.1"
- />
-        </group>
-        <group android:translateY="1.2">
-        <path
-            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
-            android:fillColor="#2c76ab"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="1.9"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
- />
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+        <group android:translateY="1.200">
+            <path
+                android:pathData="M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5z"
+                android:fillColor="#000000"
+                android:fillAlpha="0.075"
+                android:strokeColor="#000000"
+                android:strokeAlpha="0.075"
+                android:strokeWidth="2.267"
+                android:strokeLineJoin="round" />
         </group>
         <path
-            android:pathData="M6.4 6.2A2.4 2.4 0 0 1 8.8 3.8L21.4 3.8L25.9 8.3L25.9 25.9A2.4 2.4 0 0 1 23.5 28.3L8.8 28.3A2.4 2.4 0 0 1 6.4 25.9Z"
-            android:fillColor="#3fa9f5"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="1.9"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
- />
-        <path
-            android:pathData="M21.4 3.8L25.9 8.3L21.4 8.3Z"
-            android:fillColor="#b6defb"
- />
-        <path
-            android:pathData="M10.2 14.6L22 14.6"
-            android:fillColor="#00000000"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="2.0"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
- />
-        <path
-            android:pathData="M10.2 18.6L22 18.6"
-            android:fillColor="#00000000"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="2.0"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
- />
-        <path
-            android:pathData="M10.2 22.6L17.6 22.6"
-            android:fillColor="#00000000"
-            android:strokeColor="#ffffff"
-            android:strokeWidth="2.0"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round"
- />
+            android:pathData="M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5z"
+            android:fillColor="#ffffffff"
+            android:strokeColor="#ffffffff"
+            android:strokeWidth="2.267"
+            android:strokeLineJoin="round" />
+        <path android:pathData="M8 16h8v2H8zm0-4h8v2H8zm6-10H6c-1.1 0-2 .9-2 2v16c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8zm4 18H6V4h7v5h5z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="0"
+                    android:startY="0"
+                    android:endX="0"
+                    android:endY="24">
+                    <item android:offset="0" android:color="#7cc4f8" />
+                    <item android:offset="0.5" android:color="#3fa9f5" />
+                    <item android:offset="1" android:color="#3183bf" />
+                </gradient>
+            </aapt:attr>
+        </path>
 </vector>
