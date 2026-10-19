@@ -3,6 +3,7 @@ package com.datbox.app.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -55,7 +56,6 @@ import com.datbox.app.ui.component.LiquidGlassPrimaryButton
 import com.datbox.app.ui.component.LiquidGlassRow
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.ui.component.GlassDecorBackground
-import com.datbox.app.ui.component.LucideFileIcons
 import com.datbox.app.util.AppConfig
 import com.datbox.app.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -868,22 +868,23 @@ private fun humanSize(b: Long): String = when {
 }
 
 
-private enum class FileKind(val tint: Color, val icon: ImageVector) {
-    FOLDER(Color(0xFF007AFF), LucideFileIcons.Folder),
-    DOC(Color(0xFF5856D6), LucideFileIcons.FileType),
-    TEXT(Color(0xFF8E8E93), LucideFileIcons.FileText),
-    IMAGE(Color(0xFFFF2D55), LucideFileIcons.FileImage),
-    VIDEO(Color(0xFFAF52DE), LucideFileIcons.FilePlay),
-    AUDIO(Color(0xFFFF9500), LucideFileIcons.FileMusic),
-    ARCHIVE(Color(0xFFA2845E), LucideFileIcons.FileArchive),
-    CODE(Color(0xFF32ADE6), LucideFileIcons.FileCode),
-    SHEET(Color(0xFF00C7BE), LucideFileIcons.FileSpreadsheet),
-    SLIDE(Color(0xFFFFB800), LucideFileIcons.Presentation),
-    PDF(Color(0xFFFF3B30), LucideFileIcons.FileScan),
-    APK(Color(0xFF16A34A), LucideFileIcons.Package),
-    DISK(Color(0xFF64748B), LucideFileIcons.Disc),
-    EXEC(Color(0xFF6B7280), LucideFileIcons.FileTerminal),
-    UNKNOWN(Color(0xFFA8A29E), LucideFileIcons.File),
+/** 颜色烤在 drawable 里, 见 res/drawable/ic_file_type_*.xml */
+private enum class FileKind(@DrawableRes val icon: Int) {
+    FOLDER(R.drawable.ic_file_type_folder),
+    DOC(R.drawable.ic_file_type_doc),
+    TEXT(R.drawable.ic_file_type_text),
+    IMAGE(R.drawable.ic_file_type_image),
+    VIDEO(R.drawable.ic_file_type_video),
+    AUDIO(R.drawable.ic_file_type_audio),
+    ARCHIVE(R.drawable.ic_file_type_archive),
+    CODE(R.drawable.ic_file_type_code),
+    SHEET(R.drawable.ic_file_type_sheet),
+    SLIDE(R.drawable.ic_file_type_slide),
+    PDF(R.drawable.ic_file_type_pdf),
+    APK(R.drawable.ic_file_type_apk),
+    DISK(R.drawable.ic_file_type_disk),
+    EXEC(R.drawable.ic_file_type_exec),
+    UNKNOWN(R.drawable.ic_file_type_unknown),
 }
 
 private data class FileStyle(val kind: FileKind)
@@ -921,17 +922,19 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
 
 
 /**
- * 文件类型图标: Lucide 线稿 (见 [LucideFileIcons])。
- * 外层保持 46dp 占位, 内层 30dp —— 列表行的排版与手绘版一致, 不会被图标宽度带动。
+ * 文件类型图标: Material Icon Theme (MIT, 见 THIRD_PARTY_NOTICES.md)。
+ * 颜色已经烤在 drawable 里, 所以 tint 用 Color.Unspecified 关掉 Icon 的默认着色,
+ * 否则会被 LocalContentColor 压成单色。
+ * 外层保持 46dp 占位, 内层 28dp —— 列表行的排版不变。
  */
 @Composable
 private fun FileTypeIconBox(style: FileStyle, modifier: Modifier = Modifier) {
     Box(modifier.size(46.dp), contentAlignment = Alignment.Center) {
         Icon(
-            imageVector = style.kind.icon,
+            painter = painterResource(style.kind.icon),
             contentDescription = null,
-            tint = style.kind.tint,
-            modifier = Modifier.size(30.dp),
+            tint = Color.Unspecified,
+            modifier = Modifier.size(28.dp),
         )
     }
 }
