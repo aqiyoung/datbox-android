@@ -895,27 +895,37 @@ private fun fileStyleFor(name: String, isDir: Boolean): FileStyle =
 private fun fileKindFor(name: String, isDir: Boolean): FileKind {
     if (isDir) return FileKind.FOLDER
     return when (name.substringAfterLast('.', "").lowercase()) {
-        "" -> FileKind.UNKNOWN
+        "" -> FileKind.TEXT
         "zip", "7z", "rar", "jar", "tar", "tgz", "gz", "gzip", "bz2", "tbz2",
-        "xz", "txz", "lz", "lzma", "zst" -> FileKind.ARCHIVE
-        "iso", "img", "dmg" -> FileKind.DISK
-        "apk" -> FileKind.APK
+        "xz", "txz", "lz", "lzma", "zst", "cab", "war", "ear", "cpio", "lz4",
+        "br", "z", "ace", "alz", "cbz", "cbr" -> FileKind.ARCHIVE
+        "iso", "img", "dmg", "vhd", "vdi", "vmdk", "qcow2", "cue", "mdf", "nrg",
+        "toast" -> FileKind.DISK
+        "apk", "xapk", "apks", "apkm" -> FileKind.APK
         "exe", "msi", "bat", "cmd", "sh", "bash", "zsh", "fish", "ps1",
-        "deb", "rpm", "bin", "run" -> FileKind.EXEC
+        "deb", "rpm", "bin", "run", "appimage", "com", "scr" -> FileKind.EXEC
         "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "heic", "heif",
-        "ico", "raw", "tiff", "tif" -> FileKind.IMAGE
+        "ico", "raw", "tiff", "tif", "psd", "ai", "xcf", "dng", "cr2", "nef",
+        "arw", "avif", "apng", "eps", "tga", "svgz", "jfif" -> FileKind.IMAGE
         "mp4", "mkv", "avi", "mov", "flv", "wmv", "m4v", "webm", "rmvb", "rm",
-        "ts", "m2ts", "3gp" -> FileKind.VIDEO
-        "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac" -> FileKind.AUDIO
-        "pdf" -> FileKind.PDF
+        "ts", "m2ts", "3gp", "mpg", "mpeg", "vob", "f4v", "ogv", "asf", "divx",
+        "mts", "mxf", "3g2", "m2v" -> FileKind.VIDEO
+        "mp3", "flac", "wav", "aac", "ogg", "wma", "m4a", "opus", "ape", "alac",
+        "mid", "midi", "aiff", "aif", "amr", "mka", "ac3", "dts", "caf" -> FileKind.AUDIO
+        "pdf", "xps", "oxps", "djvu" -> FileKind.PDF
         "py", "js", "jsx", "ts", "tsx", "java", "kt", "kts", "go", "rs", "swift",
         "rb", "php", "c", "h", "cpp", "cc", "cxx", "hpp", "sql", "json", "xml",
         "yaml", "yml", "toml", "ini", "conf", "gradle", "dart", "html", "htm",
-        "css", "scss", "sass", "less" -> FileKind.CODE
-        "txt", "md", "markdown", "log", "rst", "tex" -> FileKind.TEXT
-        "doc", "docx", "rtf", "odt" -> FileKind.DOC
-        "xls", "xlsx", "ods", "csv" -> FileKind.SHEET
-        "ppt", "pptx", "odp", "key" -> FileKind.SLIDE
+        "css", "scss", "sass", "less", "vue", "svelte", "lua", "r", "pl", "pm",
+        "scala", "clj", "ex", "erl", "hs", "ml", "fs", "vb", "asm", "groovy",
+        "ipynb", "proto", "graphql", "tf", "hcl", "cs", "jl", "zig" -> FileKind.CODE
+        "txt", "md", "markdown", "log", "rst", "tex", "text", "nfo", "srt",
+        "vtt", "ass", "ssa", "sub", "epub", "mobi", "azw", "azw3", "fb2" -> FileKind.TEXT
+        "doc", "docx", "rtf", "odt", "pages", "wps", "dot", "dotx", "wpd", "ott",
+        "fodt" -> FileKind.DOC
+        "xls", "xlsx", "ods", "csv", "tsv", "xlsm", "xlsb", "numbers", "xltx",
+        "fods" -> FileKind.SHEET
+        "ppt", "pptx", "odp", "key", "pps", "ppsx", "sldx", "fodp" -> FileKind.SLIDE
         else -> FileKind.UNKNOWN
     }
 }

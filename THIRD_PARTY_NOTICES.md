@@ -3,7 +3,7 @@
 ## 文件类型图标 — Material Icon Theme
 
 `app/src/main/res/drawable/ic_file_type_*.xml` 由 **Material Icon Theme** 的 SVG 转换而来
-（原 SVG 转成 Android VectorDrawable，路径与填充色未作修改）。
+（原 SVG 转成 Android VectorDrawable，几何路径未作修改；唯一一处填充色改动见文末「本地改动」）。
 
 - 项目：https://github.com/material-extensions/material-icon-theme
 - 取得方式：`https://api.iconify.design/material-icon-theme/<name>.svg`
@@ -28,6 +28,12 @@
 | `ic_file_type_disk.xml` | `disc.svg` | DISK |
 | `ic_file_type_exec.xml` | `console.svg` | EXEC |
 | `ic_file_type_unknown.xml` | `file.svg` | UNKNOWN |
+
+### 本地改动
+
+`ic_file_type_folder.xml` 的填充色由上游的 `#90a4ae`（灰蓝）改为 `#ffb74d`（暖黄）。
+原因：文件夹在列表里占绝大多数，上游默认的灰蓝文件夹会让整屏看起来偏灰；改成文件管理器
+常见的暖黄后与其余彩色图标协调。仅改填充色，几何路径与其余图标均与上游一致。
 
 ### MIT License
 
