@@ -427,7 +427,7 @@ private const val DOCK_BAR_PADDING = 4f
 
 private const val DOCK_ITEM_INSET = 8f
 
-private const val DOCK_BAR_HEIGHT = 48f
+private const val DOCK_BAR_HEIGHT = 62f
 
 
 
