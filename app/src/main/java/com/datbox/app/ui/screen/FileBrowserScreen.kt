@@ -495,7 +495,7 @@ fun FileBrowserScreen(
                 else -> {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.weight(1f),
                     ) {
                         items(displayedItems) { item ->
@@ -781,7 +781,7 @@ private fun SearchResultsList(
 
         else -> LazyColumn(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = modifier,
         ) {
             item(key = "header") {
@@ -841,6 +841,7 @@ private fun FileRow(
 ) {
     LiquidGlassRow(
         cornerRadius = 14.dp,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         onClick = onClick,
         onLongClick = onLongClick,
         leading = icon,
