@@ -326,7 +326,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = state.serverHost,
                         onValueChange = vm::onServerHost,
-                        placeholder = { Text("<your-server>", color = TextFainter) },
+                        placeholder = { Text("example.com:5244", color = TextFainter) },
                         leadingIcon = { Icon(Icons.Outlined.Dns, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),

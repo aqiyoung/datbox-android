@@ -111,6 +111,7 @@ class TokenStore @Inject constructor(
     }
 
     companion object {
-        const val DEFAULT_SERVER = "https://<your-server>"
+        /** 不内置任何服务器，首次启动由用户自己填 */
+        const val DEFAULT_SERVER = ""
     }
 }
