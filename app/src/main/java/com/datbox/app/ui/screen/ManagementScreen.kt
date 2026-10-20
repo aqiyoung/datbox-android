@@ -1,8 +1,10 @@
 package com.datbox.app.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,6 +152,7 @@ private fun CardItem(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
@@ -156,19 +160,32 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     var deletingUser by remember { mutableStateOf<User?>(null) }
 
     LazyColumn(
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 2.dp, bottom = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("账号", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
+                    Text(
+                        if (loading) "正在同步…" else "共 ${users.size} 个",
+                        fontSize = 11.sp,
+                        color = TextMuted
+                    )
+                }
                 Button(
                     onClick = { showAddDialog = true },
+                    modifier = Modifier.height(34.dp),
+                    shape = RoundedCornerShape(50),
+                    contentPadding = PaddingValues(horizontal = 14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
-                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("添加用户", color = Color.White)
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Spacer(Modifier.width(4.dp))
+                    Text("添加", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }
         }
@@ -181,53 +198,95 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             }
         } else if (users.isEmpty()) {
             item {
-                CardItem {
-                    Text("暂无用户", color = TextMuted)
+                LiquidGlassSurface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(CircleShape)
+                                .background(BrandGreen.copy(alpha = 0.10f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Outlined.Person, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        Text("还没有账号", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextStrong)
+                        Spacer(Modifier.height(3.dp))
+                        Text("服务端只允许创建普通用户", fontSize = 11.sp, color = TextMuted)
+                    }
                 }
             }
         } else {
-            items(users) { user ->
+            items(users, key = { it.id }) { user ->
                 var showMenu by remember { mutableStateOf(false) }
-                CardItem {
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Person, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(user.username, fontWeight = FontWeight.Medium, color = TextStrong)
-                            Text(
-                                when (user.role) { 0 -> "普通用户"; 1 -> "游客"; 2 -> "管理员"; else -> "未知" },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted
-                            )
-                            if (user.permission != 0) {
-                                Row(modifier = Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    if (user.permission and 1 != 0) PermissionTag("可见隐藏")
-                                    if (user.permission and 8 != 0) PermissionTag("上传")
-                                    if (user.permission and 128 != 0) PermissionTag("删除")
-                                    if (user.permission and 256 != 0) PermissionTag("WebDAV读")
-                                    if (user.permission and 16384 != 0) PermissionTag("分享")
+                val accent = roleColor(user.role)
+                val tags = permissionTags(user.permission)
+
+                LiquidGlassSurface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 6.dp, top = 12.dp, bottom = 12.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(accent.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    user.username.take(1).uppercase().ifEmpty { "?" },
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = accent
+                                )
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        user.username,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = TextStrong,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+                                    Spacer(Modifier.width(6.dp))
+                                    RolePill(user.role, accent)
                                 }
-                            } else {
-                                Text("仅浏览 (无上传/分享权限)", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                                Spacer(Modifier.height(6.dp))
+                                FlowRow(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                                ) {
+                                    if (tags.isEmpty()) {
+                                        PermissionTag("仅浏览", TextMuted)
+                                    } else {
+                                        tags.forEach { PermissionTag(it) }
+                                    }
+                                }
                             }
-                        }
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
-                            }
-                            GlassMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, width = 180.dp) {
-                                GlassMenuItem(
-                                    label = "编辑",
-                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) },
-                                    onClick = { showMenu = false; editingUser = user },
-                                )
-                                GlassMenuDivider()
-                                GlassMenuItem(
-                                    label = "删除",
-                                    labelColor = DangerRed,
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) },
-                                    onClick = { showMenu = false; deletingUser = user },
-                                )
+                            Box(modifier = Modifier.padding(start = 2.dp)) {
+                                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted, modifier = Modifier.size(18.dp))
+                                }
+                                GlassMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, width = 180.dp) {
+                                    GlassMenuItem(
+                                        label = "编辑",
+                                        leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) },
+                                        onClick = { showMenu = false; editingUser = user },
+                                    )
+                                    GlassMenuDivider()
+                                    GlassMenuItem(
+                                        label = "删除",
+                                        labelColor = DangerRed,
+                                        leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) },
+                                        onClick = { showMenu = false; deletingUser = user },
+                                    )
+                                }
                             }
                         }
                     }
@@ -272,6 +331,35 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
             },
         )
     }
+}
+
+/** 角色对应的强调色：管理员绿、游客橙、普通用户灰 */
+private fun roleColor(role: Int): Color = when (role) {
+    2 -> BrandGreen
+    1 -> WarningOrange
+    else -> TextMuted
+}
+
+@Composable
+private fun RolePill(role: Int, color: Color) {
+    Surface(shape = RoundedCornerShape(50), color = color.copy(alpha = 0.12f)) {
+        Text(
+            roleLabel(role),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            color = color,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+        )
+    }
+}
+
+/** OpenList 权限位 -> 中文标签，只列常用的几项 */
+private fun permissionTags(permission: Int): List<String> = buildList {
+    if (permission and 1 != 0) add("可见隐藏")
+    if (permission and 8 != 0) add("上传")
+    if (permission and 128 != 0) add("删除")
+    if (permission and 256 != 0) add("WebDAV读")
+    if (permission and 16384 != 0) add("分享")
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -614,16 +702,16 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
 }
 
 @Composable
-private fun PermissionTag(label: String) {
+private fun PermissionTag(label: String, color: Color = BrandGreen) {
     Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = BrandGreen.copy(alpha = 0.1f)
+        shape = RoundedCornerShape(6.dp),
+        color = color.copy(alpha = 0.10f)
     ) {
         Text(
             label,
             fontSize = 10.sp,
-            color = BrandGreen,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+            color = color,
+            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
         )
     }
 }
