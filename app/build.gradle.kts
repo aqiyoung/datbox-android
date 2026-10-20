@@ -40,8 +40,8 @@ android {
         applicationId = "com.datbox.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10047
-        versionName = "1.0.47"
+        versionCode = 10048
+        versionName = "1.0.48"
     }
 
     buildTypes {
@@ -70,6 +70,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3:1.2.0")
+    implementation("androidx.compose.material:material")
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("androidx.compose.ui:ui")

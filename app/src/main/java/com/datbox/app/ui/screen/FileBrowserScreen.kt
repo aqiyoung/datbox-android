@@ -58,6 +58,7 @@ import com.datbox.app.data.download.DownloadStatus
 import com.datbox.app.data.model.FsItem
 import com.datbox.app.data.model.FsSearchNode
 import com.datbox.app.ui.component.GlassMenu
+import com.datbox.app.ui.component.GlassPullRefresh
 import com.datbox.app.ui.component.GlassMenuDivider
 import com.datbox.app.ui.component.GlassMenuHeader
 import com.datbox.app.ui.component.GlassMenuItem
@@ -88,6 +89,7 @@ data class FileBrowserState(
     val path: String = "/",
     val items: List<FsItem> = emptyList(),
     val loading: Boolean = false,
+    val refreshing: Boolean = false,
     val error: String? = null,
     val searchQuery: String = "",
     val searching: Boolean = false,
@@ -254,6 +256,22 @@ class FileBrowserViewModel @Inject constructor(
                 _state.value = _state.value.copy(items = visible, loading = false)
             }.onFailure { e ->
                 _state.value = _state.value.copy(loading = false, error = e.message ?: "加载失败")
+            }
+        }
+    }
+
+    /** 下拉刷新：不清列表、不切 loading，失败只弹提示，别把整页换成错误页 */
+    fun refresh() {
+        if (_state.value.loading || _state.value.refreshing) return
+        val path = _state.value.path
+        _state.value = _state.value.copy(refreshing = true)
+        viewModelScope.launch {
+            repo.list(path).onSuccess { items ->
+                val visible = if (path == "/") items else items.filter { it.name !in hiddenSubDirs }
+                _state.value = _state.value.copy(items = visible, refreshing = false, error = null)
+            }.onFailure { e ->
+                _state.value = _state.value.copy(refreshing = false)
+                _action.value = FileActionState(message = "刷新失败: ${e.message ?: "网络错误"}", isError = true)
             }
         }
     }
@@ -492,11 +510,15 @@ fun FileBrowserScreen(
                     actionLabel = if (state.path != "/") "返回上一层" else null,
                     onAction = if (state.path != "/") ({ vm.load(vm.goUp()) }) else null,
                 )
-                else -> {
+                else -> GlassPullRefresh(
+                    refreshing = state.refreshing,
+                    onRefresh = vm::refresh,
+                    modifier = Modifier.weight(1f),
+                ) {
                     LazyColumn(
                         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.fillMaxSize(),
                     ) {
                         items(displayedItems) { item ->
                             val onMenu = if (!item.isDir) { { menuItem = item } } else null
