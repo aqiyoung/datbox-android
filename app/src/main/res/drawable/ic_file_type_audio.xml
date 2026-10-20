@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- audio: 几何来自 Material Icon Theme (MIT), 叠加白边/渐变/投影, 见 THIRD_PARTY_NOTICES.md -->
+<!-- audio: iOS 风格纸张: 白纸 + 折角 + #C24BD6 字形 (Material Symbols Rounded, Apache-2.0) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="32"
-    android:viewportHeight="32">
-        <group android:translateY="0.900">
-            <path
-                android:pathData="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2m6 10h-4v8a4 4 0 1 1-4-4a3.96 3.96 0 0 1 2 .555V8h6Z"
-                android:fillColor="#000000"
-                android:fillAlpha="0.075"
-                android:strokeColor="#000000"
-                android:strokeAlpha="0.075"
-                android:strokeWidth="2.700"
-                android:strokeLineJoin="round" />
-        </group>
-        <path
-            android:pathData="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2m6 10h-4v8a4 4 0 1 1-4-4a3.96 3.96 0 0 1 2 .555V8h6Z"
-            android:fillColor="#ffffffff"
-            android:strokeColor="#ffffffff"
-            android:strokeWidth="2.700"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:translateY="0.7">
+        <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#141413" android:fillAlpha="0.11"
+            android:strokeColor="#141413" android:strokeAlpha="0.11" android:strokeWidth="2.6"
             android:strokeLineJoin="round" />
-        <path android:pathData="M16 2a14 14 0 1 0 14 14A14 14 0 0 0 16 2m6 10h-4v8a4 4 0 1 1-4-4a3.96 3.96 0 0 1 2 .555V8h6Z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:type="linear"
-                    android:startX="0"
-                    android:startY="0"
-                    android:endX="0"
-                    android:endY="32">
-                    <item android:offset="0" android:color="#ef8ba6" />
-                    <item android:offset="0.5" android:color="#e8557d" />
-                    <item android:offset="1" android:color="#b44261" />
-                </gradient>
-            </aapt:attr>
-        </path>
+    </group>
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0"
+                android:endX="0" android:endY="24">
+                <item android:offset="0" android:color="#FFFFFF" />
+                <item android:offset="1" android:color="#FBFAF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="1.8"
+                android:endX="0" android:endY="7">
+                <item android:offset="0" android:color="#F4F1E7" />
+                <item android:offset="1" android:color="#E2DCC9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z" android:fillColor="#00000000"
+        android:strokeColor="#D8D1BC" android:strokeAlpha="0.9" android:strokeWidth="0.28" />
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#00000000"
+        android:strokeColor="#E3DFD2" android:strokeWidth="0.35" />
+    <group android:translateX="5.067" android:translateY="7.667"
+        android:scaleX="0.01444" android:scaleY="0.01444">
+        <group android:translateY="960">
+            <path android:fillColor="#C24BD6" android:pathData="M287-167q-47-47-47-113t47-113q47-47 113-47 23 0 42.5 5.5T480-418v-382q0-17 11.5-28.5T520-840h160q17 0 28.5 11.5T720-800v80q0 17-11.5 28.5T680-680H560v400q0 66-47 113t-113 47q-66 0-113-47Z" />
+        </group>
+    </group>
 </vector>

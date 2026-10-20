@@ -45,6 +45,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
@@ -917,22 +918,35 @@ fun GlassMenuHeader(text: String) {
 fun GlassMenuItem(
     label: String,
     selected: Boolean = false,
+    enabled: Boolean = true,
+    labelColor: Color? = null,
+    leadingIcon: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp)
-            .clickable(onClick = onClick)
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (leadingIcon != null) {
+            Box(
+                modifier = Modifier
+                    .size(18.dp)
+                    .alpha(if (enabled) 1f else 0.35f),
+                contentAlignment = Alignment.Center,
+            ) { leadingIcon() }
+            Spacer(Modifier.width(10.dp))
+        }
         Text(
             text = label,
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             fontFamily = MiSansFamily,
-            color = if (selected) NearBlack else TextStrong,
+            color = (labelColor ?: if (selected) NearBlack else TextStrong)
+                .copy(alpha = if (enabled) 1f else 0.35f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),

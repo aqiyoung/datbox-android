@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- doc: 几何来自 Material Icon Theme (MIT), 叠加白边/渐变/投影, 见 THIRD_PARTY_NOTICES.md -->
+<!-- doc: iOS 风格纸张: 白纸 + 折角 + #2E7BE0 字形 (Material Symbols Rounded, Apache-2.0) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-        <group android:translateY="1.200">
-            <path
-                android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM7 13l1.5 7h2l1.5-3l1.5 3h2l1.5-7h1v-2h-4v2h1l-.9 4.2L13 15h-2l-1.1 2.2L9 13h1v-2H6v2z"
-                android:fillColor="#000000"
-                android:fillAlpha="0.075"
-                android:strokeColor="#000000"
-                android:strokeAlpha="0.075"
-                android:strokeWidth="3.600"
-                android:strokeLineJoin="round" />
-        </group>
-        <path
-            android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM7 13l1.5 7h2l1.5-3l1.5 3h2l1.5-7h1v-2h-4v2h1l-.9 4.2L13 15h-2l-1.1 2.2L9 13h1v-2H6v2z"
-            android:fillColor="#ffffffff"
-            android:strokeColor="#ffffffff"
-            android:strokeWidth="3.600"
+    <group android:translateY="0.7">
+        <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#141413" android:fillAlpha="0.11"
+            android:strokeColor="#141413" android:strokeAlpha="0.11" android:strokeWidth="2.6"
             android:strokeLineJoin="round" />
-        <path android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5zM7 13l1.5 7h2l1.5-3l1.5 3h2l1.5-7h1v-2h-4v2h1l-.9 4.2L13 15h-2l-1.1 2.2L9 13h1v-2H6v2z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:type="linear"
-                    android:startX="0"
-                    android:startY="0"
-                    android:endX="0"
-                    android:endY="24">
-                    <item android:offset="0" android:color="#6ea5e1" />
-                    <item android:offset="0.5" android:color="#2b7cd3" />
-                    <item android:offset="1" android:color="#2160a4" />
-                </gradient>
-            </aapt:attr>
-        </path>
+    </group>
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0"
+                android:endX="0" android:endY="24">
+                <item android:offset="0" android:color="#FFFFFF" />
+                <item android:offset="1" android:color="#FBFAF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="1.8"
+                android:endX="0" android:endY="7">
+                <item android:offset="0" android:color="#F4F1E7" />
+                <item android:offset="1" android:color="#E2DCC9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z" android:fillColor="#00000000"
+        android:strokeColor="#D8D1BC" android:strokeAlpha="0.9" android:strokeWidth="0.28" />
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#00000000"
+        android:strokeColor="#E3DFD2" android:strokeWidth="0.35" />
+    <group android:translateX="4.200" android:translateY="6.800"
+        android:scaleX="0.01625" android:scaleY="0.01625">
+        <group android:translateY="960">
+            <path android:fillColor="#2E7BE0" android:pathData="M200-200q-17 0-28.5-11.5T160-240q0-17 11.5-28.5T200-280h320q17 0 28.5 11.5T560-240q0 17-11.5 28.5T520-200H200Zm0-160q-17 0-28.5-11.5T160-400q0-17 11.5-28.5T200-440h560q17 0 28.5 11.5T800-400q0 17-11.5 28.5T760-360H200Zm0-160q-17 0-28.5-11.5T160-560q0-17 11.5-28.5T200-600h560q17 0 28.5 11.5T800-560q0 17-11.5 28.5T760-520H200Zm0-160q-17 0-28.5-11.5T160-720q0-17 11.5-28.5T200-760h560q17 0 28.5 11.5T800-720q0 17-11.5 28.5T760-680H200Z" />
+        </group>
+    </group>
 </vector>

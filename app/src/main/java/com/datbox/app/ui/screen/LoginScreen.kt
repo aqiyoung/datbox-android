@@ -41,6 +41,8 @@ import com.datbox.app.ui.theme.TextFaint
 import com.datbox.app.ui.theme.TextFainter
 import com.datbox.app.ui.theme.TextGhost
 import com.datbox.app.ui.theme.TextMuted
+import com.datbox.app.ui.theme.TextStrong
+import com.datbox.app.ui.theme.WarmIvory
 import com.datbox.app.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,7 +122,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(WarmIvory)
     ) {
 
         LiquidGlassSurface(
@@ -150,18 +152,12 @@ fun LoginScreen(
                 .padding(top = 100.dp, bottom = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            LiquidGlassSurface(
-                shape = RoundedCornerShape(18.dp),
-                modifier = Modifier.size(72.dp),
-            ) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Image(
-                        painter = painterResource(R.drawable.datbox_logo),
-                        contentDescription = AppConfig.BRAND,
-                        modifier = Modifier.size(52.dp)
-                    )
-                }
-            }
+            // logo 自身已是圆角底 + 发丝边, 不再套玻璃, 否则背景叠两层、图形又缩一圈
+            Image(
+                painter = painterResource(R.drawable.datbox_logo),
+                contentDescription = AppConfig.BRAND,
+                modifier = Modifier.size(76.dp)
+            )
 
             Spacer(Modifier.height(16.dp))
 
@@ -169,7 +165,7 @@ fun LoginScreen(
                 "聚合你的云盘",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.W600,
-                color = Color(0xFF1A1A1A)
+                color = TextStrong
             )
 
             Spacer(Modifier.height(4.dp))
@@ -177,7 +173,7 @@ fun LoginScreen(
             Text(
                 "一处登录 · 畅享所有",
                 fontSize = 14.sp,
-                color = Color(0xFF999999)
+                color = TextMuted
             )
 
             Spacer(Modifier.height(32.dp))
@@ -194,7 +190,7 @@ fun LoginScreen(
                         "欢迎回来",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.W600,
-                        color = Color(0xFF1A1A1A)
+                        color = TextStrong
                     )
 
                     Spacer(Modifier.height(20.dp))

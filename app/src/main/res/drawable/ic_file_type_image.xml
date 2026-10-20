@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- image: 几何来自 Material Icon Theme (MIT), 叠加白边/渐变/投影, 见 THIRD_PARTY_NOTICES.md -->
+<!-- image: iOS 风格纸张: 白纸 + 折角 + #D6559B 字形 (Material Symbols Rounded, Apache-2.0) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="16"
-    android:viewportHeight="16">
-        <group android:translateY="1.800">
-            <path
-                android:pathData="M8.5 6h4l-4-4zM3.875 1H9.5l4 4v8.6c0 .773-.616 1.4-1.375 1.4h-8.25c-.76 0-1.375-.627-1.375-1.4V2.4c0-.777.612-1.4 1.375-1.4M4 13.6h8V8l-2.625 2.8L8 9.4zm1.25-7.7c-.76 0-1.375.627-1.375 1.4s.616 1.4 1.375 1.4c.76 0 1.375-.627 1.375-1.4S6.009 5.9 5.25 5.9"
-                android:fillColor="#000000"
-                android:fillAlpha="0.075"
-                android:strokeColor="#000000"
-                android:strokeAlpha="0.075"
-                android:strokeWidth="5.400"
-                android:strokeLineJoin="round" />
-        </group>
-        <path
-            android:pathData="M8.5 6h4l-4-4zM3.875 1H9.5l4 4v8.6c0 .773-.616 1.4-1.375 1.4h-8.25c-.76 0-1.375-.627-1.375-1.4V2.4c0-.777.612-1.4 1.375-1.4M4 13.6h8V8l-2.625 2.8L8 9.4zm1.25-7.7c-.76 0-1.375.627-1.375 1.4s.616 1.4 1.375 1.4c.76 0 1.375-.627 1.375-1.4S6.009 5.9 5.25 5.9"
-            android:fillColor="#ffffffff"
-            android:strokeColor="#ffffffff"
-            android:strokeWidth="5.400"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group android:translateY="0.7">
+        <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#141413" android:fillAlpha="0.11"
+            android:strokeColor="#141413" android:strokeAlpha="0.11" android:strokeWidth="2.6"
             android:strokeLineJoin="round" />
-        <path android:pathData="M8.5 6h4l-4-4zM3.875 1H9.5l4 4v8.6c0 .773-.616 1.4-1.375 1.4h-8.25c-.76 0-1.375-.627-1.375-1.4V2.4c0-.777.612-1.4 1.375-1.4M4 13.6h8V8l-2.625 2.8L8 9.4zm1.25-7.7c-.76 0-1.375.627-1.375 1.4s.616 1.4 1.375 1.4c.76 0 1.375-.627 1.375-1.4S6.009 5.9 5.25 5.9">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:type="linear"
-                    android:startX="0"
-                    android:startY="0"
-                    android:endX="0"
-                    android:endY="16">
-                    <item android:offset="0" android:color="#61bfbf" />
-                    <item android:offset="0.5" android:color="#17a2a2" />
-                    <item android:offset="1" android:color="#117e7e" />
-                </gradient>
-            </aapt:attr>
-        </path>
+    </group>
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0"
+                android:endX="0" android:endY="24">
+                <item android:offset="0" android:color="#FFFFFF" />
+                <item android:offset="1" android:color="#FBFAF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="1.8"
+                android:endX="0" android:endY="7">
+                <item android:offset="0" android:color="#F4F1E7" />
+                <item android:offset="1" android:color="#E2DCC9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z" android:fillColor="#00000000"
+        android:strokeColor="#D8D1BC" android:strokeAlpha="0.9" android:strokeWidth="0.28" />
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#00000000"
+        android:strokeColor="#E3DFD2" android:strokeWidth="0.35" />
+    <group android:translateX="5.067" android:translateY="7.667"
+        android:scaleX="0.01444" android:scaleY="0.01444">
+        <group android:translateY="960">
+            <path android:fillColor="#D6559B" android:pathData="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm80-160h400q12 0 18-11t-2-21L586-459q-6-8-16-8t-16 8L450-320l-74-99q-6-8-16-8t-16 8l-80 107q-8 10-2 21t18 11Z" />
+        </group>
+    </group>
 </vector>

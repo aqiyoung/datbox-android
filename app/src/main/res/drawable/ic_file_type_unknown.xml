@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- unknown: 几何来自 Material Icon Theme (MIT), 叠加白边/渐变/投影, 见 THIRD_PARTY_NOTICES.md -->
+<!-- unknown: iOS 风格纸张: 白纸 + 折角 + #9AA0A6 字形 (Material Symbols Rounded, Apache-2.0) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-        <group android:translateY="1.200">
-            <path
-                android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5z"
-                android:fillColor="#000000"
-                android:fillAlpha="0.075"
-                android:strokeColor="#000000"
-                android:strokeAlpha="0.075"
-                android:strokeWidth="3.600"
-                android:strokeLineJoin="round" />
-        </group>
-        <path
-            android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5z"
-            android:fillColor="#ffffffff"
-            android:strokeColor="#ffffffff"
-            android:strokeWidth="3.600"
+    <group android:translateY="0.7">
+        <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#141413" android:fillAlpha="0.11"
+            android:strokeColor="#141413" android:strokeAlpha="0.11" android:strokeWidth="2.6"
             android:strokeLineJoin="round" />
-        <path android:pathData="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m7 1.5V9h5.5z">
-            <aapt:attr name="android:fillColor">
-                <gradient
-                    android:type="linear"
-                    android:startX="0"
-                    android:startY="0"
-                    android:endX="0"
-                    android:endY="24">
-                    <item android:offset="0" android:color="#b3c1c7" />
-                    <item android:offset="0.5" android:color="#90a4ae" />
-                    <item android:offset="1" android:color="#707f87" />
-                </gradient>
-            </aapt:attr>
-        </path>
+    </group>
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="0"
+                android:endX="0" android:endY="24">
+                <item android:offset="0" android:color="#FFFFFF" />
+                <item android:offset="1" android:color="#FBFAF6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="0" android:startY="1.8"
+                android:endX="0" android:endY="7">
+                <item android:offset="0" android:color="#F4F1E7" />
+                <item android:offset="1" android:color="#E2DCC9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M14.6,1.8 L14.6,7 L19.8,7 Z" android:fillColor="#00000000"
+        android:strokeColor="#D8D1BC" android:strokeAlpha="0.9" android:strokeWidth="0.28" />
+    <path android:pathData="M6.6,1.8 H13.8 Q14.6,1.8 15.08,2.6 L19,6.2 Q19.8,7 19.8,7.8 V19.8 A2.4,2.4 0 0 1 17.4,22.2 H6.6 A2.4,2.4 0 0 1 4.2,19.8 V4.2 A2.4,2.4 0 0 1 6.6,1.8 Z" android:fillColor="#00000000"
+        android:strokeColor="#E3DFD2" android:strokeWidth="0.35" />
+    <group android:translateX="5.760" android:translateY="8.360"
+        android:scaleX="0.01300" android:scaleY="0.01300">
+        <group android:translateY="960">
+            <path android:fillColor="#9AA0A6" android:pathData="M513.5-254.5Q528-269 528-290t-14.5-35.5Q499-340 478-340t-35.5 14.5Q428-311 428-290t14.5 35.5Q457-240 478-240t35.5-14.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm4-572q25 0 43.5 16t18.5 40q0 22-13.5 39T502-525q-23 20-40.5 44T444-427q0 14 10.5 23.5T479-394q15 0 25.5-10t13.5-25q4-21 18-37.5t30-31.5q23-22 39.5-48t16.5-58q0-51-41.5-83.5T484-720q-38 0-72.5 16T359-655q-7 12-4.5 25.5T368-609q14 8 29 5t25-17q11-15 27.5-23t34.5-8Z" />
+        </group>
+    </group>
 </vector>

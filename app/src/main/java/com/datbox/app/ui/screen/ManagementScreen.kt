@@ -20,6 +20,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.datbox.app.BuildConfig
 import com.datbox.app.data.model.Mount
 import com.datbox.app.ui.component.GlassDecorBackground
+import com.datbox.app.ui.component.GlassMenu
+import com.datbox.app.ui.component.GlassMenuDivider
+import com.datbox.app.ui.component.GlassMenuItem
 import com.datbox.app.ui.component.LiquidGlassAlertDialog
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.data.model.Overview
@@ -212,16 +215,18 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("编辑", color = TextStrong) },
+                            GlassMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, width = 180.dp) {
+                                GlassMenuItem(
+                                    label = "编辑",
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) },
                                     onClick = { showMenu = false; editingUser = user },
-                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) }
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("删除", color = DangerRed) },
+                                GlassMenuDivider()
+                                GlassMenuItem(
+                                    label = "删除",
+                                    labelColor = DangerRed,
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) },
                                     onClick = { showMenu = false; deletingUser = user },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }
@@ -397,28 +402,32 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("编辑", color = TextStrong) },
+                            GlassMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, width = 180.dp) {
+                                GlassMenuItem(
+                                    label = "编辑",
+                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) },
                                     onClick = { showMenu = false; editingMount = mount },
-                                    leadingIcon = { Icon(Icons.Outlined.Edit, contentDescription = null, tint = TextMuted) }
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("启用", color = SuccessGreen) },
-                                    onClick = { showMenu = false; vm.enableMount(mount.id) },
+                                GlassMenuItem(
+                                    label = "启用",
+                                    enabled = mount.disabled,
+                                    labelColor = SuccessGreen,
                                     leadingIcon = { Icon(Icons.Outlined.PlayArrow, contentDescription = null, tint = SuccessGreen) },
-                                    enabled = mount.disabled
+                                    onClick = { showMenu = false; vm.enableMount(mount.id) },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("禁用", color = WarningOrange) },
-                                    onClick = { showMenu = false; vm.disableMount(mount.id) },
+                                GlassMenuItem(
+                                    label = "禁用",
+                                    enabled = !mount.disabled,
+                                    labelColor = WarningOrange,
                                     leadingIcon = { Icon(Icons.Outlined.Pause, contentDescription = null, tint = WarningOrange) },
-                                    enabled = !mount.disabled
+                                    onClick = { showMenu = false; vm.disableMount(mount.id) },
                                 )
-                                DropdownMenuItem(
-                                    text = { Text("删除", color = DangerRed) },
+                                GlassMenuDivider()
+                                GlassMenuItem(
+                                    label = "删除",
+                                    labelColor = DangerRed,
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) },
                                     onClick = { showMenu = false; deletingMount = mount },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }
@@ -557,11 +566,12 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
                             IconButton(onClick = { showMenu = true }) {
                                 Icon(Icons.Outlined.MoreVert, contentDescription = "更多", tint = TextMuted)
                             }
-                            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("删除", color = DangerRed) },
+                            GlassMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, width = 160.dp) {
+                                GlassMenuItem(
+                                    label = "删除",
+                                    labelColor = DangerRed,
+                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) },
                                     onClick = { showMenu = false; vm.deleteShare(share.id) },
-                                    leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = DangerRed) }
                                 )
                             }
                         }

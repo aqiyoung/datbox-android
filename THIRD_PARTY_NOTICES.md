@@ -1,72 +1,53 @@
 # 第三方资源声明
 
-## 文件类型图标 — Material Icon Theme 几何 + 自绘效果层
+## 文件类型图标 — Material Symbols Rounded 字形 + 自绘纸张
 
-`app/src/main/res/drawable/ic_file_type_*.xml` 的**几何形状（pathData）**取自
-[Material Icon Theme](https://github.com/material-extensions/vscode-material-icon-theme)，
-MIT License，Copyright (c) 2024 Material Extensions。
+`app/src/main/res/drawable/ic_file_type_*.xml` 的**字形路径（pathData）**取自
+[Material Symbols](https://fonts.google.com/icons) 的 Rounded 字重（filled），
+Apache License 2.0，Copyright (c) Google LLC。
 
-在原始几何之上，本项目自行叠加了三层效果，用于实现「黄色文件夹 + 白边 + 立体感」：
+在此之上，本项目自行绘制了「白纸 + 折角 + 落影」的外壳，以及琥珀色文件夹，
+统一成 iOS Files 那种「白纸 + 彩色字形」的观感：
 
 | 图层 | 做法 |
 |---|---|
-| 投影 | 轮廓下移 0.9（32 视口基准）、黑色 7.5%，带同等白边宽度 |
-| 白边 | 每个 path 填白 + 白色描边（半宽 1.35），形成一圈外轮廓 |
-| 渐变 | 每个 path 用上浅下深的线性渐变（提亮 32% → 原色 → 加深 78%），代替平涂 |
+| 纸张 | 24 视口内的圆角竖版纸（4.2,1.8)-(19.8,22.2)，r2.4，上白下近白的线性渐变 |
+| 折角 | 右上切 5.2 的斜角 + 折下来的纸背三角（自行绘制）；切角与纸边交点做了 0.8 倒圆 |
+| 落影 | 纸张轮廓下移 0.7 / 0.75，黑色 11% / 14%，带同等模糊宽度的描边 |
+| 发丝边 | 纸张外轮廓 0.35 描边（`#E3DFD2`），否则白纸压在象牙底色上看不见边界 |
+| 字形 | 上游字形按实际 alpha 包围盒等比缩放到 10.4 见方，居中于 (12, 14.6)，按类型上色 |
+| 文件夹 | 单形状（背板折角 + 前片），`#FFD46E → #F0A93C` 线性渐变 + 落影 |
 
-偏移使用 `<group android:translateY>`，**不改写 pathData**。
+偏移使用 `<group android:translateY>`，缩放用 `<group>` 的 scale，
+**不改写 pathData**；字形坐标要额外加 `translateY 960`（Material Symbols 的
+SVG 视口是 `0 -960 960 960`）。
 渐变用 `<aapt:attr name="android:fillColor">` 内嵌 `<gradient>`（minSdk 26 已支持）。
 
 ### 上游文件对照
 
-- 项目：https://github.com/material-extensions/material-icon-theme
-- 取得方式：`https://api.iconify.design/material-icon-theme/<name>.svg`
-  （Iconify 上缺少 default folder / default file 两个基础图标，这两个取自上游
-  `https://unpkg.com/material-icon-theme/icons/`）
+- 图标库：https://fonts.google.com/icons （Material Symbols Rounded）
+- 取得方式：`https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsrounded/<name>/fill1/24px.svg`
 
-| drawable | 上游文件 | FileKind |
-|---|---|---|
-| `ic_file_type_folder.xml` | `folder.svg` | FOLDER |
-| `ic_file_type_doc.xml` | `word.svg` | DOC |
-| `ic_file_type_text.xml` | `document.svg` | TEXT |
-| `ic_file_type_image.xml` | `image.svg` | IMAGE |
-| `ic_file_type_video.xml` | `video.svg` | VIDEO |
-| `ic_file_type_audio.xml` | `audio.svg` | AUDIO |
-| `ic_file_type_archive.xml` | `zip.svg` | ARCHIVE |
-| `ic_file_type_code.xml` | `xml.svg` | CODE |
-| `ic_file_type_sheet.xml` | `table.svg` | SHEET |
-| `ic_file_type_slide.xml` | `powerpoint.svg` | SLIDE |
-| `ic_file_type_pdf.xml` | `pdf.svg` | PDF |
-| `ic_file_type_apk.xml` | `android.svg` | APK |
-| `ic_file_type_disk.xml` | `disc.svg` | DISK |
-| `ic_file_type_exec.xml` | `console.svg` | EXEC |
-| `ic_file_type_unknown.xml` | `file.svg` | UNKNOWN |
+| drawable | 字形 | FileKind | 颜色 |
+|---|---|---|---|
+| `ic_file_type_folder.xml` | （自绘） | FOLDER | `#FFD46E → #F0A93C` |
+| `ic_file_type_doc.xml` | `subject` | DOC | `#2E7BE0` |
+| `ic_file_type_text.xml` | `notes` | TEXT | `#6B7785` |
+| `ic_file_type_sheet.xml` | `grid_on` | SHEET | `#22A06B` |
+| `ic_file_type_slide.xml` | `slideshow` | SLIDE | `#F28B30` |
+| `ic_file_type_pdf.xml` | `picture_as_pdf` | PDF | `#E3494E` |
+| `ic_file_type_code.xml` | `code` | CODE | `#7A5CF0` |
+| `ic_file_type_archive.xml` | `folder_zip` | ARCHIVE | `#A9762F` |
+| `ic_file_type_image.xml` | `image` | IMAGE | `#D6559B` |
+| `ic_file_type_video.xml` | `movie` | VIDEO | `#17A2C4` |
+| `ic_file_type_audio.xml` | `music_note` | AUDIO | `#C24BD6` |
+| `ic_file_type_apk.xml` | `android` | APK | `#1E9E8C` |
+| `ic_file_type_disk.xml` | `hard_drive` | DISK | `#5A7A9B` |
+| `ic_file_type_exec.xml` | `terminal` | EXEC | `#4A4F57` |
+| `ic_file_type_unknown.xml` | `help` | UNKNOWN | `#9AA0A6` |
 
-### 主色
-
-上游调色板里 `audio`/`pdf` 同为 `#ef5350`、`code`/`sheet` 同为 `#8bc34a`，
-在列表里区分度不够，因此几何保留、主色替换为下列一套（每类不同色相）：
-
-| drawable | FileKind | 主色 |
-|---|---|---|
-| `ic_file_type_folder.xml` | FOLDER | `#ffc94d` |
-| `ic_file_type_doc.xml` | DOC | `#2b7cd3` |
-| `ic_file_type_text.xml` | TEXT | `#3fa9f5` |
-| `ic_file_type_image.xml` | IMAGE | `#17a2a2` |
-| `ic_file_type_video.xml` | VIDEO | `#f0813a` |
-| `ic_file_type_audio.xml` | AUDIO | `#e8557d` |
-| `ic_file_type_archive.xml` | ARCHIVE | `#9bae2e` |
-| `ic_file_type_code.xml` | CODE | `#7c5ce0` |
-| `ic_file_type_sheet.xml` | SHEET | `#157347` |
-| `ic_file_type_slide.xml` | SLIDE | `#e0562f` |
-| `ic_file_type_pdf.xml` | PDF | `#c62828` |
-| `ic_file_type_apk.xml` | APK | `#34a853` |
-| `ic_file_type_disk.xml` | DISK | `#5b8fb9` |
-| `ic_file_type_exec.xml` | EXEC | `#3e5c76` |
-| `ic_file_type_unknown.xml` | UNKNOWN | `#9aa5b1` |
-
-`UNKNOWN` 的几何改为实心空白页（去掉 `doc` 的 W 字形）。上游的空白页是描边式、
-内部镂空，叠白边后会被填成一整块白，无法辨认。
+每类用不同色相，是因为白纸上只剩字形承担区分度；Material Symbols 默认的
+单色方案在列表里会让 `doc`/`text`、`image`/`video` 难以一眼分开。
 
 ### 与列表的配合
 
@@ -74,13 +55,23 @@ MIT License，Copyright (c) 2024 Material Extensions。
 用 `Icon(painter = ..., tint = Color.Unspecified)` 关闭 `LocalContentColor` 着色，
 颜色来自 drawable 自身。
 
-### MIT License
+### Apache License 2.0
 
-The MIT License (MIT)
-Copyright (c) 2025 Material Extensions
+Material Symbols 由 Google LLC 以 Apache License 2.0 发布：
+https://www.apache.org/licenses/LICENSE-2.0
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+```
+Copyright (c) Google LLC
 
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```

@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -115,8 +114,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         Image(
                             painter = painterResource(id = R.drawable.datbox_logo),
                             contentDescription = "OpenList Logo",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)),
+                            modifier = Modifier.size(56.dp),
                         )
                         Spacer(Modifier.height(12.dp))
                         Text(

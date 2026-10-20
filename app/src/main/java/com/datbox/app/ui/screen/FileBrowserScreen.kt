@@ -1033,7 +1033,7 @@ private fun fileKindFor(name: String, isDir: Boolean): FileKind {
 
 
 /**
- * 文件类型图标: Material Icon Theme (MIT, 见 THIRD_PARTY_NOTICES.md)。
+ * 文件类型图标: Material Symbols Rounded 字形 + 自绘纸张 (Apache-2.0, 见 THIRD_PARTY_NOTICES.md)。
  * 颜色已经烤在 drawable 里, 所以 tint 用 Color.Unspecified 关掉 Icon 的默认着色,
  * 否则会被 LocalContentColor 压成单色。
  * 外层保持 46dp 占位, 内层 28dp —— 列表行的排版不变。
