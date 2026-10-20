@@ -6,7 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,12 +16,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,15 +34,10 @@ import androidx.lifecycle.viewModelScope
 import com.datbox.app.BuildConfig
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.api.TokenStore
-import com.datbox.app.ui.component.GlassMenu
-import com.datbox.app.ui.component.GlassMenuDivider
-import com.datbox.app.ui.component.GlassMenuHeader
-import com.datbox.app.ui.component.GlassMenuItem
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.ErrorRedSoft
 import com.datbox.app.ui.theme.FieldBg
-import com.datbox.app.ui.theme.TextBody
 import com.datbox.app.ui.theme.TextFaint
 import com.datbox.app.ui.theme.TextFainter
 import com.datbox.app.ui.theme.TextGhost
@@ -50,12 +46,10 @@ import com.datbox.app.ui.theme.TextStrong
 import com.datbox.app.ui.theme.WarmIvory
 import com.datbox.app.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class LoginUiState(
@@ -66,8 +60,10 @@ data class LoginUiState(
     val success: Boolean = false,
     val passwordVisible: Boolean = false,
     val rememberMe: Boolean = true,
-    val serverUrl: String = TokenStore.DEFAULT_SERVER,
-    val savedServers: List<String> = emptyList(),
+    /** 只存 host[:port], 协议由 httpsEnabled 决定 */
+    val serverHost: String = TokenStore.DEFAULT_SERVER
+        .removePrefix("https://").removePrefix("http://"),
+    val httpsEnabled: Boolean = true,
 )
 
 @HiltViewModel
@@ -87,27 +83,37 @@ class LoginViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            tokenStore.serverUrl.collect { url ->
-                _state.value = _state.value.copy(serverUrl = url)
-            }
-        }
-        viewModelScope.launch {
-            tokenStore.customServers.collect { servers ->
-                _state.value = _state.value.copy(savedServers = servers.sorted())
-            }
+            val url = tokenStore.serverUrl.first()
+            _state.value = _state.value.copy(
+                serverHost = url.removePrefix("https://").removePrefix("http://").trimEnd('/'),
+                httpsEnabled = !url.startsWith("http://", ignoreCase = true),
+            )
         }
     }
 
-    /** 登录页直接换服务器, 不用进设置页 */
-    fun selectServer(url: String) {
-        val target = url.trim().trimEnd('/')
-        if (target.isBlank() || target == _state.value.serverUrl) return
-        viewModelScope.launch {
-            val fromFn = withContext(Dispatchers.IO) { tokenStore.fnUrlsSync().contains(target) }
-            tokenStore.saveServerUrl(target)
-            tokenStore.saveFnManaged(fromFn)
-            _state.value = _state.value.copy(error = null)
+    /** 用户直接粘贴完整 URL 时, 自动拆出协议并同步开关 */
+    fun onServerHost(value: String) {
+        var text = value.trim()
+        var https = _state.value.httpsEnabled
+        when {
+            text.startsWith("https://", ignoreCase = true) -> {
+                https = true
+                text = text.substring(8)
+            }
+            text.startsWith("http://", ignoreCase = true) -> {
+                https = false
+                text = text.substring(7)
+            }
         }
+        _state.value = _state.value.copy(
+            serverHost = text.trimEnd('/'),
+            httpsEnabled = https,
+            error = null,
+        )
+    }
+
+    fun onHttpsToggle(enabled: Boolean) {
+        _state.value = _state.value.copy(httpsEnabled = enabled, error = null)
     }
 
     fun onUsername(v: String) { _state.value = _state.value.copy(username = v) }
@@ -118,8 +124,15 @@ class LoginViewModel @Inject constructor(
 
     fun submit() {
         if (_state.value.loading) return
+        val host = _state.value.serverHost.trim().trimEnd('/')
+        if (host.isBlank()) {
+            _state.value = _state.value.copy(error = "请先填写服务器地址")
+            return
+        }
+        val serverUrl = if (_state.value.httpsEnabled) "https://$host" else "http://$host"
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
+            tokenStore.saveServerUrl(serverUrl)
             repo.login(_state.value.username.trim(), _state.value.password)
                 .onSuccess {
                     val st = _state.value
@@ -141,7 +154,6 @@ class LoginViewModel @Inject constructor(
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
-    onServerSettings: () -> Unit = {},
     vm: LoginViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
@@ -155,25 +167,6 @@ fun LoginScreen(
             .fillMaxSize()
             .background(WarmIvory)
     ) {
-
-        LiquidGlassSurface(
-            onClick = { onServerSettings() },
-            shape = CircleShape,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .zIndex(10f)
-                .padding(top = 44.dp, end = 20.dp)
-                .size(40.dp),
-        ) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Filled.Settings,
-                    contentDescription = "服务器设置",
-                    tint = TextBody,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
 
         Column(
             modifier = Modifier
@@ -226,100 +219,20 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(20.dp))
 
-                    var serverMenuOpen by remember { mutableStateOf(false) }
-
-                    // 服务器地址和用户名并排, 换服务器不用再进设置页
+                    // 服务器地址直接填, HTTPS 开关决定协议
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(Modifier.weight(0.42f)) {
-                            LiquidGlassSurface(
-                                onClick = { serverMenuOpen = true },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.fillMaxWidth().height(56.dp),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxSize().padding(start = 12.dp, end = 6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.Dns,
-                                        contentDescription = null,
-                                        tint = TextFaint,
-                                        modifier = Modifier.size(17.dp)
-                                    )
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(
-                                        serverHost(state.serverUrl),
-                                        fontSize = 13.sp,
-                                        color = TextBody,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Icon(
-                                        Icons.Filled.ArrowDropDown,
-                                        contentDescription = "切换服务器",
-                                        tint = TextFaint,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            GlassMenu(
-                                expanded = serverMenuOpen,
-                                onDismissRequest = { serverMenuOpen = false },
-                                width = 240.dp,
-                            ) {
-                                GlassMenuHeader("服务器")
-                                val options = (listOf(state.serverUrl) + state.savedServers)
-                                    .filter { it.isNotBlank() }
-                                    .distinct()
-                                options.forEach { url ->
-                                    GlassMenuItem(
-                                        label = serverHost(url),
-                                        selected = url == state.serverUrl,
-                                        leadingIcon = {
-                                            Icon(
-                                                Icons.Outlined.Public,
-                                                contentDescription = null,
-                                                tint = if (url == state.serverUrl) BrandGreen else TextFaint,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        },
-                                        onClick = {
-                                            vm.selectServer(url)
-                                            serverMenuOpen = false
-                                        },
-                                    )
-                                }
-                                GlassMenuDivider()
-                                GlassMenuItem(
-                                    label = "服务器设置",
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Outlined.Settings,
-                                            contentDescription = null,
-                                            tint = TextFaint,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                    },
-                                    onClick = {
-                                        serverMenuOpen = false
-                                        onServerSettings()
-                                    },
-                                )
-                            }
-                        }
-
                         OutlinedTextField(
-                            value = state.username,
-                            onValueChange = vm::onUsername,
-                            placeholder = { Text("用户名", color = TextFainter) },
+                            value = state.serverHost,
+                            onValueChange = vm::onServerHost,
+                            placeholder = { Text("服务器地址", color = TextFainter) },
+                            leadingIcon = { Icon(Icons.Outlined.Dns, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
                             singleLine = true,
-                            modifier = Modifier.weight(0.58f),
+                            modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedContainerColor = FieldBg,
                                 unfocusedContainerColor = FieldBg,
@@ -328,7 +241,48 @@ fun LoginScreen(
                                 cursorColor = BrandGreen
                             )
                         )
+
+                        Spacer(Modifier.width(6.dp))
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Switch(
+                                checked = state.httpsEnabled,
+                                onCheckedChange = vm::onHttpsToggle,
+                                modifier = Modifier.scale(0.85f),
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = BrandGreen,
+                                    uncheckedThumbColor = Color.White,
+                                    uncheckedTrackColor = TextGhost,
+                                    uncheckedBorderColor = Color.Transparent
+                                )
+                            )
+                            Text(
+                                "HTTPS",
+                                fontSize = 10.sp,
+                                color = if (state.httpsEnabled) BrandGreen else TextFaint
+                            )
+                        }
                     }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    OutlinedTextField(
+                        value = state.username,
+                        onValueChange = vm::onUsername,
+                        placeholder = { Text("用户名", color = TextFainter) },
+                        leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = FieldBg,
+                            unfocusedContainerColor = FieldBg,
+                            focusedBorderColor = BrandGreen,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = BrandGreen
+                        )
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
@@ -422,7 +376,3 @@ fun LoginScreen(
         }
     }
 }
-
-/** 登录页只显示 host[:port], 省掉 https:// */
-private fun serverHost(url: String): String =
-    url.removePrefix("https://").removePrefix("http://").trimEnd('/')

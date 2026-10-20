@@ -16,19 +16,13 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.lifecycleScope
-import com.datbox.app.data.api.FnAutoConnect
 import com.datbox.app.data.update.AppUpdateLauncher
 import com.datbox.app.ui.OpenListNavGraph
 import com.datbox.app.ui.theme.OpenListTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
-    @Inject lateinit var fnAutoConnect: FnAutoConnect
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -54,8 +48,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-        // 家里/外面切网时, 把 FN Connect 的地址重探一遍再进页面
-        lifecycleScope.launch { fnAutoConnect.refreshIfNeeded() }
         window.decorView.postDelayed({
             AppUpdateLauncher.maybeShow(this, this)
         }, 500)

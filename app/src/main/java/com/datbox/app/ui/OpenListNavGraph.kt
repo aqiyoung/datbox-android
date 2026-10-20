@@ -21,7 +21,6 @@ import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.api.TokenStore
 import com.datbox.app.ui.screen.FilePreviewScreen
 import com.datbox.app.ui.screen.LoginScreen
-import com.datbox.app.ui.screen.ServerSettingsScreen
 import com.datbox.app.util.TelemetryLog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -93,14 +92,7 @@ fun OpenListNavGraph(vm: RootViewModel = hiltViewModel()) {
         val loginNav = rememberNavController()
         NavHost(loginNav, startDestination = "login") {
             composable("login") {
-                LoginScreen(
-                    onLoginSuccess = { vm.setLoggedIn() },
-                    onServerSettings = { loginNav.navigate("server_settings") }
-                )
-            }
-            composable("server_settings") {
-                BackHandler(enabled = true) { loginNav.popBackStack() }
-                ServerSettingsScreen(onBack = { loginNav.popBackStack() })
+                LoginScreen(onLoginSuccess = { vm.setLoggedIn() })
             }
         }
     }

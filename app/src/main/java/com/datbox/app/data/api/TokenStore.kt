@@ -1,7 +1,6 @@
 package com.datbox.app.data.api
 
 import android.content.Context
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -25,17 +24,9 @@ class TokenStore @Inject constructor(
     private val CUSTOM_SERVERS_KEY = stringSetPreferencesKey("custom_servers")
     private val USERNAME_KEY = stringPreferencesKey("last_username")
     private val PASSWORD_KEY = stringPreferencesKey("last_password")
-    private val FN_ID_KEY = stringPreferencesKey("fn_id")
-    private val FN_PORT_KEY = stringPreferencesKey("fn_port")
-    /** 当前服务器是不是「FN Connect 探测出来的地址」, 是的话启动时自动重探 */
-    private val FN_MANAGED_KEY = booleanPreferencesKey("fn_managed")
-    /** 最近一次 FN 探测可用的地址, 用来判断当前服务器是不是 FN 管的 */
-    private val FN_URLS_KEY = stringSetPreferencesKey("fn_urls")
 
     @Volatile private var cachedToken: String? = null
     @Volatile private var cachedServerUrl: String? = null
-    @Volatile private var cachedFnId: String? = null
-    @Volatile private var cachedFnManaged: Boolean? = null
 
     val token: Flow<String> = ctx.dataStore.data.map { it[TOKEN_KEY] ?: "" }
 
@@ -119,48 +110,7 @@ class TokenStore @Inject constructor(
         }
     }
 
-    // ---- 飞牛 FN Connect ----
-
-    val fnId: Flow<String> = ctx.dataStore.data.map { it[FN_ID_KEY] ?: "" }
-
-    val fnPort: Flow<String> = ctx.dataStore.data.map { it[FN_PORT_KEY] ?: DEFAULT_OL_PORT }
-
-    fun fnIdSync(): String {
-        cachedFnId?.let { return it }
-        return runBlocking { fnId.first() }.also { cachedFnId = it }
-    }
-
-    fun fnPortSync(): String = runBlocking { fnPort.first() }
-
-    suspend fun saveFnConfig(fnId: String, port: String) {
-        cachedFnId = fnId
-        ctx.dataStore.edit {
-            it[FN_ID_KEY] = fnId
-            it[FN_PORT_KEY] = port
-        }
-    }
-
-    fun fnManagedSync(): Boolean {
-        cachedFnManaged?.let { return it }
-        return runBlocking { ctx.dataStore.data.map { p -> p[FN_MANAGED_KEY] ?: false }.first() }
-            .also { cachedFnManaged = it }
-    }
-
-    suspend fun saveFnManaged(managed: Boolean) {
-        cachedFnManaged = managed
-        ctx.dataStore.edit { it[FN_MANAGED_KEY] = managed }
-    }
-
-    fun fnUrlsSync(): Set<String> = runBlocking {
-        ctx.dataStore.data.map { it[FN_URLS_KEY] ?: emptySet() }.first()
-    }
-
-    suspend fun saveFnUrls(urls: Set<String>) {
-        ctx.dataStore.edit { it[FN_URLS_KEY] = urls }
-    }
-
     companion object {
         const val DEFAULT_SERVER = "https://<your-server>"
-        const val DEFAULT_OL_PORT = "5244"
     }
 }
