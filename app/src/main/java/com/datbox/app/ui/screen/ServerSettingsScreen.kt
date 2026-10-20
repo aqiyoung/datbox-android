@@ -2,10 +2,12 @@ package com.datbox.app.ui.screen
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
@@ -16,10 +18,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.datbox.app.data.api.FnCandidate
+import com.datbox.app.data.api.FnConnectService
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.ui.component.LiquidGlassAlertDialog
 import com.datbox.app.ui.component.LiquidGlassSurface
@@ -52,13 +58,19 @@ data class ServerSettingsState(
     val servers: List<ServerItem> = emptyList(),
     val testing: Boolean = false,
     val probe: ServerProbe? = null,
-    val loading: Boolean = false
+    val loading: Boolean = false,
+    val fnId: String = "",
+    val fnPort: String = TokenStore.DEFAULT_OL_PORT,
+    val fnProbing: Boolean = false,
+    val fnCandidates: List<FnCandidate>? = null,
+    val fnError: String? = null,
 )
 
 @HiltViewModel
 class ServerSettingsViewModel @Inject constructor(
     private val tokenStore: TokenStore,
     private val repo: OpenListRepository,
+    private val fnConnect: FnConnectService,
 ) : ViewModel() {
     private val _state = MutableStateFlow(ServerSettingsState())
     val state = _state.asStateFlow()
@@ -80,8 +92,62 @@ class ServerSettingsViewModel @Inject constructor(
             } else {
                 current
             }
-            _state.value = _state.value.copy(currentServer = resolved, servers = all)
+            val fnId = withContext(Dispatchers.IO) { tokenStore.fnIdSync() }
+            val fnPort = withContext(Dispatchers.IO) { tokenStore.fnPortSync() }
+            _state.value = _state.value.copy(
+                currentServer = resolved,
+                servers = all,
+                fnId = fnId,
+                fnPort = fnPort,
+            )
         }
+    }
+
+    fun setFnId(value: String) {
+        _state.value = _state.value.copy(fnId = value, fnError = null)
+    }
+
+    fun setFnPort(value: String) {
+        _state.value = _state.value.copy(fnPort = value.filter { it.isDigit() }.take(5), fnError = null)
+    }
+
+    /** FNID -> 内网/公网 IPv4/IPv6 候选地址, 逐个探测 OpenList 是否可用 */
+    fun probeFn() {
+        val s = _state.value
+        if (s.fnProbing) return
+        val fnId = s.fnId.trim()
+        if (fnId.isBlank()) {
+            _state.value = s.copy(fnError = "请先填写 FNID")
+            return
+        }
+        val parsedPort = s.fnPort.trim().toIntOrNull()
+        if (parsedPort == null || parsedPort !in 1..65535) {
+            _state.value = s.copy(fnError = "端口无效")
+            return
+        }
+        val port: Int = parsedPort
+        _state.value = s.copy(fnProbing = true, fnCandidates = null, fnError = null)
+        viewModelScope.launch {
+            fnConnect.probe(fnId, port).fold(
+                onSuccess = { list ->
+                    withContext(Dispatchers.IO) {
+                        tokenStore.saveFnConfig(fnId, port.toString())
+                        tokenStore.saveFnUrls(list.filter { it.ok }.map { it.url }.toSet())
+                    }
+                    _state.value = _state.value.copy(fnProbing = false, fnCandidates = list)
+                },
+                onFailure = { e ->
+                    _state.value = _state.value.copy(
+                        fnProbing = false,
+                        fnError = e.message ?: "探测失败",
+                    )
+                },
+            )
+        }
+    }
+
+    fun useFnCandidate(url: String) {
+        addCustomServer(url)
     }
 
     fun selectServer(url: String) {
@@ -121,7 +187,12 @@ class ServerSettingsViewModel @Inject constructor(
         val url = _state.value.currentServer
         if (url.isBlank()) return
         viewModelScope.launch {
+            // 只有当前地址是 FN Connect 探测出来的, 下次启动才自动重探
+            val fromFn = withContext(Dispatchers.IO) {
+                tokenStore.fnUrlsSync().contains(url.trim())
+            }
             tokenStore.saveServerUrl(url.trim())
+            tokenStore.saveFnManaged(fromFn)
             onSaved()
         }
     }
@@ -158,6 +229,15 @@ class ServerSettingsViewModel @Inject constructor(
         return u.trimEnd('/')
     }
 }
+
+@Composable
+private fun fnFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedContainerColor = Color.Transparent,
+    unfocusedContainerColor = Color.Transparent,
+    focusedBorderColor = BrandGreen,
+    unfocusedBorderColor = Color.Transparent,
+    cursorColor = BrandGreen
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -238,6 +318,125 @@ fun ServerSettingsScreen(
                                 modifier = Modifier.weight(1f)
                             )
                         }
+                    }
+                }
+
+                item {
+                    Text(
+                        "飞牛 FN Connect",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TextStrong
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LiquidGlassSurface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Column(Modifier.padding(16.dp)) {
+                            OutlinedTextField(
+                                value = state.fnId,
+                                onValueChange = vm::setFnId,
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("FNID") },
+                                placeholder = { Text("飞牛 App 里显示的 FN ID", color = TextFainter) },
+                                singleLine = true,
+                                colors = fnFieldColors()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                OutlinedTextField(
+                                    value = state.fnPort,
+                                    onValueChange = vm::setFnPort,
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text("OpenList 端口") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    colors = fnFieldColors()
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Button(
+                                    onClick = vm::probeFn,
+                                    enabled = !state.fnProbing && state.fnId.isNotBlank(),
+                                    colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    if (state.fnProbing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    Text(if (state.fnProbing) "探测中" else "探测", color = Color.White)
+                                }
+                            }
+                        }
+                    }
+
+                    val fnError = state.fnError
+                    if (fnError != null) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(fnError, style = MaterialTheme.typography.bodySmall, color = DangerRed)
+                    }
+
+                    val candidates = state.fnCandidates
+                    if (candidates != null) {
+                        Spacer(Modifier.height(8.dp))
+                        LiquidGlassSurface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            Column {
+                                candidates.forEachIndexed { index, c ->
+                                    if (index > 0) {
+                                        HorizontalDivider(
+                                            color = Color(0xFFECEAE3),
+                                            modifier = Modifier.padding(start = 12.dp)
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { vm.useFnCandidate(c.url) }
+                                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            c.group.title,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextMuted,
+                                            modifier = Modifier.width(64.dp)
+                                        )
+                                        Text(
+                                            c.url,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (c.ok) TextStrong else TextFainter,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            if (c.ok) c.ms?.let { "${it}ms" } ?: "可用" else "不可达",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = if (c.ok) SuccessGreen else DangerRed
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (candidates.any { it.ok }) {
+                                "点一行选为当前服务器，再点最下方「保存」生效；内网优先，其次公网 IPv6 / IPv4。"
+                            } else {
+                                "没有可用链路：确认 OpenList 端口填对、服务在运行；内网能通公网不通是正常的。"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
                     }
                 }
 
