@@ -73,9 +73,21 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
+import com.datbox.app.ui.theme.BorderWarm
+import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.MiSansFamily
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
+import com.datbox.app.ui.theme.TextStrong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -834,6 +846,118 @@ fun LiquidGlassSurface(
     ) {
         content()
     }
+}
+
+
+/**
+ * 玻璃下拉菜单外壳。
+ *
+ * 不用 Material 的 DropdownMenu —— 它自带 Surface 底色与阴影, 换不成玻璃材质。
+ * 这里用 Popup + 自定义位置计算: 菜单右缘对齐锚点(父 Box)右缘, 垂直下挂 6dp,
+ * 并整体钳制在窗口内, 贴边或越界都不会溢出。
+ */
+@Composable
+fun GlassMenu(
+    expanded: Boolean,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier,
+    width: Dp = 216.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    if (!expanded) return
+    val gapPx = with(LocalDensity.current) { 6.dp.roundToPx() }
+    val positionProvider = remember(gapPx) {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ): IntOffset {
+                val maxX = (windowSize.width - popupContentSize.width).coerceAtLeast(0)
+                val maxY = (windowSize.height - popupContentSize.height).coerceAtLeast(0)
+                return IntOffset(
+                    x = (anchorBounds.right - popupContentSize.width).coerceIn(0, maxX),
+                    y = (anchorBounds.bottom + gapPx).coerceIn(0, maxY),
+                )
+            }
+        }
+    }
+    Popup(
+        popupPositionProvider = positionProvider,
+        onDismissRequest = onDismissRequest,
+        properties = PopupProperties(focusable = true),
+    ) {
+        LiquidGlassSurface(
+            shape = RoundedCornerShape(20.dp),
+            modifier = modifier.width(width),
+        ) {
+            Column(Modifier.padding(vertical = 6.dp), content = content)
+        }
+    }
+}
+
+
+@Composable
+fun GlassMenuHeader(text: String) {
+    Text(
+        text = text,
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Medium,
+        fontFamily = MiSansFamily,
+        color = StoneGray,
+        letterSpacing = 0.4.sp,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 8.dp),
+    )
+}
+
+
+@Composable
+fun GlassMenuItem(
+    label: String,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontFamily = MiSansFamily,
+            color = if (selected) NearBlack else TextStrong,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (selected) {
+            Spacer(Modifier.width(8.dp))
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                tint = BrandGreen,
+                modifier = Modifier.size(17.dp),
+            )
+        }
+    }
+}
+
+
+@Composable
+fun GlassMenuDivider() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .height(0.5.dp)
+            .background(BorderWarm)
+    )
 }
 
 

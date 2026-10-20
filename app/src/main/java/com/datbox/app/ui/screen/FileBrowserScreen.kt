@@ -50,6 +50,10 @@ import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.download.AppDownloadManager
 import com.datbox.app.data.model.FsItem
 import com.datbox.app.data.model.FsSearchNode
+import com.datbox.app.ui.component.GlassMenu
+import com.datbox.app.ui.component.GlassMenuDivider
+import com.datbox.app.ui.component.GlassMenuHeader
+import com.datbox.app.ui.component.GlassMenuItem
 import com.datbox.app.ui.component.LiquidGlassAlertDialog
 import com.datbox.app.ui.component.LiquidGlassCard
 import com.datbox.app.ui.component.LiquidGlassPrimaryButton
@@ -401,6 +405,7 @@ fun FileBrowserScreen(
             } else {
                 FileBrowserTopBar(
                     path = state.path,
+                    sortMode = state.sortMode,
                     onLogout = onLogout,
                     onSearchClick = { onSearchActiveChange(true) },
                     onUpload = { pickFileLauncher.launch("*/*") },
@@ -527,6 +532,7 @@ fun FileBrowserScreen(
 @Composable
 private fun FileBrowserTopBar(
     path: String,
+    sortMode: SortMode,
     onLogout: () -> Unit,
     onSearchClick: () -> Unit = {},
     onUpload: () -> Unit = {},
@@ -577,32 +583,44 @@ private fun FileBrowserTopBar(
         }
 
         Box {
-            IconButton(onClick = { sortMenuExpanded = true }) {
-                Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = NearBlack)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { sortMenuExpanded = true }) {
+                    Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = NearBlack)
+                }
+                IconButton(onClick = onUpload) {
+                    Icon(Icons.Outlined.Add, contentDescription = "上传", tint = NearBlack)
+                }
             }
-            DropdownMenu(expanded = sortMenuExpanded, onDismissRequest = { sortMenuExpanded = false }) {
-                listOf(
-                    SortMode.DEFAULT to "默认排序",
-                    SortMode.NAME_ASC to "名称 A→Z",
-                    SortMode.NAME_DESC to "名称 Z→A",
-                    SortMode.SIZE_ASC to "大小 小→大",
-                    SortMode.SIZE_DESC to "大小 大→小",
-                    SortMode.DATE_ASC to "日期 旧→新",
-                    SortMode.DATE_DESC to "日期 新→旧",
-                ).forEach { (mode, label) ->
-                    DropdownMenuItem(
-                        text = { Text(label) },
-                        onClick = { onSortSelected(mode); sortMenuExpanded = false },
+            GlassMenu(
+                expanded = sortMenuExpanded,
+                onDismissRequest = { sortMenuExpanded = false },
+            ) {
+                GlassMenuHeader("排序方式")
+                SORT_OPTIONS.forEachIndexed { index, (mode, label) ->
+                    GlassMenuItem(
+                        label = label,
+                        selected = mode == sortMode,
+                        onClick = {
+                            onSortSelected(mode)
+                            sortMenuExpanded = false
+                        },
                     )
+                    if (index == 0 || index == 2 || index == 4) GlassMenuDivider()
                 }
             }
         }
-
-        IconButton(onClick = onUpload) {
-            Icon(Icons.Outlined.Add, contentDescription = "上传", tint = NearBlack)
-        }
     }
 }
+
+private val SORT_OPTIONS = listOf(
+    SortMode.DEFAULT to "默认排序",
+    SortMode.NAME_ASC to "名称 A→Z",
+    SortMode.NAME_DESC to "名称 Z→A",
+    SortMode.SIZE_ASC to "大小 小→大",
+    SortMode.SIZE_DESC to "大小 大→小",
+    SortMode.DATE_ASC to "日期 旧→新",
+    SortMode.DATE_DESC to "日期 新→旧",
+)
 
 
 @Composable
