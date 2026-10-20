@@ -596,7 +596,8 @@ private fun FileBrowserTopBar(
                 onDismissRequest = { sortMenuExpanded = false },
             ) {
                 GlassMenuHeader("排序方式")
-                SORT_OPTIONS.forEachIndexed { index, (mode, label) ->
+                SORT_OPTIONS.forEachIndexed { index, option ->
+                    val (mode, label) = option
                     GlassMenuItem(
                         label = label,
                         selected = mode == sortMode,
