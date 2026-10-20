@@ -22,13 +22,6 @@ import javax.inject.Singleton
 @Serializable
 private data class FnConRequest(val fnId: String)
 
-/** 5ddd 返回的端口 (fnOS 自己的网关端口, 这里仅作兜底默认值) */
-@Serializable
-data class FnPort(
-    val httpPort: Int = 5666,
-    val httpsPort: Int = 5667,
-)
-
 /** POST https://5ddd.com/api/v1/fn/con 的 data */
 @Serializable
 data class FnConData(
@@ -36,9 +29,6 @@ data class FnConData(
     val ipv4: List<String> = emptyList(),
     val publicIpv4: List<String> = emptyList(),
     val publicIpv6: List<String> = emptyList(),
-    /** 中继域名, 形如 xxx.5ddd.com:443 (当前未使用) */
-    val fn: List<String> = emptyList(),
-    val port: FnPort = FnPort(),
 )
 
 @Serializable
@@ -65,8 +55,8 @@ data class FnCandidate(
 /**
  * 飞牛 FN Connect：FNID -> NAS 的内网/公网地址列表。
  *
- * 只做地址发现和探测，不碰中继 —— 中继终点是 fnOS 网关 (443)，
- * 到不了 OpenList 自己的端口。
+ * 只做地址发现和探测：拿内网 / 公网 IPv4 / 公网 IPv6 三类直连地址，
+ * 逐个打 OpenList 的公开接口确认可用。
  *
  * 接口签名: sign = md5(PREFIX + path + nonce + timestamp + md5(body) + apiKey)
  */

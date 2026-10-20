@@ -40,8 +40,8 @@ android {
         applicationId = "com.datbox.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10043
-        versionName = "1.0.43"
+        versionCode = 10044
+        versionName = "1.0.44"
     }
 
     buildTypes {
