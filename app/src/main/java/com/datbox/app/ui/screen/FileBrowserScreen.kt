@@ -62,7 +62,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -83,6 +82,9 @@ data class FileBrowserState(
     val searching: Boolean = false,
     val searchResults: List<FsSearchNode> = emptyList(),
     val searchError: String? = null,
+    val searchLocalWalk: Boolean = false,
+    val searchScannedDirs: Int = 0,
+    val searchTruncated: Boolean = false,
     val sortMode: SortMode = SortMode.DEFAULT,
 )
 
@@ -120,27 +122,71 @@ class FileBrowserViewModel @Inject constructor(
 
     private var searchJob: Job? = null
 
+    /** 每次输入自增，异步回调靠它丢弃过期结果（取消不是瞬时的）。 */
+    @Volatile private var searchGeneration = 0
+
 
     fun updateSearchQuery(query: String) {
         _state.value = _state.value.copy(searchQuery = query)
         searchJob?.cancel()
         val q = query.trim()
         if (q.isEmpty()) {
-            _state.value = _state.value.copy(searching = false, searchResults = emptyList(), searchError = null)
+            _state.value = _state.value.copy(
+                searching = false,
+                searchResults = emptyList(),
+                searchError = null,
+                searchLocalWalk = false,
+                searchScannedDirs = 0,
+                searchTruncated = false,
+            )
             return
         }
-        _state.value = _state.value.copy(searching = true, searchError = null)
+        val generation = ++searchGeneration
+        _state.value = _state.value.copy(
+            searching = true,
+            searchError = null,
+            searchResults = emptyList(),
+            searchLocalWalk = false,
+            searchScannedDirs = 0,
+            searchTruncated = false,
+        )
         searchJob = viewModelScope.launch {
             delay(350)
-            val result = repo.search(q)
-            ensureActive()
-            result.onSuccess { hits ->
-                _state.value = _state.value.copy(searching = false, searchResults = hits)
+
+            // 先走服务端索引：开了 search_index 的服务器这一步就够了。
+            val server = repo.search(q)
+            if (generation != searchGeneration) return@launch
+            if (server.isSuccess) {
+                _state.value = _state.value.copy(
+                    searching = false,
+                    searchResults = server.getOrThrow(),
+                )
+                return@launch
+            }
+
+            // 服务端默认 search_index=none，/api/fs/search 直接 500，退回本地扫描。
+            _state.value = _state.value.copy(searchLocalWalk = true)
+            val local = repo.searchLocal(q) { hits, scanned ->
+                if (generation != searchGeneration) return@searchLocal
+                _state.value = _state.value.copy(
+                    searchResults = hits,
+                    searchScannedDirs = scanned,
+                    searching = true,
+                )
+            }
+            if (generation != searchGeneration) return@launch
+            local.onSuccess { (hits, truncated) ->
+                _state.value = _state.value.copy(
+                    searching = false,
+                    searchResults = hits,
+                    searchTruncated = truncated,
+                )
             }.onFailure { e ->
                 _state.value = _state.value.copy(
                     searching = false,
                     searchResults = emptyList(),
                     searchError = e.message ?: "搜索失败",
+                    searchLocalWalk = false,
                 )
             }
         }
@@ -149,11 +195,15 @@ class FileBrowserViewModel @Inject constructor(
 
     fun closeSearch() {
         searchJob?.cancel()
+        searchGeneration++
         _state.value = _state.value.copy(
             searchQuery = "",
             searching = false,
             searchResults = emptyList(),
             searchError = null,
+            searchLocalWalk = false,
+            searchScannedDirs = 0,
+            searchTruncated = false,
         )
     }
 
@@ -635,9 +685,24 @@ private fun SearchResultsList(
 ) {
     when {
         state.searchQuery.isBlank() -> CenterMessage("输入关键词, 搜索全盘文件")
-        state.searching -> CenterLoading()
+
+        state.searching && state.searchResults.isEmpty() ->
+            if (state.searchLocalWalk) {
+                CenterMessage("服务端未启用搜索索引, 正在本地扫描…\n已扫描 ${state.searchScannedDirs} 个文件夹")
+            } else {
+                CenterLoading()
+            }
+
         state.searchError != null -> CenterMessage("搜索失败: ${state.searchError}", "重试", onRetry)
-        state.searchResults.isEmpty() -> CenterMessage("没有找到「${state.searchQuery.trim()}」")
+
+        state.searchResults.isEmpty() -> CenterMessage(
+            if (state.searchLocalWalk) {
+                "本地扫描 ${state.searchScannedDirs} 个文件夹, 没有找到「${state.searchQuery.trim()}」"
+            } else {
+                "没有找到「${state.searchQuery.trim()}」"
+            }
+        )
+
         else -> LazyColumn(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -645,7 +710,10 @@ private fun SearchResultsList(
         ) {
             item(key = "header") {
                 Text(
-                    text = "“${state.searchQuery.trim()}” · ${state.searchResults.size} 个结果",
+                    text = buildString {
+                        append("“${state.searchQuery.trim()}” · ${state.searchResults.size} 个结果")
+                        if (state.searchLocalWalk) append(" · 本地扫描 ${state.searchScannedDirs} 个文件夹")
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = StoneGray,
                     modifier = Modifier.padding(start = 8.dp, end = 8.dp, bottom = 4.dp),
@@ -666,6 +734,20 @@ private fun SearchResultsList(
                     onLongClick = null,
                     onMenuClick = null,
                 )
+            }
+            if (state.searching || state.searchTruncated) {
+                item(key = "footer") {
+                    Text(
+                        text = if (state.searching) {
+                            "仍在扫描… 已找到 ${state.searchResults.size} 个"
+                        } else {
+                            "已达扫描上限, 结果可能不完整"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StoneGray,
+                        modifier = Modifier.padding(start = 8.dp, top = 8.dp),
+                    )
+                }
             }
         }
     }

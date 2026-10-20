@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 主题图标 (Android 13+ 单色): 只保留匣的剪影, 数据条随匣身一起实心。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M41,45 H67 A11,11 0 0 1 78,56 V70 A11,11 0 0 1 67,81 H41 A11,11 0 0 1 30,70 V56 A11,11 0 0 1 41,45 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,29 H76 A6,6 0 0 1 82,35 V40 A6,6 0 0 1 76,46 H32 A6,6 0 0 1 26,40 V35 A6,6 0 0 1 32,29 Z" />
+</vector>

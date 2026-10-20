@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Datbox 品牌 logo (登录/关于/首页左上角): 与桌面 launcher 图标同一幅图。
-  图形与坐标完全沿用 ic_launcher_background (渐变底) + ic_launcher_foreground (白匣: 盖/体/数据条),
-  保证 App 内 logo 与 app 图标观感一致; 外圈用圆角 r24 收边 (launcher 由系统 mask 收边),
-  便于在 App 内不经裁剪直接当图标展示。
+  外圈 r24 收边 (launcher 由系统 mask 收边), 便于在 App 内不经裁剪直接当图标展示;
+  底色用重一档的象牙渐变 + 发丝描边, 否则在 App 的 WarmIvory 背景上看不出方框边界。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
@@ -12,8 +11,7 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 圆角渐变底 (同 ic_launcher_background) -->
-    <path android:pathData="M24,0 h60 a24,24 0 0 1 24,24 v60 a24,24 0 0 1 -24,24 h-60 a24,24 0 0 1 -24,-24 v-60 a24,24 0 0 1 24,-24 z">
+    <path android:pathData="M24,0 H84 A24,24 0 0 1 108,24 V84 A24,24 0 0 1 84,108 H24 A24,24 0 0 1 0,84 V24 A24,24 0 0 1 24,0 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
@@ -21,26 +19,26 @@
                 android:startY="0"
                 android:endX="108"
                 android:endY="108"
-                android:startColor="#25CFA5"
-                android:endColor="#0E9C77" />
+                android:startColor="#FBFAF6"
+                android:endColor="#EFEDE4" />
         </aapt:attr>
     </path>
-
-    <!-- 盒盖 (同 ic_launcher_foreground) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M36,28 h36 a5,5 0 0 1 5,5 v3 a5,5 0 0 1 -5,5 h-36 a5,5 0 0 1 -5,-5 v-3 a5,5 0 0 1 5,-5 z" />
+        android:strokeColor="#E8E6DC"
+        android:strokeWidth="0.8"
+        android:fillColor="#00000000"
+        android:pathData="M24,0 H84 A24,24 0 0 1 108,24 V84 A24,24 0 0 1 84,108 H24 A24,24 0 0 1 0,84 V24 A24,24 0 0 1 24,0 Z" />
 
-    <!-- 盒体 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,54 a8,8 0 0 1 8,-8 h24 a8,8 0 0 1 8,8 v16 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 z" />
-
-    <!-- 数据条 -->
+        android:fillColor="#141413"
+        android:pathData="M41,45 H67 A11,11 0 0 1 78,56 V70 A11,11 0 0 1 67,81 H41 A11,11 0 0 1 30,70 V56 A11,11 0 0 1 41,45 Z" />
     <path
         android:fillColor="#20C997"
-        android:pathData="M42,55 h20 a2.5,2.5 0 0 1 0,5 h-20 a2.5,2.5 0 0 1 0,-5 z" />
+        android:pathData="M32,29 H76 A6,6 0 0 1 82,35 V40 A6,6 0 0 1 76,46 H32 A6,6 0 0 1 26,40 V35 A6,6 0 0 1 32,29 Z" />
     <path
-        android:fillColor="#20C997"
-        android:pathData="M42,65 h14 a2.5,2.5 0 0 1 0,5 h-14 a2.5,2.5 0 0 1 0,-5 z" />
+        android:fillColor="#FAF9F5"
+        android:pathData="M41,56.5 H65 A3,3 0 0 1 68,59.5 V59.5 A3,3 0 0 1 65,62.5 H41 A3,3 0 0 1 38,59.5 V59.5 A3,3 0 0 1 41,56.5 Z" />
+    <path
+        android:fillColor="#FAF9F5"
+        android:pathData="M41,66.5 H53 A3,3 0 0 1 56,69.5 V69.5 A3,3 0 0 1 53,72.5 H41 A3,3 0 0 1 38,69.5 V69.5 A3,3 0 0 1 41,66.5 Z" />
 </vector>

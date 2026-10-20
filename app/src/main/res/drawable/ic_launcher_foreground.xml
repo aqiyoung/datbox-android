@@ -1,32 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Datbox 图形: 白匣 + 掀开的盖 + 数据条
-  - 盖 (31,28)-(77,41) r5, 略窄悬浮于身之上
-  - 身 (34,46)-(74,78) r8, 盖与身之间留 5px 背景缝 (开盖感)
-  - 数据条两条 (#20C997), 匣中"装着数据"
-  全部图形落在 adaptive icon 安全区 (108 canvas 中央 66dp 圆内)。
+  Datbox 图标前景: 匣
+  - 匣盖 (26,29)-(82,46) r6, 品牌绿
+  - 匣身 (30,45)-(78,81) r11, 近黑, 与盖叠 1px 不留缝
+  - 数据条两条, 象牙白, 匣中"装着数据"
+  全部落在 108 画布中央直径 66 的安全圆外沿 (最远点 37.5, 圆形 mask 半径 54 仍有余量)。
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- 盒盖 -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M36,28 h36 a5,5 0 0 1 5,5 v3 a5,5 0 0 1 -5,5 h-36 a5,5 0 0 1 -5,-5 v-3 a5,5 0 0 1 5,-5 z" />
-
-    <!-- 盒身 -->
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,54 a8,8 0 0 1 8,-8 h24 a8,8 0 0 1 8,8 v16 a8,8 0 0 1 -8,8 h-24 a8,8 0 0 1 -8,-8 z" />
-
-    <!-- 数据条 -->
+        android:fillColor="#141413"
+        android:pathData="M41,45 H67 A11,11 0 0 1 78,56 V70 A11,11 0 0 1 67,81 H41 A11,11 0 0 1 30,70 V56 A11,11 0 0 1 41,45 Z" />
     <path
         android:fillColor="#20C997"
-        android:pathData="M42,55 h20 a2.5,2.5 0 0 1 0,5 h-20 a2.5,2.5 0 0 1 0,-5 z" />
+        android:pathData="M32,29 H76 A6,6 0 0 1 82,35 V40 A6,6 0 0 1 76,46 H32 A6,6 0 0 1 26,40 V35 A6,6 0 0 1 32,29 Z" />
     <path
-        android:fillColor="#20C997"
-        android:pathData="M42,65 h14 a2.5,2.5 0 0 1 0,5 h-14 a2.5,2.5 0 0 1 0,-5 z" />
+        android:fillColor="#FAF9F5"
+        android:pathData="M41,56.5 H65 A3,3 0 0 1 68,59.5 V59.5 A3,3 0 0 1 65,62.5 H41 A3,3 0 0 1 38,59.5 V59.5 A3,3 0 0 1 41,56.5 Z" />
+    <path
+        android:fillColor="#FAF9F5"
+        android:pathData="M41,66.5 H53 A3,3 0 0 1 56,69.5 V69.5 A3,3 0 0 1 53,72.5 H41 A3,3 0 0 1 38,69.5 V69.5 A3,3 0 0 1 41,66.5 Z" />
 </vector>

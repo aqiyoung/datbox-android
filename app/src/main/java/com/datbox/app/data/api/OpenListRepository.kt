@@ -17,7 +17,12 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -127,8 +132,101 @@ class OpenListRepository @Inject constructor(
 
     suspend fun search(keywords: String, parent: String = "/", scope: Int = 0): Result<List<com.datbox.app.data.model.FsSearchNode>> = runCatching {
         val resp = api.search(FsSearchRequest(parent = parent, keywords = keywords, scope = scope))
-        if (resp.code != 200) error("搜索失败: ${resp.message}")
+        if (resp.code != 200) error(resp.message)
         resp.data?.content ?: emptyList()
+    }
+
+    /**
+     * 本地扫描式搜索：不依赖服务端搜索索引。
+     *
+     * OpenList 的 /api/fs/search 只有在服务端把 search_index 从默认的 "none" 改成 bleve/db
+     * 并建好索引后才可用，否则中间件直接返回 500 search not available。
+     * 这里改用 /api/fs/list 逐层遍历，边扫边回报，代价是慢，但任何能正常浏览的服务器都能用。
+     *
+     * @param onUpdate 每扫完一个目录回报一次 (当前累计命中, 已扫描目录数)
+     * @return 命中列表 + 是否因目录数/命中数/时间上限而截断
+     */
+    suspend fun searchLocal(
+        keywords: String,
+        root: String = "/",
+        maxDirs: Int = 400,
+        maxHits: Int = 300,
+        timeBudgetMs: Long = 25_000,
+        onUpdate: (List<com.datbox.app.data.model.FsSearchNode>, Int) -> Unit = { _, _ -> },
+    ): Result<Pair<List<com.datbox.app.data.model.FsSearchNode>, Boolean>> = withContext(Dispatchers.IO) {
+        runCatching {
+            val kw = keywords.trim()
+            if (kw.isEmpty()) return@runCatching emptyList<com.datbox.app.data.model.FsSearchNode>() to false
+
+            val hits = mutableListOf<com.datbox.app.data.model.FsSearchNode>()
+            val lock = Mutex()
+            val sem = Semaphore(6)
+            val deadline = System.nanoTime() + timeBudgetMs * 1_000_000
+            var scanned = 0
+            var truncated = false
+
+            suspend fun shouldStop(): Boolean = lock.withLock {
+                scanned >= maxDirs || hits.size >= maxHits || System.nanoTime() > deadline
+            }
+
+            suspend fun scan(dir: String): List<String> {
+                if (shouldStop()) return emptyList()
+                val entries = sem.withPermit {
+                    runCatching { listAll(dir) }.getOrDefault(emptyList())
+                }
+                val found = mutableListOf<com.datbox.app.data.model.FsSearchNode>()
+                val subdirs = mutableListOf<String>()
+                for (e in entries) {
+                    if (e.name.contains(kw, ignoreCase = true)) {
+                        found += com.datbox.app.data.model.FsSearchNode(
+                            parent = dir,
+                            name = e.name,
+                            size = e.size,
+                            isDir = e.isDir,
+                            type = e.type,
+                        )
+                    }
+                    if (e.isDir) subdirs += if (dir == "/") "/${e.name}" else "$dir/${e.name}"
+                }
+                // 在锁内回调，避免并发目录把新快照覆盖成旧快照
+                lock.withLock {
+                    hits += found
+                    scanned += 1
+                    onUpdate(hits.toList(), scanned)
+                }
+                return subdirs
+            }
+
+            var frontier = listOf(root)
+            var depth = 0
+            while (frontier.isNotEmpty() && depth <= 12 && !shouldStop()) {
+                val next = mutableListOf<String>()
+                coroutineScope {
+                    frontier.take(2000).map { dir -> async { scan(dir) } }.awaitAll()
+                }.forEach { next += it }
+                frontier = next.distinct()
+                depth++
+            }
+
+            val done = hits.toList()
+            truncated = truncated || frontier.isNotEmpty()
+            done to truncated
+        }
+    }
+
+    /** list 的一页默认只有 50 条，扫描时必须翻页，否则大目录会被截掉一半。 */
+    private suspend fun listAll(path: String): List<com.datbox.app.data.model.FsItem> {
+        val out = mutableListOf<com.datbox.app.data.model.FsItem>()
+        var page = 1
+        while (page <= 10) {
+            val resp = api.list(FsListRequest(path = path, page = page, perPage = 200))
+            if (resp.code != 200) break
+            val content = resp.data?.content ?: break
+            out += content
+            if (content.size < 200) break
+            page++
+        }
+        return out
     }
 
     suspend fun get(path: String): Result<com.datbox.app.data.model.FsItem?> = runCatching {
