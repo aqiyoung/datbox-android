@@ -1,7 +1,10 @@
 package com.datbox.app.ui.screen
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.annotation.DrawableRes
 import androidx.activity.compose.BackHandler
@@ -31,9 +34,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
+import com.datbox.app.ui.theme.MiSansFamily
 import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.theme.TextStrong
+import com.datbox.app.ui.theme.WarmIvory
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -41,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -48,6 +54,7 @@ import com.datbox.app.R
 import com.datbox.app.data.api.ManagementRepository
 import com.datbox.app.data.api.OpenListRepository
 import com.datbox.app.data.download.AppDownloadManager
+import com.datbox.app.data.download.DownloadStatus
 import com.datbox.app.data.model.FsItem
 import com.datbox.app.data.model.FsSearchNode
 import com.datbox.app.ui.component.GlassMenu
@@ -105,7 +112,33 @@ class FileBrowserViewModel @Inject constructor(
     private val _action = MutableStateFlow(FileActionState())
     val action = _action.asStateFlow()
 
-    init { load("/") }
+    /** 本次会话里由本页发起、还没出结果的任务 id */
+    private val watchingDownloads = mutableSetOf<String>()
+
+    init {
+        load("/")
+        viewModelScope.launch {
+            downloadManager.downloads.collect { list ->
+                list.forEach { task ->
+                    if (task.id !in watchingDownloads) return@forEach
+                    when (task.status) {
+                        DownloadStatus.COMPLETED -> {
+                            watchingDownloads -= task.id
+                            _action.value = FileActionState(message = "已保存到 ${task.localPath}")
+                        }
+                        DownloadStatus.FAILED -> {
+                            watchingDownloads -= task.id
+                            _action.value = FileActionState(
+                                message = "下载失败: ${task.error ?: "未知错误"}",
+                                isError = true,
+                            )
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+        }
+    }
 
     private val hiddenSubDirs: Set<String> = setOf("天翼云盘飞牛备份")
 
@@ -231,9 +264,8 @@ class FileBrowserViewModel @Inject constructor(
     }
 
     fun downloadFile(remotePath: String, fileName: String) {
-        _action.value = FileActionState(busy = true, message = "开始下载 $fileName...")
-        downloadManager.enqueue(remotePath, fileName)
-        _action.value = FileActionState(message = "已加入下载队列")
+        watchingDownloads += downloadManager.enqueue(remotePath, fileName)
+        _action.value = FileActionState(message = "开始下载 $fileName · 保存到 下载/Datbox")
     }
 
     fun uploadFile(localFile: File) {
@@ -351,6 +383,30 @@ fun FileBrowserScreen(
                 out
             }
             vm.uploadFile(tempFile)
+        }
+    }
+
+    var pendingDownload by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val storagePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        pendingDownload?.let { (path, name) ->
+            if (!granted) {
+                Toast.makeText(context, "未授予存储权限，将保存到应用私有目录", Toast.LENGTH_LONG).show()
+            }
+            vm.downloadFile(path, name)
+        }
+        pendingDownload = null
+    }
+
+    // Android 10+ 走 MediaStore 不需要权限; 8/9 写公共下载目录要先申请
+    fun startDownload(remotePath: String, fileName: String) {
+        val needPermission = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needPermission) {
+            pendingDownload = remotePath to fileName
+            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            vm.downloadFile(remotePath, fileName)
         }
     }
 
@@ -474,11 +530,12 @@ fun FileBrowserScreen(
             val pendingStyle = fileStyleFor(pending.name, pending.isDir)
             GlassActionDialog(
                 fileName = pending.name,
+                subtitle = if (pending.isDir) "文件夹" else "${pending.modified.take(10)} · ${humanSize(pending.size)}",
                 fileStyle = pendingStyle,
                 shareUrl = shareSheetUrl,
                 shareLoading = shareLoading,
                 onDownload = {
-                    vm.downloadFile(menuRemotePath, pending.name)
+                    startDownload(menuRemotePath, pending.name)
                     menuItem = null; shareSheetUrl = null; shareLoading = false
                 },
                 onRequestShare = {
@@ -822,6 +879,7 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
 @Composable
 private fun GlassActionDialog(
     fileName: String,
+    subtitle: String,
     fileStyle: FileStyle,
     shareUrl: String?,
     shareLoading: Boolean,
@@ -837,7 +895,7 @@ private fun GlassActionDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = Color(0xFFFBFAF7),
+        containerColor = WarmIvory,
         dragHandle = {
             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFD8D6CF)))
@@ -848,80 +906,139 @@ private fun GlassActionDialog(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
+            Row(
+                modifier = Modifier.padding(top = 4.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 FileTypeIconBox(fileStyle)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(fileName, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextStrong, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(if (shareUrl == null) "文件操作" else "分享此文件", fontSize = 12.sp, color = StoneGray)
+                    Text(
+                        fileName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextStrong,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(subtitle, fontSize = 12.sp, color = StoneGray, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            HorizontalDivider(color = Color(0xFFECEAE3))
-            Spacer(Modifier.height(2.dp))
 
-            GlassActionItem(icon = Icons.Outlined.Download, iconTint = NearBlack, label = "下载到本地", subLabel = "保存到下载目录", onClick = onDownload)
-
-            when {
-                shareLoading -> {
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = BrandGreen)
-                        Spacer(Modifier.width(12.dp))
-                        Text("正在生成分享链接…", fontSize = 14.sp, color = StoneGray)
+            // 一组操作放在同一块玻璃里, 行间分隔; 比四个玻璃卡片堆叠短一半
+            LiquidGlassSurface(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) {
+                Column(Modifier.padding(vertical = 4.dp)) {
+                    SheetActionRow(
+                        icon = Icons.Outlined.Download,
+                        label = "下载到本地",
+                        trailing = "下载/Datbox",
+                        onClick = onDownload,
+                    )
+                    SheetActionDivider()
+                    if (shareUrl == null) {
+                        SheetActionRow(
+                            icon = Icons.Outlined.Link,
+                            label = if (shareLoading) "正在生成分享链接…" else "分享链接",
+                            loading = shareLoading,
+                            onClick = onRequestShare,
+                        )
+                        SheetActionDivider()
                     }
+                    SheetActionRow(icon = Icons.Outlined.Edit, label = "重命名", onClick = onRename)
+                    SheetActionDivider()
+                    SheetActionRow(icon = Icons.Outlined.Delete, label = "删除", danger = true, onClick = onDelete)
                 }
-                shareUrl == null -> {
-                    GlassActionItem(icon = Icons.Outlined.Share, iconTint = NearBlack, label = "分享链接", subLabel = "获取可分享短链", onClick = onRequestShare)
+            }
+
+            if (shareUrl != null) {
+                LiquidGlassSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                ) {
+                    Text(
+                        shareUrl,
+                        fontSize = 12.sp,
+                        color = Color(0xFF56544E),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                else -> {
-                    LiquidGlassSurface(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Surface(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare),
+                        color = BrandGreen,
                     ) {
-                        Text(shareUrl, fontSize = 12.sp, color = Color(0xFF56544E), modifier = Modifier.fillMaxWidth().padding(16.dp), maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = onCopyShare), color = BrandGreen) {
-                            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                                Spacer(Modifier.width(8.dp))
-                                Text("复制链接", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            }
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("复制链接", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
-                        Surface(modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable(onClick = { onSystemShare(shareUrl) }), color = TextStrong) {
-                            Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
-                                Spacer(Modifier.width(8.dp))
-                                Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            }
+                    }
+                    Surface(
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onSystemShare(shareUrl) },
+                        color = TextStrong,
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Spacer(Modifier.width(8.dp))
+                            Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
             }
-
-            GlassActionItem(icon = Icons.Outlined.Edit, iconTint = NearBlack, label = "重命名", subLabel = "修改文件名", onClick = onRename)
-            GlassActionItem(icon = Icons.Outlined.Delete, iconTint = DangerRed, label = "删除", subLabel = "永久删除此文件", onClick = onDelete)
         }
     }
 }
 
 @Composable
-private fun GlassActionItem(icon: ImageVector, iconTint: Color, label: String, subLabel: String, onClick: () -> Unit) {
-    LiquidGlassSurface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+private fun SheetActionRow(
+    icon: ImageVector,
+    label: String,
+    trailing: String? = null,
+    danger: Boolean = false,
+    loading: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val tint = if (danger) DangerRed else NearBlack
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(52.dp)
+            .clickable(enabled = !loading, onClick = onClick)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(iconTint.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
-                Icon(imageVector = icon, contentDescription = null, tint = iconTint, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(label, style = MaterialTheme.typography.bodyLarge, color = TextStrong, fontWeight = FontWeight.Medium)
-                Text(subLabel, style = MaterialTheme.typography.bodySmall, color = StoneGray)
-            }
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = MiSansFamily,
+            color = if (danger) DangerRed else TextStrong,
+            modifier = Modifier.weight(1f),
+        )
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = BrandGreen)
+        } else if (trailing != null) {
+            Text(trailing, fontSize = 12.sp, fontFamily = MiSansFamily, color = StoneGray, maxLines = 1)
         }
     }
+}
+
+@Composable
+private fun SheetActionDivider() {
+    HorizontalDivider(color = Color(0xFFECEAE3), modifier = Modifier.padding(start = 50.dp))
 }
 
 

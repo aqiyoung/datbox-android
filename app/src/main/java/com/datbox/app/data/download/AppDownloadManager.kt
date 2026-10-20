@@ -1,13 +1,21 @@
 package com.datbox.app.data.download
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.webkit.MimeTypeMap
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import com.datbox.app.MainActivity
 import com.datbox.app.data.api.FsGetRequest
 import com.datbox.app.data.api.OpenListJson
@@ -23,6 +31,8 @@ import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.io.FileOutputStream
+import java.io.OutputStream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -50,6 +60,8 @@ class AppDownloadManager @Inject constructor(
     companion object {
         const val TAG = "AppDownload"
         const val CHANNEL_ID = "download_channel"
+        /** 系统「下载」目录下的子目录, 用户拆开文件管理器就能看到 */
+        const val SUBDIR = "Datbox"
         private const val FIRST_NOTIFICATION_ID = 1001
     }
 
@@ -74,21 +86,19 @@ class AppDownloadManager @Inject constructor(
         createNotificationChannel()
     }
 
-    fun enqueue(remotePath: String, fileName: String) {
+    /** @return 任务 id, 调用方可据此订阅完成状态 */
+    fun enqueue(remotePath: String, fileName: String): String {
         val id = "${remotePath.hashCode()}_${System.currentTimeMillis()}"
-        val downloadsDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
-            ?: File(context.filesDir, "Downloads").also { it.mkdirs() }
-        val localPath = File(downloadsDir, fileName).absolutePath
-
         val task = DownloadTask(
             id = id,
             remotePath = remotePath,
             fileName = fileName,
-            localPath = localPath,
+            localPath = "${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR/$fileName",
         )
 
         _downloads.value = _downloads.value + task
         startDownload(id)
+        return id
     }
 
     fun cancel(id: String) {
@@ -119,6 +129,8 @@ class AppDownloadManager @Inject constructor(
             val task = _downloads.value.find { it.id == id } ?: return@launch
             updateStatus(id, DownloadStatus.DOWNLOADING)
             var completed = false
+            var dest: Dest? = null
+            var written = 0L
 
             try {
                 val serverUrl = tokenStore.serverUrlSync().trimEnd('/')
@@ -141,8 +153,10 @@ class AppDownloadManager @Inject constructor(
 
                 val downloadUrl = "$serverUrl/d${task.remotePath}?sign=$sign"
                 val req = Request.Builder().url(downloadUrl).get().build()
-                val dir = File(task.localPath).parentFile
-                dir?.mkdirs()
+
+                val target = createDest(task.fileName)
+                dest = target
+                updateLocalPath(id, target.displayPath)
 
                 val call = client.newCall(req)
                 activeCalls[id] = call
@@ -150,19 +164,19 @@ class AppDownloadManager @Inject constructor(
                     if (!resp.isSuccessful) error("HTTP ${resp.code}")
                     val body = resp.body ?: error("empty body")
                     val total = body.contentLength()
-                    var downloaded = 0L
 
-                    body.byteStream().use { input ->
-                        File(task.localPath).outputStream().use { output ->
+                    val output = target.openOutput() ?: error("无法写入 ${target.displayPath}")
+                    output.use { out ->
+                        body.byteStream().use { input ->
                             val buffer = ByteArray(8192)
                             var read: Int
                             while (input.read(buffer).also { read = it } != -1) {
-                                output.write(buffer, 0, read)
-                                downloaded += read
+                                out.write(buffer, 0, read)
+                                written += read
 
-                                if (downloaded % (100 * 1024) < 8192) {
-                                    updateProgress(id, downloaded, total)
-                                    showProgressNotification(id, task.fileName, downloaded, total)
+                                if (written % (100 * 1024) < 8192) {
+                                    updateProgress(id, written, total)
+                                    showProgressNotification(id, task.fileName, written, total)
                                 }
                             }
                         }
@@ -170,8 +184,10 @@ class AppDownloadManager @Inject constructor(
                 }
 
                 completed = true
-                updateStatus(id, DownloadStatus.COMPLETED, totalBytes = File(task.localPath).length())
-                showCompleteNotification(id, task.fileName)
+                target.finish()
+                updateProgress(id, written, written)
+                updateStatus(id, DownloadStatus.COMPLETED, totalBytes = written)
+                showCompleteNotification(id, task.fileName, target)
 
             } catch (e: CancellationException) {
                 updateStatus(id, DownloadStatus.CANCELLED)
@@ -187,7 +203,7 @@ class AppDownloadManager @Inject constructor(
                 activeCalls.remove(id)
                 activeJobs.remove(id)
                 if (!completed) {
-                    File(task.localPath).delete()
+                    dest?.discard()
                     cancelNotification(notificationIdFor(id))
                 }
                 if (activeJobs.isEmpty()) stopForegroundServiceIfIdle() else startForegroundService()
@@ -230,6 +246,68 @@ class AppDownloadManager @Inject constructor(
         }
     }
 
+    private fun updateLocalPath(id: String, path: String) {
+        _downloads.value = _downloads.value.map {
+            if (it.id == id) it.copy(localPath = path) else it
+        }
+    }
+
+    /** 下载落点: Android 10+ 走 MediaStore 写进系统「下载/Datbox」, 8/9 写同目录的公共路径。 */
+    private inner class Dest(
+        val displayPath: String,
+        val uri: Uri,
+        val mime: String,
+        private val mediaRow: Boolean,
+        private val file: File?,
+    ) {
+        fun openOutput(): OutputStream? =
+            if (file != null) FileOutputStream(file) else context.contentResolver.openOutputStream(uri)
+
+        /** MediaStore 的 IS_PENDING 要清掉, 否则图库/文件管理器看不到 */
+        fun finish() {
+            if (!mediaRow) return
+            val values = ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }
+            runCatching { context.contentResolver.update(uri, values, null, null) }
+        }
+
+        fun discard() {
+            if (file != null) file.delete() else runCatching { context.contentResolver.delete(uri, null, null) }
+        }
+    }
+
+    private fun createDest(fileName: String): Dest {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        val mime = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "application/octet-stream"
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, mime)
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR")
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                ?: error("无法在系统下载目录创建文件")
+            return Dest("${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR/$fileName", uri, mime, true, null)
+        }
+
+        val publicDir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), SUBDIR)
+        val canWritePublic =
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+                PackageManager.PERMISSION_GRANTED
+        val (dir, label) = if (canWritePublic && (publicDir.exists() || publicDir.mkdirs())) {
+            publicDir to "${Environment.DIRECTORY_DOWNLOADS}/$SUBDIR"
+        } else {
+            val fallback = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                ?: File(context.filesDir, "Downloads")
+            fallback.mkdirs()
+            fallback to "Android/data/${context.packageName}/files/Download"
+        }
+        val file = File(dir, fileName)
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        return Dest("$label/$fileName", uri, mime, false, file)
+    }
+
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(CHANNEL_ID, "文件下载", NotificationManager.IMPORTANCE_LOW).apply {
@@ -259,16 +337,26 @@ class AppDownloadManager @Inject constructor(
         manager.notify(notificationIdFor(taskId), notification)
     }
 
-    private fun showCompleteNotification(taskId: String, fileName: String) {
-        val intent = Intent(context, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+    private fun showCompleteNotification(taskId: String, fileName: String, dest: Dest) {
+        val openIntent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(dest.uri, dest.mime)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        val openPending = PendingIntent.getActivity(
+            context,
+            taskId.hashCode(),
+            openIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("下载完成")
-            .setContentText(fileName)
+            .setContentTitle(fileName)
+            .setContentText("已保存到 ${dest.displayPath}")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("已保存到 ${dest.displayPath}"))
             .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+            .setContentIntent(openPending)
+            .addAction(0, "打开", openPending)
             .build()
 
         val manager = context.getSystemService(NotificationManager::class.java)

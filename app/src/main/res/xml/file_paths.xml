@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileProvider 可共享的路径: 下载落点 (Android 8/9 的公共下载目录 + 私有兜底目录) -->
+<paths>
+    <external-path name="public_downloads" path="Download/Datbox/" />
+    <external-files-path name="app_downloads" path="Download/" />
+    <files-path name="internal_downloads" path="Downloads/" />
+</paths>
