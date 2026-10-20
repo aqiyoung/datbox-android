@@ -219,54 +219,6 @@ fun LoginScreen(
 
                     Spacer(Modifier.height(20.dp))
 
-                    // 服务器地址直接填, HTTPS 开关决定协议
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        OutlinedTextField(
-                            value = state.serverHost,
-                            onValueChange = vm::onServerHost,
-                            placeholder = { Text("服务器地址", color = TextFainter) },
-                            leadingIcon = { Icon(Icons.Outlined.Dns, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
-                            singleLine = true,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = FieldBg,
-                                unfocusedContainerColor = FieldBg,
-                                focusedBorderColor = BrandGreen,
-                                unfocusedBorderColor = Color.Transparent,
-                                cursorColor = BrandGreen
-                            )
-                        )
-
-                        Spacer(Modifier.width(6.dp))
-
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Switch(
-                                checked = state.httpsEnabled,
-                                onCheckedChange = vm::onHttpsToggle,
-                                modifier = Modifier.scale(0.85f),
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = BrandGreen,
-                                    uncheckedThumbColor = Color.White,
-                                    uncheckedTrackColor = TextGhost,
-                                    uncheckedBorderColor = Color.Transparent
-                                )
-                            )
-                            Text(
-                                "HTTPS",
-                                fontSize = 10.sp,
-                                color = if (state.httpsEnabled) BrandGreen else TextFaint
-                            )
-                        }
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
                     OutlinedTextField(
                         value = state.username,
                         onValueChange = vm::onUsername,
@@ -335,6 +287,67 @@ fun LoginScreen(
                             color = if (state.rememberMe) BrandGreen else TextMuted
                         )
                     }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "服务器地址",
+                            fontSize = 12.sp,
+                            color = TextMuted,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            if (state.httpsEnabled) "HTTPS" else "HTTP",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (state.httpsEnabled) BrandGreen else TextFaint
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Switch(
+                            checked = state.httpsEnabled,
+                            onCheckedChange = vm::onHttpsToggle,
+                            modifier = Modifier.scale(0.8f),
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = BrandGreen,
+                                uncheckedThumbColor = Color.White,
+                                uncheckedTrackColor = TextGhost,
+                                uncheckedBorderColor = Color.Transparent
+                            )
+                        )
+                    }
+
+                    Spacer(Modifier.height(6.dp))
+
+                    OutlinedTextField(
+                        value = state.serverHost,
+                        onValueChange = vm::onServerHost,
+                        placeholder = { Text("<your-server>", color = TextFainter) },
+                        leadingIcon = { Icon(Icons.Outlined.Dns, contentDescription = null, tint = TextFaint, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = FieldBg,
+                            unfocusedContainerColor = FieldBg,
+                            focusedBorderColor = BrandGreen,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = BrandGreen
+                        )
+                    )
+
+                    Spacer(Modifier.height(6.dp))
+
+                    Text(
+                        "填域名或 IP:端口；内网直连可关掉 HTTPS",
+                        fontSize = 11.sp,
+                        color = TextFaint
+                    )
 
                     Spacer(Modifier.height(12.dp))
 
