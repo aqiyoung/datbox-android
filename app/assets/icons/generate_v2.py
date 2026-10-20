@@ -108,13 +108,13 @@ def compose_icon(size):
 
 
 def main():
-    out_dir = '~/dev-projects/openlist-android/app/assets/icons'
+    out_dir = 'app/assets/icons'
     os.makedirs(out_dir, exist_ok=True)
     for name, size in SIZES.items():
         big = compose_icon(BASE_SIZE)
         img = big.resize((size, size), Image.LANCZOS)
         img.save(f'{out_dir}/openlist_icon_v2_{name}.png', 'PNG', optimize=True)
-        mipmap_path = f'~/dev-projects/openlist-android/app/src/main/res/mipmap-{name}/ic_launcher.png'
+        mipmap_path = f'app/src/main/res/mipmap-{name}/ic_launcher.png'
         os.makedirs(os.path.dirname(mipmap_path), exist_ok=True)
         img.save(mipmap_path, 'PNG', optimize=True)
         print(f'  ✅ {name} {size}px')
@@ -129,7 +129,7 @@ def main():
         out.paste(bg_layer, (0, 0), mask)
         out = out.resize((size, size), Image.LANCZOS)
         out.save(
-            f'~/dev-projects/openlist-android/app/src/main/res/mipmap-{name}/ic_launcher_round.png',
+            f'app/src/main/res/mipmap-{name}/ic_launcher_round.png',
             'PNG', optimize=True
         )
     print('\n✅ OpenList v2 扁平图标生成完毕')

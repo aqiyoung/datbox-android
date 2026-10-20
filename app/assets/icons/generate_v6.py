@@ -15,7 +15,7 @@ import cairosvg
 from PIL import Image, ImageDraw
 from io import BytesIO
 
-SVG_PATH = '~/dev-projects/openlist-android/app/src/main/assets/openlist-logo.svg'
+SVG_PATH = 'app/src/main/assets/openlist-logo.svg'
 
 SIZES = {
     'mdpi': 48, 'hdpi': 72, 'xhdpi': 96,
@@ -50,7 +50,7 @@ def make_mask_rounded(size, corner_pct=CORNER_PCT):
 
 
 def main():
-    out_dir = '~/dev-projects/openlist-android/app/assets/icons'
+    out_dir = 'app/assets/icons'
     os.makedirs(out_dir, exist_ok=True)
     # 预渲染 base size 一次
     big_bytes = render_svg_png(BASE_SIZE)
@@ -65,7 +65,7 @@ def main():
         final.paste(big_with_bg, (0, 0), rounded_mask)
         img = final.resize((size, size), Image.LANCZOS)
         img.save(f'{out_dir}/openlist_icon_v6_{name}.png', 'PNG', optimize=True)
-        mipmap_path = f'~/dev-projects/openlist-android/app/src/main/res/mipmap-{name}/ic_launcher.png'
+        mipmap_path = f'app/src/main/res/mipmap-{name}/ic_launcher.png'
         os.makedirs(os.path.dirname(mipmap_path), exist_ok=True)
         img.save(mipmap_path, 'PNG', optimize=True)
         print(f'  ✅ {name} {size}px (rounded square, 白底)')
@@ -76,7 +76,7 @@ def main():
         final.paste(big_with_bg, (0, 0), circle_mask)
         out = final.resize((size, size), Image.LANCZOS)
         out.save(
-            f'~/dev-projects/openlist-android/app/src/main/res/mipmap-{name}/ic_launcher_round.png',
+            f'app/src/main/res/mipmap-{name}/ic_launcher_round.png',
             'PNG', optimize=True
         )
     print('\n✅ OpenList v6 官方 logo (白底 + 22% 圆角) - 跟官方 web 端一致')
