@@ -346,45 +346,52 @@ fun LiquidGlassBottomBar(
                         }
                     },
                 ) {}
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(DOCK_BAR_HEIGHT.dp)
-                        .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
-                ) {
+                // 平面滑镜光斑只在无 backdrop shader 时作回落: shader 在位时滑镜已由
+                // shader 的透镜光学 (uLens*) 绘制, 再叠一层白色光斑会双重曝光 —
+                // 深色下尤其明显: 0.55 的白色平台盖住半条 Dock 像一块银板。
+                // 回落路径下深色也压低不透明度, 只留一层柔光。
+                if (backdropEffect == null || backdrop == null) {
+                    val lensPlateau = if (dark) 0.16f else 0.55f
                     Box(
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .offset(x = lensX.dp)
-                            .width(lensW.dp)
-                            .fillMaxHeight()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colorStops = arrayOf(
-                                        0f to Color.Transparent,
-                                        0.18f to Color.White.copy(alpha = 0.55f * lensClear),
-                                        0.82f to Color.White.copy(alpha = 0.55f * lensClear),
-                                        1f to Color.Transparent,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(DOCK_BAR_HEIGHT.dp)
+                            .clip(RoundedCornerShape((DOCK_BAR_HEIGHT / 2f).dp)),
+                    ) {
+                        Box(
+                            Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = lensX.dp)
+                                .width(lensW.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colorStops = arrayOf(
+                                            0f to Color.Transparent,
+                                            0.18f to Color.White.copy(alpha = lensPlateau * lensClear),
+                                            0.82f to Color.White.copy(alpha = lensPlateau * lensClear),
+                                            1f to Color.Transparent,
+                                        )
                                     )
                                 )
-                            )
-                    )
-                    Box(
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .offset(x = lensX.dp)
-                            .width(lensW.dp)
-                            .fillMaxHeight()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colorStops = arrayOf(
-                                        0f to Color.Transparent,
-                                        0.5f to Color.Black.copy(alpha = 0.06f * lensClear),
-                                        1f to Color.Transparent,
+                        )
+                        Box(
+                            Modifier
+                                .align(Alignment.TopStart)
+                                .offset(x = lensX.dp)
+                                .width(lensW.dp)
+                                .fillMaxHeight()
+                                .background(
+                                    Brush.horizontalGradient(
+                                        colorStops = arrayOf(
+                                            0f to Color.Transparent,
+                                            0.5f to Color.Black.copy(alpha = 0.06f * lensClear),
+                                            1f to Color.Transparent,
+                                        )
                                     )
                                 )
-                            )
-                    )
+                        )
+                    }
                 }
                 Row(
                     modifier = Modifier
@@ -720,7 +727,7 @@ private fun FrostedGlass(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (dark) 0.10f else 0.30f),
+                        Color.White.copy(alpha = if (dark) 0.14f else 0.30f),
                         Color.White.copy(alpha = 0.0f),
                     )
                 )
