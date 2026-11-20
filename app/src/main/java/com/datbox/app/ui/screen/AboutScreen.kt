@@ -43,7 +43,6 @@ import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.ErrorRedSoft
 import com.datbox.app.ui.theme.TextFaint
 import com.datbox.app.ui.theme.TextMuted
-import com.datbox.app.ui.theme.TextStrong
 import com.datbox.app.util.AppConfig
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -98,13 +97,13 @@ fun AboutScreen(onBack: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = MaterialTheme.colorScheme.onSurface)
                         }
                         Text(
                             text = "关于",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = TextStrong,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
@@ -121,7 +120,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             text = AppConfig.BRAND,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextStrong,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             text = AppConfig.BRAND_SUBTITLE,
@@ -190,7 +189,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             modifier = Modifier.weight(1f),
                             label = "开源仓库",
                             customPainter = painterResource(R.drawable.ic_github_cat),
-                            tint = TextStrong,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             onClick = {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/aqiyoung/datbox-android")))
                             },
@@ -210,7 +209,7 @@ fun AboutScreen(onBack: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("启动时检查更新", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = TextStrong)
+                                Text("启动时检查更新", fontWeight = FontWeight.Medium, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
                                 Spacer(Modifier.height(2.dp))
                                 Text("自动检测 GitHub 上的新版本", fontSize = 12.sp, color = TextMuted)
                             }
@@ -231,7 +230,7 @@ fun AboutScreen(onBack: () -> Unit) {
                         shape = RoundedCornerShape(18.dp),
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                            Text("开源信息", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextStrong)
+                            Text("开源信息", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(Modifier.height(12.dp))
                             Row(
                                 modifier = Modifier
@@ -244,7 +243,7 @@ fun AboutScreen(onBack: () -> Unit) {
                                 Icon(Icons.Outlined.OpenInNew, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(AppConfig.UPSTREAM_NOTE, fontSize = 13.sp, color = TextStrong)
+                                    Text(AppConfig.UPSTREAM_NOTE, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                                     Spacer(Modifier.height(2.dp))
                                     Text(AppConfig.UPSTREAM_REPO, fontSize = 11.sp, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
@@ -295,7 +294,7 @@ private fun ActionCard(
                 icon != null -> Icon(imageVector = icon, contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
             }
             Spacer(Modifier.width(8.dp))
-            Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = TextStrong)
+            Text(label, fontWeight = FontWeight.Medium, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -349,7 +348,7 @@ private fun UpdateFoundDialog(
                     text = result.latestVersion,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextStrong,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
 
                 Spacer(Modifier.height(20.dp))

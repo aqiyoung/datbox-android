@@ -23,7 +23,6 @@ import com.datbox.app.ui.component.GlassDecorBackground
 import com.datbox.app.ui.component.LiquidGlassRow
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
-import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
 import com.datbox.app.ui.viewmodel.ProfileViewModel
 
@@ -68,12 +67,12 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = NearBlack)
+                        Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = MaterialTheme.colorScheme.onSurface)
                     }
                     Text(
                         text = "我的",
                         style = MaterialTheme.typography.titleMedium,
-                        color = NearBlack,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                     )
@@ -112,7 +111,7 @@ fun ProfileScreen(
                             user?.username ?: "—",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = NearBlack,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                         Spacer(Modifier.height(2.dp))
                         Text(
@@ -138,7 +137,7 @@ fun ProfileScreen(
                         Icon(
                             item.icon,
                             contentDescription = null,
-                            tint = NearBlack,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(22.dp),
                         )
                     },
