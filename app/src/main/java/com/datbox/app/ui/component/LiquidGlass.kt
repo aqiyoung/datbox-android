@@ -285,7 +285,7 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uSaturation", 2.1f)
                             setFloatUniform("uBrightness", 1f)
                             setFloatUniform("uContrast", 0f)
-                            setFloatUniform("uRim", 0.45f)
+                            setFloatUniform("uRim", if (dark) 0.28f else 0.45f)
                             setFloatUniform("uRimWidth", 1.3.dp.value * dp)
                             setFloatUniform("uRimTail", 0f)
                             setFloatUniform("uRimFocus", 0f)
@@ -299,8 +299,8 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uLensW", lensW * dp)
                             setFloatUniform("uLensBevel", 7.dp.value * dp)
                             setFloatUniform("uLensDepth", 6.dp.value * dp)
-                            setFloatUniform("uLensDispersion", 8.2.dp.value * dp)
-                            setFloatUniform("uLensRim", 0.7f)
+                            setFloatUniform("uLensDispersion", (if (dark) 4.0f else 8.2f).dp.value * dp)
+                            setFloatUniform("uLensRim", if (dark) 0.25f else 0.7f)
                             setFloatUniform("uLensRimWidth", 1.1.dp.value * dp)
                             setFloatUniform("uLensRimAdded", 0f)
                             if (dark) {
@@ -351,7 +351,10 @@ fun LiquidGlassBottomBar(
                 // 深色下尤其明显: 0.55 的白色平台盖住半条 Dock 像一块银板。
                 // 回落路径下深色也压低不透明度, 只留一层柔光。
                 if (backdropEffect == null || backdrop == null) {
-                    val lensPlateau = if (dark) 0.16f else 0.55f
+                    // 深色不用白光: 选中项改成一块略沉的暗色玻璃 (凹陷感), 靠图标亮度表意;
+                    // 浅色保持原来的白色柔光镜。
+                    val lensPlateau = if (dark) 0.20f else 0.55f
+                    val lensColor = if (dark) Color.Black else Color.White
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -368,8 +371,8 @@ fun LiquidGlassBottomBar(
                                     Brush.horizontalGradient(
                                         colorStops = arrayOf(
                                             0f to Color.Transparent,
-                                            0.18f to Color.White.copy(alpha = lensPlateau * lensClear),
-                                            0.82f to Color.White.copy(alpha = lensPlateau * lensClear),
+                                            0.18f to lensColor.copy(alpha = lensPlateau * lensClear),
+                                            0.82f to lensColor.copy(alpha = lensPlateau * lensClear),
                                             1f to Color.Transparent,
                                         )
                                     )
@@ -722,12 +725,12 @@ private fun FrostedGlass(
             )
     ) {
         Box(Modifier.matchParentSize().background(effectiveTint))
-        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = if (dark) veilAlpha * 0.20f else veilAlpha)))
+        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = if (dark) veilAlpha * 0.10f else veilAlpha)))
         Box(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = if (dark) 0.14f else 0.30f),
+                        Color.White.copy(alpha = if (dark) 0.06f else 0.30f),
                         Color.White.copy(alpha = 0.0f),
                     )
                 )
@@ -783,6 +786,9 @@ private val glassHairlineDark: Brush
 
 @Composable
 private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
+    // 深色下大幅压暗 rim 光环与斜射光泽: 黑底上白光环会让每张卡像被描了一圈
+    // 发光边 (Lee 明确说丑)。只留极淡的边缘定义, 玻璃感靠发丝边线与染色承担。
+    val darkMode = isSystemInDarkTheme()
     Box(
         Modifier.matchParentSize().drawWithCache {
             val outerRadius = shape.topStart.toPx(size, this)
@@ -803,7 +809,7 @@ private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
                 Ring(2.4.dp.toPx(), 3.6.dp.toPx(), 0.16f, 0.35f),
                 Ring(6.6.dp.toPx(), 5.2.dp.toPx(), 0.06f, 0.10f),
             )
-            val brushes = rings.map { rimBrush(it.light, it.dark) }
+            val brushes = rings.map { rimBrush(it.light * if (darkMode) 0.15f else 1f, it.dark * if (darkMode) 0.5f else 1f) }
             onDrawBehind {
                 rings.forEachIndexed { index, ring ->
                     val inset = ring.inset
@@ -825,8 +831,8 @@ private fun BoxScope.GlassOptics(shape: CornerBasedShape) {
         Modifier.matchParentSize().background(
             Brush.linearGradient(
                 colorStops = arrayOf(
-                    0f to Color.White.copy(alpha = 0.18f),
-                    0.42f to Color.White.copy(alpha = 0.04f),
+                    0f to Color.White.copy(alpha = if (darkMode) 0.05f else 0.18f),
+                    0.42f to Color.White.copy(alpha = if (darkMode) 0.012f else 0.04f),
                     1f to Color.Transparent,
                 )
             )
