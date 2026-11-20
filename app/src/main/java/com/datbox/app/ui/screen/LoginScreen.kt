@@ -3,6 +3,7 @@ package com.datbox.app.ui.screen
 import com.datbox.app.R
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,13 +38,12 @@ import com.datbox.app.data.api.TokenStore
 import com.datbox.app.ui.component.LiquidGlassSurface
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.ErrorRedSoft
+import com.datbox.app.ui.theme.DarkSurface
 import com.datbox.app.ui.theme.FieldBg
 import com.datbox.app.ui.theme.TextFaint
 import com.datbox.app.ui.theme.TextFainter
 import com.datbox.app.ui.theme.TextGhost
 import com.datbox.app.ui.theme.TextMuted
-import com.datbox.app.ui.theme.TextStrong
-import com.datbox.app.ui.theme.WarmIvory
 import com.datbox.app.util.AppConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -157,6 +157,7 @@ fun LoginScreen(
     vm: LoginViewModel = hiltViewModel(),
 ) {
     val state by vm.state.collectAsState()
+    val fieldBg = if (isSystemInDarkTheme()) DarkSurface else FieldBg
 
     LaunchedEffect(state.success) {
         if (state.success) onLoginSuccess()
@@ -165,7 +166,7 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WarmIvory)
+            .background(MaterialTheme.colorScheme.background)
     ) {
 
         Column(
@@ -189,7 +190,7 @@ fun LoginScreen(
                 "聚合你的云盘",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.W600,
-                color = TextStrong
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(Modifier.height(4.dp))
@@ -214,7 +215,7 @@ fun LoginScreen(
                         "欢迎回来",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.W600,
-                        color = TextStrong
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Spacer(Modifier.height(20.dp))
@@ -228,8 +229,8 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = FieldBg,
-                            unfocusedContainerColor = FieldBg,
+                            focusedContainerColor = fieldBg,
+                            unfocusedContainerColor = fieldBg,
                             focusedBorderColor = BrandGreen,
                             unfocusedBorderColor = Color.Transparent,
                             cursorColor = BrandGreen
@@ -258,8 +259,8 @@ fun LoginScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = FieldBg,
-                            unfocusedContainerColor = FieldBg,
+                            focusedContainerColor = fieldBg,
+                            unfocusedContainerColor = fieldBg,
                             focusedBorderColor = BrandGreen,
                             unfocusedBorderColor = Color.Transparent,
                             cursorColor = BrandGreen
@@ -333,8 +334,8 @@ fun LoginScreen(
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = FieldBg,
-                            unfocusedContainerColor = FieldBg,
+                            focusedContainerColor = fieldBg,
+                            unfocusedContainerColor = fieldBg,
                             focusedBorderColor = BrandGreen,
                             unfocusedBorderColor = Color.Transparent,
                             cursorColor = BrandGreen

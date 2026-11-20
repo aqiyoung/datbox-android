@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.border
@@ -84,12 +85,10 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
-import com.datbox.app.ui.theme.BorderWarm
 import com.datbox.app.ui.theme.BrandGreen
+import com.datbox.app.ui.theme.DarkSurface
 import com.datbox.app.ui.theme.MiSansFamily
-import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
-import com.datbox.app.ui.theme.TextStrong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -149,6 +148,7 @@ fun LiquidGlassRow(
                 Text(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -197,6 +197,7 @@ fun LiquidGlassBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
+    val dark = isSystemInDarkTheme()
     val motion = remember { LensMotion(scope, selectedIndex) }
     val lensTarget = selectedIndex
     LaunchedEffect(lensTarget) { motion.animateTo(lensTarget) }
@@ -302,7 +303,11 @@ fun LiquidGlassBottomBar(
                             setFloatUniform("uLensRim", 0.7f)
                             setFloatUniform("uLensRimWidth", 1.1.dp.value * dp)
                             setFloatUniform("uLensRimAdded", 0f)
-                            setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.478f)
+                            if (dark) {
+                                setFloatUniform("uTint", 0.16f, 0.16f, 0.17f, 0.478f)
+                            } else {
+                                setFloatUniform("uTint", 0.957f, 0.957f, 0.957f, 0.478f)
+                            }
                         }
                         clipPath(pillPath) {
                             translate(
@@ -324,12 +329,21 @@ fun LiquidGlassBottomBar(
                     tintGradient = if (backdropEffect != null) {
                         Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                     } else {
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFF4F4F4).copy(alpha = 0.50f),
-                                Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                        if (dark) {
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    DarkSurface.copy(alpha = 0.50f),
+                                    DarkSurface.copy(alpha = 0.50f),
+                                )
                             )
-                        )
+                        } else {
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                                    Color(0xFFF4F4F4).copy(alpha = 0.50f),
+                                )
+                            )
+                        }
                     },
                 ) {}
                 Box(
@@ -409,7 +423,7 @@ private fun DockTabItem(
         targetValue = if (tinted) 1f else 0f,
         animationSpec = tween(durationMillis = 240),
     ).value
-    val tint = lerp(StoneGray, NearBlack, t)
+    val tint = lerp(StoneGray, MaterialTheme.colorScheme.onSurface, t)
     // 只有图标, 不显示文字 (label 仍作为无障碍描述)
     Column(
         modifier = modifier.clickable(
@@ -639,9 +653,7 @@ private class PillSquashModel {
 private fun FrostedGlass(
     shape: CornerBasedShape,
     modifier: Modifier = Modifier,
-    tintGradient: Brush = Brush.verticalGradient(
-        colors = listOf(Color(0xFFFCFCFD), Color(0xFFE9E9EE))
-    ),
+    tintGradient: Brush? = null,
     veilAlpha: Float = 0.30f,
     withShadow: Boolean = true,
     optical: Boolean = true,
@@ -649,6 +661,12 @@ private fun FrostedGlass(
     onLongClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    val dark = isSystemInDarkTheme()
+    val effectiveTint = tintGradient ?: if (dark) {
+        Brush.verticalGradient(colors = listOf(Color(0xFF3B3B40), Color(0xFF242428)))
+    } else {
+        Brush.verticalGradient(colors = listOf(Color(0xFFFCFCFD), Color(0xFFE9E9EE)))
+    }
     val isClickable = onClick != null || onLongClick != null
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -696,13 +714,13 @@ private fun FrostedGlass(
                 }
             )
     ) {
-        Box(Modifier.matchParentSize().background(tintGradient))
-        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = veilAlpha)))
+        Box(Modifier.matchParentSize().background(effectiveTint))
+        Box(Modifier.matchParentSize().background(Color.White.copy(alpha = if (dark) veilAlpha * 0.20f else veilAlpha)))
         Box(
             Modifier.matchParentSize().background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = if (dark) 0.10f else 0.30f),
                         Color.White.copy(alpha = 0.0f),
                     )
                 )
@@ -716,7 +734,7 @@ private fun FrostedGlass(
             )
         }
         content()
-        Box(Modifier.matchParentSize().border(width = 0.5.dp, brush = glassHairline, shape = shape))
+        Box(Modifier.matchParentSize().border(width = 0.5.dp, brush = if (dark) glassHairlineDark else glassHairline, shape = shape))
     }
 }
 
@@ -736,6 +754,22 @@ private val glassHairline: Brush
             0.750f to Color.Black.copy(alpha = 0.040f),
             0.875f to Color.Black.copy(alpha = 0.075f),
             1.000f to Color.Black.copy(alpha = 0.110f),
+        )
+    )
+
+
+private val glassHairlineDark: Brush
+    get() = Brush.sweepGradient(
+        colorStops = arrayOf(
+            0.000f to Color.White.copy(alpha = 0.16f),
+            0.125f to Color.White.copy(alpha = 0.10f),
+            0.250f to Color.White.copy(alpha = 0.05f),
+            0.375f to Color.White.copy(alpha = 0.10f),
+            0.500f to Color.White.copy(alpha = 0.16f),
+            0.625f to Color.White.copy(alpha = 0.10f),
+            0.750f to Color.White.copy(alpha = 0.05f),
+            0.875f to Color.White.copy(alpha = 0.10f),
+            1.000f to Color.White.copy(alpha = 0.16f),
         )
     )
 
@@ -818,12 +852,12 @@ fun LiquidGlassPrimaryButton(
             horizontalArrangement = Arrangement.Center,
         ) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, tint = NearBlack, modifier = Modifier.size(18.dp))
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
             }
             Text(
                 text = text,
-                color = NearBlack.copy(alpha = if (enabled) 1f else 0.5f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.5f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = MiSansFamily,
@@ -945,7 +979,7 @@ fun GlassMenuItem(
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
             fontFamily = MiSansFamily,
-            color = (labelColor ?: if (selected) NearBlack else TextStrong)
+            color = (labelColor ?: MaterialTheme.colorScheme.onSurface)
                 .copy(alpha = if (enabled) 1f else 0.35f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -971,7 +1005,7 @@ fun GlassMenuDivider() {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .height(0.5.dp)
-            .background(BorderWarm)
+            .background(MaterialTheme.colorScheme.outlineVariant)
     )
 }
 
@@ -996,7 +1030,7 @@ fun LiquidGlassAlertDialog(
         text = text,
         modifier = modifier,
         shape = shape,
-        containerColor = Color.White.copy(alpha = 0.92f),
+        containerColor = MaterialTheme.colorScheme.surface,
     )
 }
 
@@ -1009,7 +1043,7 @@ fun GlassDecorBackground(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         content()
     }

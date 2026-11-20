@@ -37,7 +37,6 @@ import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
 import com.datbox.app.ui.theme.SuccessGreen
 import com.datbox.app.ui.theme.TextMuted
-import com.datbox.app.ui.theme.TextStrong
 import com.datbox.app.ui.theme.WarningOrange
 import com.datbox.app.util.AppConfig
 
@@ -62,10 +61,10 @@ fun ManagementScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("管理", fontWeight = FontWeight.Bold, color = TextStrong) },
+                    title = { Text("管理", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface) },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = TextStrong)
+                            Icon(Icons.Outlined.ArrowBack, contentDescription = "返回", tint = MaterialTheme.colorScheme.onSurface)
                         }
                     },
                     windowInsets = WindowInsets(0.dp),
@@ -99,7 +98,7 @@ fun ManagementScreen(
                 TabRow(
                     selectedTabIndex = selectedTab.ordinal,
                     containerColor = Color.Transparent,
-                    contentColor = TextStrong,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     indicator = {},
                     divider = {}
                 ) {
@@ -126,7 +125,7 @@ fun ManagementScreen(
                     }
                 }
 
-                HorizontalDivider(color = BorderLight, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                 when (selectedTab) {
                     ManagementTab.USERS -> UsersTab(state.users, state.loading, vm)
@@ -169,7 +168,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("账号", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextStrong)
+                    Text("账号", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         if (loading) "正在同步…" else "共 ${users.size} 个",
                         fontSize = 11.sp,
@@ -213,7 +212,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                             Icon(Icons.Outlined.Person, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(22.dp))
                         }
                         Spacer(Modifier.height(10.dp))
-                        Text("还没有账号", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextStrong)
+                        Text("还没有账号", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                         Spacer(Modifier.height(3.dp))
                         Text("服务端只允许创建普通用户", fontSize = 11.sp, color = TextMuted)
                     }
@@ -249,7 +248,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
                                         user.username,
                                         fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = TextStrong,
+                                        color = MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.weight(1f, fill = false)
@@ -318,7 +317,7 @@ private fun UsersTab(users: List<User>, loading: Boolean, vm: ManagementViewMode
     deletingUser?.let { user ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingUser = null },
-            title = { Text("删除用户", color = TextStrong) },
+            title = { Text("删除用户", color = MaterialTheme.colorScheme.onSurface) },
             text = { Text("确定删除用户「${user.username}」？删除后该账号将无法再登录。", color = TextMuted) },
             confirmButton = {
                 Button(
@@ -370,7 +369,7 @@ private fun UserEditDialog(user: User?, onDismiss: () -> Unit, onSave: (user: Us
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (user == null) "添加用户" else "编辑用户", color = TextStrong) },
+        title = { Text(if (user == null) "添加用户" else "编辑用户", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -474,7 +473,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
                         Icon(Icons.Outlined.Storage, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(mount.mountPath, fontWeight = FontWeight.Medium, color = TextStrong)
+                            Text(mount.mountPath, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                             Text(
                                 mount.driver,
                                 style = MaterialTheme.typography.bodySmall,
@@ -548,7 +547,7 @@ private fun MountsTab(mounts: List<Mount>, loading: Boolean, vm: ManagementViewM
     deletingMount?.let { mount ->
         LiquidGlassAlertDialog(
             onDismissRequest = { deletingMount = null },
-            title = { Text("删除挂载", color = TextStrong) },
+            title = { Text("删除挂载", color = MaterialTheme.colorScheme.onSurface) },
             text = { Text("确定删除挂载「${mount.mountPath}」？仅移除挂载配置, 不会删除存储上的数据。", color = TextMuted) },
             confirmButton = {
                 Button(
@@ -572,7 +571,7 @@ private fun MountEditDialog(mount: Mount?, onDismiss: () -> Unit, onSave: (Strin
 
     LiquidGlassAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (mount == null) "添加挂载" else "编辑挂载", color = TextStrong) },
+        title = { Text(if (mount == null) "添加挂载" else "编辑挂载", color = MaterialTheme.colorScheme.onSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
@@ -644,7 +643,7 @@ private fun SharesTab(shares: List<Share>, loading: Boolean, vm: ManagementViewM
                         Icon(Icons.Outlined.Share, contentDescription = null, tint = BrandGreen, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(share.name, fontWeight = FontWeight.Medium, color = TextStrong)
+                            Text(share.name, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
                             Text(share.path, style = MaterialTheme.typography.bodySmall, color = TextMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (share.expires.isNotEmpty()) {
                                 Text("过期: ${share.expires}", style = MaterialTheme.typography.labelSmall, color = WarningOrange)
@@ -678,7 +677,7 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
     ) {
         item {
             CardItem {
-                Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextStrong)
+                Text("服务器信息", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(8.dp))
                 Text("地址: $serverUrl", color = TextMuted)
                 overview?.let {
@@ -691,7 +690,7 @@ private fun SettingsTab(overview: Overview?, serverUrl: String) {
 
         item {
             CardItem {
-                Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextStrong)
+                Text("关于", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.height(8.dp))
                 Text("${AppConfig.BRAND} v${BuildConfig.VERSION_NAME}", color = TextMuted)
                 Text("基于官方 OpenList 开发", color = TextMuted)

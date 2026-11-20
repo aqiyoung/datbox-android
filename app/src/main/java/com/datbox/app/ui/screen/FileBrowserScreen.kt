@@ -35,10 +35,7 @@ import androidx.compose.ui.graphics.SolidColor
 import com.datbox.app.ui.theme.BrandGreen
 import com.datbox.app.ui.theme.DangerRed
 import com.datbox.app.ui.theme.MiSansFamily
-import com.datbox.app.ui.theme.NearBlack
 import com.datbox.app.ui.theme.StoneGray
-import com.datbox.app.ui.theme.TextStrong
-import com.datbox.app.ui.theme.WarmIvory
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -641,7 +638,7 @@ private fun FileBrowserTopBar(
                     text = AppConfig.BRAND,
                     style = titleStyle,
                     fontWeight = FontWeight.ExtraBold,
-                    color = NearBlack,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                 )
             }
@@ -650,7 +647,7 @@ private fun FileBrowserTopBar(
                 text = title,
                 style = titleStyle,
                 fontWeight = FontWeight.ExtraBold,
-                color = NearBlack,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -658,16 +655,16 @@ private fun FileBrowserTopBar(
         }
 
         IconButton(onClick = onSearchClick) {
-            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = NearBlack)
+            Icon(Icons.Outlined.Search, contentDescription = "搜索", tint = MaterialTheme.colorScheme.onSurface)
         }
 
         Box {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { sortMenuExpanded = true }) {
-                    Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = NearBlack)
+                    Icon(Icons.Outlined.Sort, contentDescription = "排序", tint = MaterialTheme.colorScheme.onSurface)
                 }
                 IconButton(onClick = onUpload) {
-                    Icon(Icons.Outlined.Add, contentDescription = "上传", tint = NearBlack)
+                    Icon(Icons.Outlined.Add, contentDescription = "上传", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
             GlassMenu(
@@ -716,7 +713,7 @@ private fun SearchBarRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = onClose) {
-            Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = NearBlack)
+            Icon(Icons.Outlined.ArrowBack, contentDescription = "退出搜索", tint = MaterialTheme.colorScheme.onSurface)
         }
         LiquidGlassCard(
             modifier = Modifier
@@ -743,8 +740,8 @@ private fun SearchBarRow(
                     value = query,
                     onValueChange = onQueryChange,
                     singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = NearBlack),
-                    cursorBrush = SolidColor(NearBlack),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
                     decorationBox = { inner ->
                         Box(contentAlignment = Alignment.CenterStart) {
                             if (query.isEmpty()) {
@@ -881,7 +878,7 @@ private fun FileRow(
 
 @Composable
 private fun CenterLoading() = Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-    CircularProgressIndicator(color = NearBlack)
+    CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -889,7 +886,7 @@ private fun CenterMessage(msg: String, actionLabel: String? = null, onAction: ((
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         LiquidGlassCard(modifier = Modifier.padding(32.dp).widthIn(max = 320.dp), cornerRadius = 24.dp, contentPadding = 24.dp) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(msg, color = NearBlack, style = MaterialTheme.typography.bodyLarge)
+                Text(msg, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyLarge)
                 if (actionLabel != null && onAction != null) {
                     Spacer(Modifier.height(12.dp))
                     LiquidGlassPrimaryButton(text = actionLabel, onClick = onAction, icon = Icons.Outlined.ArrowBack)
@@ -918,7 +915,7 @@ private fun GlassActionDialog(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = WarmIvory,
+        containerColor = MaterialTheme.colorScheme.surface,
         dragHandle = {
             Box(Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
                 Box(Modifier.size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFD8D6CF)))
@@ -940,7 +937,7 @@ private fun GlassActionDialog(
                         fileName,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextStrong,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -982,7 +979,7 @@ private fun GlassActionDialog(
                     Text(
                         shareUrl,
                         fontSize = 12.sp,
-                        color = Color(0xFF56544E),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -1005,16 +1002,16 @@ private fun GlassActionDialog(
                     }
                     Surface(
                         modifier = Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { onSystemShare(shareUrl) },
-                        color = TextStrong,
+                        color = MaterialTheme.colorScheme.onSurface,
                     ) {
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = 12.dp),
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
+                            Icon(Icons.Outlined.IosShare, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.surface)
                             Spacer(Modifier.width(8.dp))
-                            Text("系统分享", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Text("系统分享", color = MaterialTheme.colorScheme.surface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -1032,7 +1029,7 @@ private fun SheetActionRow(
     loading: Boolean = false,
     onClick: () -> Unit,
 ) {
-    val tint = if (danger) DangerRed else NearBlack
+    val tint = if (danger) DangerRed else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1048,7 +1045,7 @@ private fun SheetActionRow(
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = MiSansFamily,
-            color = if (danger) DangerRed else TextStrong,
+            color = if (danger) DangerRed else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
         if (loading) {
